@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+/* 💡 ゲーム内の英数字（font-monoの部分）を、カクカクしたSFフォントに強制変更する設定 */
+@theme {
+  --font-mono: "Share Tech Mono", monospace;
+}

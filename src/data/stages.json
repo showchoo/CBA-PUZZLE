@@ -1,0 +1,136 @@
+[
+  {
+    "id": 1,
+    "title": "第1章：基礎のキ // とにかく予算を守れ！",
+    "description": "赤字弱小チームの経営再建を任された。すべての基本となる『サラリーキャップ』の枠内に総年俸を収めよ！",
+    "ruleExplanation": {
+      "title": "⚙️ 解放されるルール：サラリーキャップ（給与上限）",
+      "text": "NBAでは、チーム全員の年俸合計に『基準ライン（このステージでは$136M）』が設定されています。まずは純粋な引き算。高い選手を放出し、FA市場から安い選手を獲得して、戦力を維持しつつ予算内に収める基本を覚えましょう！"
+    },
+    "conditions": {
+      "maxSalary": 136000000,
+      "minTotalOvr": 430,
+      "mustHaveStar": false
+    },
+    "initialRoster": [
+      {"id": "p1_1", "name": "高給ベテランA", "rating": 76, "salary": 45000000, "experience": 8, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p1_2", "name": "実力不相応センター", "rating": 71, "salary": 38000000, "experience": 6, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p1_3", "name": "中堅フォワード", "rating": 72, "salary": 25000000, "experience": 5, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p1_4", "name": "伸び悩むガード", "rating": 68, "salary": 18000000, "experience": 4, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p1_5", "name": "控えベンチA", "rating": 64, "salary": 12000000, "experience": 3, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p1_6", "name": "控えベンチB", "rating": 62, "salary": 8000000, "experience": 2, "contractType": "regular", "birdRights": "None", "faStatus": "None"}
+    ],
+    "initialFreeAgents": [
+      {"id": "fa1_1", "name": "コスパ抜群ガード", "rating": 74, "salary": 7000000, "experience": 4, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa1_2", "name": "格安タフファイター", "rating": 70, "salary": 4000000, "experience": 3, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa1_3", "name": "実力派ウイング", "rating": 73, "salary": 6000000, "experience": 5, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa1_4", "name": "掘り出し物センター", "rating": 72, "salary": 5000000, "experience": 4, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa1_5", "name": "お買い得司令塔", "rating": 71, "salary": 3500000, "experience": 3, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa1_6", "name": "ハッスル系フォワード", "rating": 69, "salary": 2000000, "experience": 2, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"}
+    ]
+  },
+  {
+    "id": 2,
+    "title": "第2章：大富豪の罠 // 金ならある、スターを集めろ！",
+    "description": "放漫なオーナーがスターを集めすぎたせいで、総年俸が『贅沢税ライン（$165.0M）』を大突破！破産を回避せよ！",
+    "ruleExplanation": {
+      "title": "💸 解放されるルール：贅沢税（ラグジュアリータックス）",
+      "text": "サラリーキャップを大幅に超えた金持ちチームには、超高額な罰金（贅沢税）が課せられます。このステージでは、チームの象徴であるスター（能力90以上）を最低1人残したまま、総年俸を$165M以下までスリム化するのがミッションです！"
+    },
+    "conditions": {
+      "maxSalary": 165000000,
+      "minTotalOvr": 450,
+      "mustHaveStar": true
+    },
+    "initialRoster": [
+      {"id": "p2_1", "name": "超新星スーパーエース", "rating": 94, "salary": 55000000, "experience": 7, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p2_2", "name": "我儘セカンドスター", "rating": 88, "salary": 46000000, "experience": 6, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p2_3", "name": "衰え気味の元得点王", "rating": 81, "salary": 42000000, "experience": 10, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p2_4", "name": "高給ベンチガード", "rating": 70, "salary": 25000000, "experience": 5, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p2_5", "name": "過大評価ビッグマン", "rating": 68, "salary": 18000000, "experience": 4, "contractType": "regular", "birdRights": "None", "faStatus": "None"}
+    ],
+    "initialFreeAgents": [
+      {"id": "fa2_1", "name": "激安3ポイント職人", "rating": 76, "salary": 4500000, "experience": 5, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa2_2", "name": "薄給泥臭いセンター", "rating": 72, "salary": 3000000, "experience": 3, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa2_3", "name": "コスパ優秀ウイング", "rating": 74, "salary": 3500000, "experience": 4, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa2_4", "name": "ディフェンス特化ガード", "rating": 71, "salary": 2500000, "experience": 3, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"}
+    ]
+  },
+  {
+    "id": 3,
+    "title": "第3章：生え抜きの絆 // チームの象徴を守れ！",
+    "description": "ファンに愛されるエースの契約切れ。普通なら予算オーバーで再契約は不可能だが……？",
+    "ruleExplanation": {
+      "title": "🦅 解放されるルール：バード特例（Bird Rights）",
+      "text": "チームに3年以上在籍している『生え抜き選手』の青いバッジを持つプレイヤーは、チームの予算（キャップ）を完全にブチ抜いてでも、特例で高額な再契約を結ぶことができます！生え抜きをキープしつつ、他チームから移籍志願してきた強力な格安スターをFA市場から強奪しましょう。"
+    },
+    "conditions": {
+      "maxSalary": 220000000,
+      "minTotalOvr": 460,
+      "mustHaveStar": true
+    },
+    "initialRoster": [
+      {"id": "p3_1", "name": "生え抜きフランチャイズスター", "rating": 95, "salary": 60000000, "experience": 8, "contractType": "regular", "birdRights": "Full", "faStatus": "None"},
+      {"id": "p3_2", "name": "ベテランビッグマン", "rating": 78, "salary": 35000000, "experience": 9, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p3_3", "name": "高給シューター", "rating": 76, "salary": 30000000, "experience": 6, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p3_4", "name": "中堅フォワード", "rating": 73, "salary": 20000000, "experience": 5, "contractType": "regular", "birdRights": "None", "faStatus": "None"}
+    ],
+    "initialFreeAgents": [
+      {"id": "fa3_1", "name": "移籍志願の格安スター", "rating": 86, "salary": 15000000, "experience": 5, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa3_2", "name": "ベンチの爆撃機", "rating": 75, "salary": 5500000, "experience": 4, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa3_3", "name": "ハッスル系ガード", "rating": 72, "salary": 3000000, "experience": 3, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"}
+    ]
+  },
+  {
+    "id": 4,
+    "title": "第4章：等価交換 // 不良債権をトレードせよ！",
+    "description": "大怪我で全休、なのに超高給を貪るプレイヤーを放出して、健康な実力者をトレードで獲得したい。",
+    "ruleExplanation": {
+      "title": "⚖️ 解放されるルール：トレード制限（125%ルール）",
+      "text": "キャップを超えているチームは、トレードの際に『出す年俸の合計の125%＋10万ドル』を超える年俸の選手を貰うことはできません。不公平な裏取引を防ぐための等価交換パズルです。不良債権を放出しつつ、ピッタリ年俸が釣り合う選手を市場から選び抜いてください！"
+    },
+    "conditions": {
+      "maxSalary": 145000000,
+      "minTotalOvr": 420,
+      "mustHaveStar": false
+    },
+    "initialRoster": [
+      {"id": "p4_1", "name": "全休の元スター（不良債権）", "rating": 50, "salary": 48000000, "experience": 11, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p4_2", "name": "堅実なスタメンガード", "rating": 79, "salary": 28000000, "experience": 6, "contractType": "regular", "birdRights": "None", "faStatus": "None"},
+      {"id": "p4_3", "name": "若手センター", "rating": 75, "salary": 15000000, "experience": 3, "contractType": "regular", "birdRights": "None", "faStatus": "None"}
+    ],
+    "initialFreeAgents": [
+      {"id": "fa4_1", "name": "他チームの健康な実力者", "rating": 83, "salary": 35000000, "experience": 7, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa4_2", "name": "高コスパ3&Dウイング", "rating": 77, "salary": 14000000, "experience": 4, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa4_3", "name": "コンボガード（即戦力）", "rating": 76, "salary": 10000000, "experience": 5, "contractType": "regular", "birdRights": "None", "faStatus": "UFA"}
+    ]
+  },
+  {
+    "id": 5,
+    "title": "第5章：魔王降臨 // 最凶の壁、第2エプロンをハックせよ！",
+    "description": "最終試練。超銀河系軍団のツケが回り、総年俸が最凶の『第2エプロン（$182.5M）』を突破！通常の補強手段がすべて凍結された絶望の状況をハックせよ！",
+    "ruleExplanation": {
+      "title": "🔮 解放されるルール：2-WAY契約 ＆ ベテランミニマム割引",
+      "text": "第2エプロンを超えた最凶チームに許された補強は2つだけ。①【2-WAY(紫バッジ)】:予算メーターが『1ドルも増えない』最強の特例枠。②【MIN(橙バッジ)】:10年以上の老兵を最低保証で獲ると、帳簿上の加算が一律$2.0Mに大割引される裏技。この2つをハメ込んで最強の銀河系ロスターを完成させろ！"
+    },
+    "conditions": {
+      "maxSalary": 300000000,
+      "minTotalOvr": 1050,
+      "mustHaveStar": true
+    },
+    "initialRoster": [
+      {"id": "p5_1", "name": "超高給キング・エース", "rating": 98, "salary": 65000000, "experience": 15, "contractType": "regular", "birdRights": "Full", "faStatus": "None"},
+      {"id": "p5_2", "name": "生え抜きの神速ガード", "rating": 93, "salary": 54000000, "experience": 8, "contractType": "regular", "birdRights": "Full", "faStatus": "None"},
+      {"id": "p5_3", "name": "生え抜きの鉄壁センター", "rating": 91, "salary": 49000000, "experience": 7, "contractType": "regular", "birdRights": "Full", "faStatus": "None"},
+      {"id": "p5_4", "name": "超大型の不良債権ベテラン", "rating": 72, "salary": 46000000, "experience": 12, "contractType": "regular", "birdRights": "Full", "faStatus": "None"}
+    ],
+    "initialFreeAgents": [
+      {"id": "fa5_1", "name": "13年目の重鎮（守備職人ミニマム）", "rating": 79, "salary": 3800000, "experience": 13, "contractType": "minimum", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa5_2", "name": "10年目の元オールスター（格安ミニマム）", "rating": 82, "salary": 3500000, "experience": 10, "contractType": "minimum", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa5_3", "name": "11年目のゴール下重戦車（ミニマム）", "rating": 77, "salary": 3600000, "experience": 11, "contractType": "minimum", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa5_4", "name": "12年目の3ポイント爆撃機（ミニマム）", "rating": 80, "salary": 3700000, "experience": 12, "contractType": "minimum", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa5_5", "name": "2ウェイ枠の超特急ガード", "rating": 73, "salary": 0, "experience": 1, "contractType": "twoway", "birdRights": "None", "faStatus": "UFA"},
+      {"id": "fa5_6", "name": "2ウェイ枠のハッスルウイング", "rating": 72, "salary": 0, "experience": 2, "contractType": "twoway", "birdRights": "None", "faStatus": "UFA"}
+    ]
+  }
+]
