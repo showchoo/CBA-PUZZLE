@@ -231,12 +231,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0c0a09] text-white px-2 sm:px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
 
-      {/* タイトル画面 */}
+      {/* ═══ タイトル画面 ═══ */}
       {currentView === 'title' && (
         <div className="w-full max-w-2xl text-center space-y-6 py-8 sm:py-12 px-4 sm:px-8 bg-[#110f0e] border border-stone-850 rounded-3xl shadow-2xl font-mono animate-fade-in relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-pulse"></div>
           <div className="space-y-3">
-            <div className="inline-block bg-cyan-950/60 border border-cyan-800/80 text-cyan-400 text-[10px] sm:text-xs font-black px-3 sm:px-4 py-1.5 rounded-full tracking-widest uppercase">🚀 SYSTEM ONLINE</div>
+            <div className="inline-block bg-cyan-950/60 border border-cyan-800/80 text-cyan-400 text-[10px] sm:text-xs font-black px-3 sm:px-4 py-1.5 rounded-full tracking-widest uppercase">🚀 SYSTEM ONLINE // VER 2026.5</div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-stone-200 to-stone-500 uppercase pt-2">CRUNCH THE CAP</h1>
             <p className="text-xs sm:text-sm font-bold tracking-widest text-cyan-500 uppercase">NBA Labor Agreement Hacking Simulation</p>
           </div>
@@ -282,7 +282,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 週間ランキング画面 */}
+      {/* ═══ 週間ランキング画面 ═══ */}
       {currentView === 'weekly' && (
         <div className="w-full max-w-lg space-y-4 py-6 sm:py-8 px-4 sm:px-8 bg-[#110f0e] border border-amber-900 rounded-3xl shadow-2xl font-mono animate-fade-in">
           <div className="text-center space-y-2">
@@ -334,7 +334,7 @@ export default function App() {
         </div>
       )}
 
-      {/* メインゲーム画面 */}
+      {/* ═══ メインゲーム画面 ═══ */}
       {currentView !== 'title' && currentView !== 'weekly' && (
         <div className="w-full flex flex-col flex-1 justify-start">
           {/* ヘッダー */}
@@ -362,15 +362,17 @@ export default function App() {
             </div>
           )}
 
-          {/* ステージ選択 */}
+          {/* ステージ選択ボタン */}
           {currentView === 'game' && (
-            <div className="w-full max-w-7xl mx-auto mb-2 sm:mb-3 shrink-0 flex justify-end gap-1 sm:gap-2 overflow-x-auto">
-              {stagesData.map((stage, idx) => (
-                <button key={stage.id} onClick={() => { playClickSound(); setCurrentStageIdx(idx); }} className={'px-3 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-base font-mono font-black rounded border transition-all relative whitespace-nowrap ' + (idx === currentStageIdx ? 'bg-cyan-950 border-cyan-500 text-cyan-400 shadow-md shadow-cyan-950/50' : 'bg-stone-900 border-stone-800 text-white hover:bg-stone-850')}>
-                  STAGE 0{stage.id}
-                  {weeklyChallenge && weeklyChallenge.stageId === stage.id && <span className="absolute -top-1 -right-1 w-2 sm:w-3 h-2 sm:h-3 bg-amber-500 rounded-full animate-pulse"></span>}
-                </button>
-              ))}
+            <div className="w-full max-w-7xl mx-auto mb-2 sm:mb-3 shrink-0">
+              <div className="grid grid-cols-5 sm:flex sm:justify-end gap-1 sm:gap-2">
+                {stagesData.map((stage, idx) => (
+                  <button key={stage.id} onClick={() => { playClickSound(); setCurrentStageIdx(idx); }} className={'px-2 sm:px-5 py-1.5 sm:py-2 text-[10px] sm:text-base font-mono font-black rounded border transition-all relative ' + (idx === currentStageIdx ? 'bg-cyan-950 border-cyan-500 text-cyan-400 shadow-md shadow-cyan-950/50' : 'bg-stone-900 border-stone-800 text-white hover:bg-stone-850')}>
+                    S0{stage.id}
+                    {weeklyChallenge && weeklyChallenge.stageId === stage.id && <span className="absolute -top-1 -right-1 w-2 sm:w-3 h-2 sm:h-3 bg-amber-500 rounded-full animate-pulse"></span>}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -400,6 +402,7 @@ export default function App() {
                           <p className="text-xs sm:text-base text-stone-100 font-bold leading-relaxed bg-stone-950/50 p-3 sm:p-4 rounded-xl border border-stone-900 mt-2">{currentStage?.ruleExplanation?.text}</p>
                         </div>
                       )}
+                      {/* ★ 修正: 警告テキストがスマホで重ならないように */}
                       {infoTab === 'warning' && (
                         <div className={'space-y-2 sm:space-y-3 ' + (activeWarnings.length > 0 ? 'animate-[pulse_3s_infinite]' : '')}>
                           <span className="text-[10px] sm:text-sm font-mono font-black text-red-500 tracking-widest block uppercase">REGULATORY STATUS</span>
@@ -408,9 +411,9 @@ export default function App() {
                           ) : (
                             <div className="space-y-2 sm:space-y-3 pt-1">
                               {activeWarnings.map((w, i) => (
-                                <div key={i} className="bg-stone-950 border border-stone-900 p-3 sm:p-4 rounded-xl border-l-4 border-l-red-500">
-                                  <h4 className="text-xs sm:text-base font-black text-red-400 font-mono uppercase tracking-wide">{w.label}</h4>
-                                  <p className="text-xs sm:text-base text-white mt-1 sm:mt-1.5 leading-relaxed font-sans font-extrabold">{w.text}</p>
+                                <div key={i} className="bg-stone-950 border border-stone-900 p-2 sm:p-4 rounded-xl border-l-4 border-l-red-500">
+                                  <h4 className="text-[10px] sm:text-base font-black text-red-400 font-mono uppercase tracking-wide break-words">{w.label}</h4>
+                                  <p className="text-[10px] sm:text-base text-white mt-1 sm:mt-1.5 leading-relaxed font-sans font-extrabold break-words">{w.text}</p>
                                 </div>
                               ))}
                             </div>
