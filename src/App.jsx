@@ -27,6 +27,8 @@ export default function App() {
   const [isSent, setIsSent] = useState(false);
   const [isBgmOn, setIsBgmOn] = useState(false);
 
+  const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$$$${v.toLocaleString()}`;
+
   const ctxRef = useRef(null);
   const bgmStartedRef = useRef(false);
   const bgmGainRef = useRef(null);
@@ -293,19 +295,19 @@ export default function App() {
                     <div className="flex flex-col gap-2 text-base p-4 border-t border-stone-900 font-mono bg-stone-950/40 rounded-b-xl">
                       <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                         <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
-                        <span className={cbaMetrics.totalCapHit <= currentStage?.conditions.maxSalary ? 'text-emerald-400 font-black text-xl' : 'text-red-400 font-black text-xl'}>${cbaMetrics.totalCapHit.toLocaleString()} <span className="text-xs text-stone-500 font-sans">/ ${currentStage?.conditions.maxSalary.toLocaleString()}</span></span>
+                        <span className={cbaMetrics.totalCapHit <= currentStage?.conditions.maxSalary ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{fmt(cbaMetrics.totalCapHit)} <span className="text-lg text-stone-500 font-sans">/ {fmt(currentStage?.conditions.maxSalary)}</span></span>
                       </div>
                       <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                         <span className="text-stone-400 font-sans font-black text-sm">💸 Real Payroll:</span>
-                        <span className="text-amber-400 font-black text-xl">${cbaMetrics.actualPayroll.toLocaleString()}</span>
+                        <span className="text-amber-400 font-black text-3xl">{fmt(cbaMetrics.actualPayroll)}</span>
                       </div>
                       <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                         <span className="text-stone-400 font-sans font-black text-sm">🔥 Total OVR:</span>
-                        <span className={cbaMetrics.totalOvr >= currentStage?.conditions.minTotalOvr ? 'text-emerald-400 font-black text-xl' : 'text-red-400 font-black text-xl'}>{cbaMetrics.totalOvr} <span className="text-xs text-stone-500 font-sans">/ {currentStage?.conditions.minTotalOvr}+</span></span>
+                        <span className={cbaMetrics.totalOvr >= currentStage?.conditions.minTotalOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{cbaMetrics.totalOvr} <span className="text-lg text-stone-500 font-sans">/ {currentStage?.conditions.minTotalOvr}+</span></span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-center text-sm font-sans font-bold pt-0.5">
-                        <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Regular: <span className="text-cyan-400 font-mono font-black text-base">{cbaMetrics.regularContractCount}</span></div>
-                        <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Two-Way: <span className="text-purple-400 font-mono font-black text-base">{cbaMetrics.twoWayCount}</span></div>
+                        <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Regular: <span className="text-cyan-400 font-mono font-black text-2xl">{cbaMetrics.regularContractCount}</span></div>
+                        <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Two-Way: <span className="text-purple-400 font-mono font-black text-2xl">{cbaMetrics.twoWayCount}</span></div>
                       </div>
                       <div className="pt-2"><SalaryMeter totalSalary={cbaMetrics.totalCapHit} /></div>
                     </div>
