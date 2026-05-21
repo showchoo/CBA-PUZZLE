@@ -61,7 +61,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                   <th className="text-center py-2 px-1">Age</th>
                   <th className="text-center py-2 px-1">Rating</th>
                   <th className="text-right py-2 px-2">Salary</th>
-                  <th className="text-center py-2 px-1">契約年数</th>
+                  <th className="text-center py-2 px-1">契約</th>
                 </>
               ) : (
                 <>
