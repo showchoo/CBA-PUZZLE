@@ -66,7 +66,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
               ) : (
                 <>
                   <th className="text-center py-2 px-1">EXP</th>
-                  <th className="text-center py-2 px-1">OVR</th>
+                  <th className="text-center py-2 px-1">Rating</th>
                   <th className="text-right py-2 px-3">Salary</th>
                 </>
               )}
@@ -121,7 +121,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                         <TipButton
                           onClick={() => onBuyout && onBuyout(player)}
                           className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-2 py-0.5 rounded transition-colors font-mono"
-                          tip="バイアウト（Buyout）：選手と交渉して契約を減額。デッドキャップ50〜70%に軽減。OVRが低い選手ほど同意しやすい。"
+                          tip="バイアウト（Buyout）：選手と交渉して契約を減額。デッドキャップ50〜70%に軽減。Ratingが低い選手ほど同意しやすい。"
                         >
                           バイアウト
                         </TipButton>
