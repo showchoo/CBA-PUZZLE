@@ -27,9 +27,9 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                 <td className="py-1.5 px-3">
                   <div className="font-bold text-white text-sm flex items-center gap-1.5 flex-wrap">
                     {player.name}
-                    {player.birdRights === 'Full' && <span className="text-[9px] bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded font-mono">🐦 BIRD</span>}
-                    {player.contractType === 'minimum' && <span className="text-[9px] bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded font-mono">MIN</span>}
-                    {player.contractType === 'twoway' && <span className="text-[9px] bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded font-mono">2WAY</span>}
+                    {player.birdRights === 'Full' && <span className="text-sm bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded font-mono">🐦 BIRD</span>}
+                    {player.contractType === 'minimum' && <span className="text-sm bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded font-mono">MIN</span>}
+                    {player.contractType === 'twoway' && <span className="text-sm bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded font-mono">2WAY</span>}
                   </div>
                 </td>
                 <td className="text-center py-1.5 px-1">
