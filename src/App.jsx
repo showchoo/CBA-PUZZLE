@@ -607,7 +607,7 @@ export default function App() {
           </div>
           <div className="border-t border-b border-stone-900 py-4 text-left font-sans text-stone-400 text-sm leading-relaxed max-w-md mx-auto font-medium space-y-2">
             <p>「勝つためにスターを並べろ。ただし、1ドルでも規約を超えればチームを剥奪する。」</p>
-            <p>NBAの鬼畜な裏法律『CBA』の隙間を突き、最強ロスターを構築する、大人の数字パズルシミュレーター。</p>
+            <p>プロバスケットボール界の鬼畜な裏法律『労使協定』の隙間を突き、最強ロスターを構築する、大人の数字パズルシミュレーター。</p>
           </div>
           <div className="max-w-xs mx-auto">
             <input type="text" placeholder="GMネームを入力..." value={gmName} onChange={(e) => setGmName(e.target.value)} maxLength={15} className="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 font-bold text-center" />
@@ -617,7 +617,7 @@ export default function App() {
             <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('dynasty'); }} className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-amber-950/50 hover:scale-[1.02] active:scale-[0.98]">DYNASTY 👑</button>
             <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="w-full sm:w-auto bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 text-sm font-black px-6 py-3.5 rounded-xl transition-all tracking-wider">RANK 🏆</button>
           </div>
-          <div className="text-[10px] text-stone-600 pt-4 font-mono uppercase tracking-widest">Developed by Higashimura & Gemini Pro Engine</div>
+          <div className="text-[10px] text-stone-600 pt-4 font-mono uppercase tracking-widest">Developed by Stark Games</div>
         </div>
       )}
 
@@ -632,7 +632,7 @@ export default function App() {
           <header className="w-full max-w-7xl mx-auto mb-2 border-b border-stone-800 pb-3 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
             <div className="cursor-pointer" onClick={() => { playClickSound(); setCurrentView('title'); }}>
               <h1 className="text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 font-mono">CRUNCH THE CAP</h1>
-              <p className="text-sm text-stone-400 mt-0.5 font-mono tracking-wider">NBA Labor Agreement Hacking Simulation</p>
+              <p className="text-sm text-stone-400 mt-0.5 font-mono tracking-wider">Pro Basketball Salary Cap Simulation</p>
             </div>
             <div className="flex bg-stone-950 p-1.5 rounded-xl border border-stone-850 font-mono text-sm font-black">
               <button onClick={() => { playClickSound(); setCurrentView('title'); }} className="px-4 py-2.5 text-stone-500 hover:text-stone-300 rounded-lg transition-all">🏠</button>
@@ -653,7 +653,7 @@ export default function App() {
           <header className="w-full max-w-7xl mx-auto mb-2 border-b border-stone-800 pb-3 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
             <div className="cursor-pointer" onClick={() => { playClickSound(); setCurrentView('title'); }}>
               <h1 className="text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 font-mono">CRUNCH THE CAP</h1>
-              <p className="text-sm text-stone-400 mt-0.5 font-mono tracking-wider">NBA Labor Agreement Hacking Simulation</p>
+              <p className="text-sm text-stone-400 mt-0.5 font-mono tracking-wider">Pro Basketball Salary Cap Simulation</p>
             </div>
             <div className="flex bg-stone-950 p-1.5 rounded-xl border border-stone-850 font-mono text-sm font-black">
               <button onClick={() => { playClickSound(); setCurrentView('title'); }} className="px-4 py-2.5 text-stone-500 hover:text-stone-300 rounded-lg transition-all">🏠</button>
