@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$$$${v.toLocaleString()}`;
 
 function Badge({ children, tooltip, className }) {
+  const [show, setShow] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+
+  const handleEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPos({ x: rect.left + rect.width / 2, y: rect.top });
+    setShow(true);
+  };
+
   return (
-    <span className="relative group inline-block">
+    <span onMouseEnter={handleEnter} onMouseLeave={() => setShow(false)}>
       <span className={className + " cursor-help"}>{children}</span>
-      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-stone-950 border border-stone-600 rounded-lg text-xs text-stone-200 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl shadow-black/50 w-56 break-words" style={{ wordBreak: 'break-word' }}>
-        {tooltip}
-        <span className="absolute top-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-600"></span>
-      </span>
+      {show && (
+        <div className="fixed z-[9999] px-3 py-2.5 bg-stone-950 border border-stone-500 rounded-xl text-sm text-white leading-relaxed shadow-2xl shadow-black/60 w-64 pointer-events-none" style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -110%)' }}>
+          {tooltip}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-500"></div>
+        </div>
+      )}
     </span>
   );
 }
