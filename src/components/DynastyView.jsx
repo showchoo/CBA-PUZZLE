@@ -565,7 +565,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                         <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
                       </HoverTip>
                       <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
-                        {mleUsed ? '使用済み' : `$$$${(mleAmount / 1000000).toFixed(1)}M`}
+                        {mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}
                       </span>
                     </div>
                   )}
