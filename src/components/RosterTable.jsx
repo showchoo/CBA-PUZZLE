@@ -113,7 +113,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                       <TipButton
                         onClick={() => onWaiver && onWaiver(player)}
                         className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-2 py-0.5 rounded transition-colors font-mono"
-                        tip="ワイブ（Waiver）：NBAで選手を放出するプロセス。残り契約の100%がデッドキャップになる。"
+                        tip="ウェイブ（Waiver）：NBAで選手を放出するプロセス。残り契約の100%がデッドキャップになる。"
                       >
                         ウェイブ
                       </TipButton>
