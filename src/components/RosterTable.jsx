@@ -1,5 +1,7 @@
 import React from 'react';
 
+const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M` : `$${v.toLocaleString()}`;
+
 export default function RosterTable({ title, players, onActionClick, actionLabel, totalSalary }) {
   return (
     <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex flex-col min-h-0">
@@ -32,7 +34,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                   <span className="font-mono font-black text-amber-400 text-xl">{player.rating}</span>
                 </td>
                 <td className="text-right py-1.5 px-3">
-                  <span className="font-mono text-stone-400 text-lg">${player.salary.toLocaleString()}</span>
+                  <span className="font-mono text-stone-400 text-lg">{fmt(player.salary)}</span>
                 </td>
                 <td className="text-center py-1.5 px-2">
                   <button onClick={() => onActionClick(player)} className="text-xs bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
