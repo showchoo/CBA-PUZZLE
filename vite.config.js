@@ -1,11 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite' // 👈 1. これを追加
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(), // 👈 2. これを追加
-  ],
+  plugins: [react()],
+  base: '/CBA-PUZZLE/',
+  build: {
+    cssMinify: 'esbuild'
+  }
 })
