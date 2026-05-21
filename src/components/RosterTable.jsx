@@ -1,6 +1,6 @@
 import React from 'react';
 
-const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M` : `$${v.toLocaleString()}`;
+const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$$$${v.toLocaleString()}`;
 
 export default function RosterTable({ title, players, onActionClick, actionLabel, totalSalary }) {
   return (
@@ -25,7 +25,12 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
             {players.map((player) => (
               <tr key={player.id} className="border-t border-stone-900/50 hover:bg-stone-950/60 transition-colors">
                 <td className="py-1.5 px-3">
-                  <div className="font-bold text-white text-sm">{player.name}</div>
+                  <div className="font-bold text-white text-sm flex items-center gap-1.5 flex-wrap">
+                    {player.name}
+                    {player.birdRights === 'Full' && <span className="text-[9px] bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded font-mono">🐦 BIRD</span>}
+                    {player.contractType === 'minimum' && <span className="text-[9px] bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded font-mono">MIN</span>}
+                    {player.contractType === 'twoway' && <span className="text-[9px] bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded font-mono">2WAY</span>}
+                  </div>
                 </td>
                 <td className="text-center py-1.5 px-1">
                   <span className="text-sm bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded font-mono">{player.experience}年</span>
