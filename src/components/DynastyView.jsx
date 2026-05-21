@@ -135,7 +135,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleWaiver(player) {
     playClickSound();
     const remaining = player.salary * player.contractYears;
-    if (!window.confirm(`${player.name}をウェイブしますか？\n\n残り契約: $${(remaining / 1000000).toFixed(1)}M（{player.contractYears}年）\nデッドキャップ: $${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\n\n※NBAでは全放出がワイブを経由します。デッドキャップは100%です。`)) return;
+    if (!window.confirm(`${player.name}をウェイブしますか？\n\n残り契約: $${(remaining / 1000000).toFixed(1)}M（{player.contractYears}年）\nデッドキャップ: $${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\n\n※全放出がウェイブを経由します。デッドキャップは100%です。`)) return;
     if (player.salary > 0 && player.contractYears > 0) {
       const nd = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears, type: 'Waive' }];
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));

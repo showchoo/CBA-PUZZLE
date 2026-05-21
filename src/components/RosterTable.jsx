@@ -86,7 +86,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                       <Badge tooltip="ベテランミニマム：10年以上の実績を持つベテランが最低保証で契約。帳簿上のキャップ加算は一律$2.0Mに割引。" className="text-sm bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded font-mono">MIN</Badge>
                     )}
                     {player.contractType === 'twoway' && (
-                      <Badge tooltip="2-Way契約：NBAとGリーグを行き来する若手向けの特別枠。キャップヒットにカウントされない。" className="text-sm bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded font-mono">2WAY</Badge>
+                      <Badge tooltip="2-Way契約：若手向けの特別枠。キャップヒットにカウントされない。" className="text-sm bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded font-mono">2WAY</Badge>
                     )}
                     {player.contractType === 'rookie' && (
                       <Badge tooltip="ルーキー契約：新人選手の低額契約。将来の成長が期待できる有望株。" className="text-sm bg-emerald-900 text-emerald-300 px-1.5 py-0.5 rounded font-mono">Rookie</Badge>
@@ -113,7 +113,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                       <TipButton
                         onClick={() => onWaiver && onWaiver(player)}
                         className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-1 py-0.5 rounded transition-colors font-mono whitespace-nowrap"
-                        tip="ウェイブ（Waiver）：NBAで選手を放出するプロセス。残り契約の100%がデッドキャップになる。"
+                        tip="ウェイブ（Waiver）：選手を放出するプロセス。残り契約の100%がデッドキャップになる。"
                       >
                         W
                       </TipButton>
