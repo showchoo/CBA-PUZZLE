@@ -83,17 +83,36 @@ export function genFA(count = 8) {
   });
 }
 
+// ドラフト: 順位に応じたOVR・契約年数・給与
 export function genDraft(count = 10) {
   return Array.from({ length: count }, (_, i) => {
-    const tier = i < 1 ? 'starter' : i < 3 ? 'role' : 'bench';
-    const p = genPlayer(i === 0 ? 'rookie' : tier);
-    p.age = rand(19, 22);
-    p.experience = 0;
-    p.contractType = 'rookie';
-    p.contractYears = rand(2, 4);
-    p.salary = p.rating >= 75 ? rand(3, 6) * 1000000 : rand(1, 3) * 1000000;
-    return p;
+    let rating, cy, sal;
+    if (i === 0) { rating = rand(72, 80); cy = 4; sal = 4000000; }
+    else if (i === 1) { rating = rand(69, 76); cy = 3; sal = 3500000; }
+    else if (i === 2) { rating = rand(67, 74); cy = 3; sal = 3000000; }
+    else if (i <= 5) { rating = rand(65, 72); cy = 2; sal = 2500000; }
+    else { rating = rand(62, 69); cy = 2; sal = 2000000; }
+    return {
+      id: genId(), name: genName(), rating, age: rand(19, 22), experience: 0,
+      salary: sal, contractYears: cy, contractType: 'rookie',
+      birdRights: 'None', faStatus: 'UFA'
+    };
   });
+}
+
+// FA獲得時の契約年数に応じた判定
+export function canSignFA(player, years) {
+  // スター級（OVR 85+）は1年契約を拒否
+  if (player.rating >= 85 && years === 1) {
+    return { allowed: false, reason: `${player.name}（OVR ${player.rating}）は1年契約を拒否しました。スター級選手は最低2年の契約を求めます。` };
+  }
+  return { allowed: true };
+}
+
+// 契約年数に応じた給与調整（長い契約ほど割増）
+export function adjustSalaryForYears(baseSalary, years) {
+  const multipliers = { 1: 0.95, 2: 1.0, 3: 1.05, 4: 1.10, 5: 1.15 };
+  return Math.floor(baseSalary * (multipliers[years] || 1.0));
 }
 
 export function advanceSeason(roster) {
@@ -140,11 +159,4 @@ export function checkSurvival(roster, season) {
 
 export function calcCapHit(roster, deadCap = 0) {
   return roster.reduce((s, p) => s + p.salary, 0) + deadCap;
-}
-
-export function calcBuyout(player) {
-  const remaining = player.salary * player.contractYears;
-  const buyoutTotal = Math.floor(remaining * 0.5);
-  const capHit = player.contractYears > 0 ? Math.floor(buyoutTotal / player.contractYears) : 0;
-  return { buyoutTotal, capHit };
 }
