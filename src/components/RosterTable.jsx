@@ -2,6 +2,18 @@ import React from 'react';
 
 const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$$$${v.toLocaleString()}`;
 
+function Badge({ children, tooltip, className }) {
+  return (
+    <span className="relative group inline-block">
+      <span className={className + " cursor-help"}>{children}</span>
+      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 bg-stone-950 border border-stone-600 rounded-lg text-xs text-stone-200 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl shadow-black/50">
+        {tooltip}
+        <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-transparent border-t-stone-600"></span>
+      </span>
+    </span>
+  );
+}
+
 export default function RosterTable({ title, players, onActionClick, actionLabel, totalSalary }) {
   return (
     <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex flex-col min-h-0">
@@ -27,9 +39,21 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                 <td className="py-1.5 px-3">
                   <div className="font-bold text-white text-sm flex items-center gap-1.5 flex-wrap">
                     {player.name}
-                    {player.birdRights === 'Full' && <span className="text-sm bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded font-mono">🐦 BIRD</span>}
-                    {player.contractType === 'minimum' && <span className="text-sm bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded font-mono">MIN</span>}
-                    {player.contractType === 'twoway' && <span className="text-sm bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded font-mono">2WAY</span>}
+                    {player.birdRights === 'Full' && (
+                      <Badge tooltip="バード特例：3年以上在籍の生え抜き選手。サラリーキャップを超過しても再契約できる特別な権利。チームが優先的に契約を結べる。" className="text-sm bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded font-mono">
+                        🐦 BIRD
+                      </Badge>
+                    )}
+                    {player.contractType === 'minimum' && (
+                      <Badge tooltip="ベテランミニマム：10年以上の実績を持つベテランが最低保証で契約。実際の年俸は安くても、帳簿上のキャップ加算は一律$2.0Mに割引される裏技。" className="text-sm bg-orange-900 text-orange-300 px-1.5 py-0.5 rounded font-mono">
+                        MIN
+                      </Badge>
+                    )}
+                    {player.contractType === 'twoway' && (
+                      <Badge tooltip="2-Way契約：NBAとGリーグを行き来する若手向けの特別枠。年俸は$0で、キャップヒットに一切カウントされない最強の特例。第2エプロン超えチームでも補強可能。" className="text-sm bg-purple-900 text-purple-300 px-1.5 py-0.5 rounded font-mono">
+                        2WAY
+                      </Badge>
+                    )}
                   </div>
                 </td>
                 <td className="text-center py-1.5 px-1">
