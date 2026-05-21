@@ -135,7 +135,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleWaiver(player) {
     playClickSound();
     const remaining = player.salary * player.contractYears;
-    if (!window.confirm(`${player.name}をウェイブしますか？\n\n残り契約: $${(remaining / 1000000).toFixed(1)}M（{player.contractYears}年）\nデッドキャップ: $${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\n\n※全放出がウェイブを経由します。デッドキャップは100%です。`)) return;
+    if (!window.confirm(`${player.name}をウェイブしますか？\n\n残り契約: $${(remaining / 1000000).toFixed(1)}M（{player.contractYears}年）\nデッドキャップ: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\n\n※全放出がウェイブを経由します。デッドキャップは100%です。`)) return;
     if (player.salary > 0 && player.contractYears > 0) {
       const nd = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears, type: 'Waive' }];
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
@@ -164,7 +164,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleStretch(player) {
     playClickSound();
     const st = calcStretch(player);
-    if (!window.confirm(`${player.name}をストレッチしますか？\n\n通常: $${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\nストレッチ: $${(st.annualAmount / 1000000).toFixed(1)}M/年 × {st.stretchYears}年\n\n※今年のキャップは空くが、長期のデッドキャップになる。`)) return;
+    if (!window.confirm(`${player.name}をストレッチしますか？\n\n通常: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\nストレッチ: $${(st.annualAmount / 1000000).toFixed(1)}M/年 × {st.stretchYears}年\n\n※今年のキャップは空くが、長期のデッドキャップになる。`)) return;
     if (player.salary > 0 && player.contractYears > 0) {
       const nd = [...deadCapDetails, { name: player.name + ' (ST)', amount: st.annualAmount, yearsLeft: st.stretchYears, type: 'Stretch' }];
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
@@ -244,7 +244,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       [tradeTarget.salary]
     );
     if (!validation.allowed) {
-      alert(`トレード不可！\n\n送出: $${(validation.outgoing / 1000000).toFixed(1)}M\n範囲: $${(validation.minIncoming / 1000000).toFixed(1)}M 〜 $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M\n\n理由: {validation.reason}`);
+      alert(`トレード不可！\n\n送出: $$$${(validation.outgoing / 1000000).toFixed(1)}M\n範囲: $${(validation.minIncoming / 1000000).toFixed(1)}M 〜 $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M\n\n理由: {validation.reason}`);
       return;
     }
     setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradeTarget]);
@@ -567,7 +567,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                         <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
                       </HoverTip>
                       <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
-                        {mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}
+                        {mleUsed ? '使用済み' : `$$$${(mleAmount / 1000000).toFixed(1)}M`}
                       </span>
                     </div>
                   )}
