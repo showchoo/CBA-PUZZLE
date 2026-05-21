@@ -9,9 +9,9 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
       </div>
 
       <div className="overflow-y-auto flex-1">
-        <table className="w-full text-xs">
+        <table className="w-full text-sm">
           <thead>
-            <tr className="text-stone-500 font-mono text-[9px] uppercase tracking-wider">
+            <tr className="text-stone-500 font-mono text-[11px] uppercase tracking-wider">
               <th className="text-left py-2 px-3">Name</th>
               <th className="text-center py-2 px-1">Pos</th>
               <th className="text-center py-2 px-1">OVR</th>
@@ -23,19 +23,19 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
             {players.map((player) => (
               <tr key={player.id} className="border-t border-stone-900/50 hover:bg-stone-950/60 transition-colors">
                 <td className="py-1.5 px-3">
-                  <div className="font-bold text-white text-xs">{player.name}</div>
+                  <div className="font-bold text-white text-sm">{player.name}</div>
                 </td>
                 <td className="text-center py-1.5 px-1">
-                  <span className="text-[9px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded font-mono">{player.position}</span>
+                  <span className="text-[11px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded font-mono">{player.position}</span>
                 </td>
                 <td className="text-center py-1.5 px-1">
-                  <span className="font-mono font-black text-amber-400 text-xs">{player.ovr}</span>
+                  <span className="font-mono font-black text-amber-400 text-sm">{player.ovr}</span>
                 </td>
                 <td className="text-right py-1.5 px-3">
-                  <span className="font-mono text-stone-400 text-[10px]">${player.salary.toLocaleString()}</span>
+                  <span className="font-mono text-stone-400 text-xs">${player.salary.toLocaleString()}</span>
                 </td>
                 <td className="text-center py-1.5 px-2">
-                  <button onClick={() => onActionClick(player)} className="text-[9px] bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
+                  <button onClick={() => onActionClick(player)} className="text-xs bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
                 </td>
               </tr>
             ))}
