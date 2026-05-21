@@ -3,7 +3,7 @@ import RosterTable from './RosterTable';
 import SalaryMeter from './SalaryMeter';
 import {
   genRoster, genFA, genDraft, advanceSeason, advanceDeadCap,
-  checkSurvival, calcCapHit, calcBuyout,
+  checkSurvival, calcCapHit,
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT
 } from '../dynastyEngine';
 
@@ -39,55 +39,47 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleSign(player) {
     playClickSound();
     if (totalCapHit + player.salary > DYN_APRON2) {
-      alert('第2エプロンを超えてしまうため補強できません！給与を下げてください。');
+      alert('第2エプロンを超えてしまうため補強できません！');
       return;
     }
     setFreeAgents(fa => fa.filter(p => p.id !== player.id));
     setRoster(r => [...r, player]);
   }
 
-  // 解雇: デッドキャップ100%
-  function handleRelease(player) {
+  // ウェイブ: 選手を放出する唯一の方法。デッドキャップ100%
+  function handleWaiver(player) {
     playClickSound();
-    if (!window.confirm(`${player.name}を解雇しますか？\n残り契約の100%がデッドキャップになります。\n\n残額: $${(player.salary * player.contractYears / 1000000).toFixed(1)}M`)) return;
+    const remaining = player.salary * player.contractYears;
+    if (!window.confirm(
+      `${player.name}をウェイブしますか？\n\n` +
+      `残り契約: $${(remaining / 1000000).toFixed(1)}M（{player.contractYears}年）\n` +
+      `デッドキャップ: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\n\n` +
+      `※NBAでは全放出がワイブを経由します。デッドキャップは100%です。`
+    )) return;
+
     if (player.salary > 0 && player.contractYears > 0) {
-      const newDetails = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears, type: 'Release' }];
+      const newDetails = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears, type: 'Waive' }];
       setDeadCapDetails(newDetails);
       setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
     }
     setRoster(r => r.filter(p => p.id !== player.id));
   }
 
-  // ウェイブ: 拾われれば0%、拾われなければ50%
-  function handleWaiver(player) {
-    playClickSound();
-    const claimChance = Math.min(100, player.rating * 2);
-    const claimed = Math.random() * 100 < claimChance;
-
-    if (claimed) {
-      alert(`{player.name}はウェイブリストで他のチームに拾われました！\nデッドキャップ: $0`);
-      setRoster(r => r.filter(p => p.id !== player.id));
-    } else {
-      const deadAmount = Math.floor(player.salary * 0.5);
-      alert(`${player.name}は誰にも拾われませんでした。\nデッドキャップ: $$$${(deadAmount / 1000000).toFixed(1)}M/yr`);
-      if (player.salary > 0 && player.contractYears > 0) {
-        const newDetails = [...deadCapDetails, { name: player.name + ' (W)', amount: deadAmount, yearsLeft: player.contractYears, type: 'Waiver' }];
-        setDeadCapDetails(newDetails);
-        setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
-      }
-      setRoster(r => r.filter(p => p.id !== player.id));
-    }
-  }
-
-  // バイアウト: デッドキャップ30%、拒否される可能性あり
+  // バイアウト: 選手と交渉して契約を減額。デッドキャップ50〜70%
   function handleBuyout(player) {
     playClickSound();
     const agreeChance = Math.max(5, 100 - player.rating);
-    const agreed = Math.random() * 100 < agreeChance;
+    const roll = Math.random() * 100;
+    const agreed = roll < agreeChance;
 
     if (agreed) {
-      const deadAmount = Math.floor(player.salary * 0.3);
-      alert(`${player.name}はバイアウトに同意しました！\nデッドキャップ: $${(deadAmount / 1000000).toFixed(1)}M/yr`);
+      const pct = 50 + Math.floor(Math.random() * 21);
+      const deadAmount = Math.floor(player.salary * pct / 100);
+      alert(
+        `${player.name}はバイアウトに同意しました！\n\n` +
+        `デッドキャップ: $${(deadAmount / 1000000).toFixed(1)}M/年（{pct}%）× ${player.contractYears}年\n` +
+        `節約額: $$$${((player.salary - deadAmount) * player.contractYears / 1000000).toFixed(1)}M`
+      );
       if (player.salary > 0 && player.contractYears > 0) {
         const newDetails = [...deadCapDetails, { name: player.name + ' (B/O)', amount: deadAmount, yearsLeft: player.contractYears, type: 'Buyout' }];
         setDeadCapDetails(newDetails);
@@ -95,7 +87,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       }
       setRoster(r => r.filter(p => p.id !== player.id));
     } else {
-      alert(`{player.name}はバイアウトを拒否しました。\nOVRが高い選手ほど拒否されやすい。`);
+      alert(
+        `${player.name}はバイアウトを拒否しました。\n\n` +
+        `同意確率: ${agreeChance}%（OVRが低いほど同意しやすい）\n` +
+        `判定: ${roll.toFixed(0)} / ${agreeChance}`
+      );
     }
   }
 
@@ -227,7 +223,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             </div>
             <div className="w-full lg:w-[58%] space-y-4 flex flex-col justify-between">
               <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                <RosterTable title="ROSTER" players={roster} onActionClick={handleRelease} actionLabel="解雇" totalSalary={totalCapHit} dynastyMode onWaiver={handleWaiver} onBuyout={handleBuyout} />
+                <RosterTable title="ROSTER" players={roster} totalSalary={totalCapHit} dynastyMode onWaiver={handleWaiver} onBuyout={handleBuyout} />
                 <RosterTable title="FREE AGENT" players={freeAgents} onActionClick={handleSign} actionLabel="契約" />
               </div>
             </div>
