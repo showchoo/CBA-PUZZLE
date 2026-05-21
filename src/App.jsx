@@ -38,7 +38,7 @@ export default function App() {
   const [useMle, setUseMle] = useState(false);
   const [tradeModalTarget, setTradeModalTarget] = useState(null);
 
-  const fmt = (v) => v >= 1000000 ? `$$$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
+  const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
 
   // ═══════════════════════════════════════
   // オーディオ（変更なし）
