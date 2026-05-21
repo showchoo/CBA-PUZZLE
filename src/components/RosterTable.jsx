@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const fmt = (v) => v >= 1000000 ? `$$$${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M` : `$${v.toLocaleString()}`;
+const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$$$${v.toLocaleString()}`;
 
 function Badge({ children, tooltip, className }) {
   const [show, setShow] = useState(false);
@@ -17,6 +17,27 @@ function Badge({ children, tooltip, className }) {
         <div className="fixed z-[9999] px-3 py-2.5 bg-stone-950 border border-stone-500 rounded-xl text-sm text-white leading-relaxed shadow-2xl shadow-black/60 w-64 pointer-events-none" style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -110%)' }}>
           {tooltip}
           <div className="absolute top-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-500"></div>
+        </div>
+      )}
+    </span>
+  );
+}
+
+function TipButton({ children, onClick, className, tip }) {
+  const [show, setShow] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const handleEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPos({ x: rect.left + rect.width / 2, y: rect.top });
+    setShow(true);
+  };
+  return (
+    <span className="relative inline-block" onMouseEnter={handleEnter} onMouseLeave={() => setShow(false)}>
+      <button onClick={onClick} className={className}>{children}</button>
+      {show && (
+        <div className="fixed z-[9999] px-3 py-2 bg-stone-950 border border-stone-500 rounded-lg text-xs text-white leading-relaxed shadow-xl w-56 pointer-events-none" style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -110%)' }}>
+          {tip}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-stone-500"></div>
         </div>
       )}
     </span>
@@ -87,19 +108,28 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                   </>
                 )}
                 <td className="text-center py-1.5 px-2">
-                  <div className="flex flex-col gap-0.5">
-                    {dynastyMode ? (
-                      <>
-                        <button onClick={() => onActionClick(player)} className="text-[10px] bg-red-950/60 border border-red-800 text-red-400 hover:text-red-300 hover:border-red-600 px-2 py-0.5 rounded transition-colors font-mono" title="残り100%デッドキャップ">解雇</button>
-                        <button onClick={() => onWaiver && onWaiver(player)} className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-2 py-0.5 rounded transition-colors font-mono" title="拾われれば0%、拾われなければ50%デッドキャップ">ウェイブ</button>
-                        {player.contractYears > 1 && (
-                          <button onClick={() => onBuyout && onBuyout(player)} className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-2 py-0.5 rounded transition-colors font-mono" title="30%デッドキャップ、拒否される可能性あり">バイアウト</button>
-                        )}
-                      </>
-                    ) : (
-                      <button onClick={() => onActionClick(player)} className="text-xs bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
-                    )}
-                  </div>
+                  {dynastyMode ? (
+                    <div className="flex flex-row gap-1 justify-center">
+                      <TipButton
+                        onClick={() => onWaiver && onWaiver(player)}
+                        className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-2 py-0.5 rounded transition-colors font-mono"
+                        tip="ワイブ（Waiver）：NBAで選手を放出するプロセス。残り契約の100%がデッドキャップになる。"
+                      >
+                        ウェイブ
+                      </TipButton>
+                      {player.contractYears > 1 && (
+                        <TipButton
+                          onClick={() => onBuyout && onBuyout(player)}
+                          className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-2 py-0.5 rounded transition-colors font-mono"
+                          tip="バイアウト（Buyout）：選手と交渉して契約を減額。デッドキャップ50〜70%に軽減。OVRが低い選手ほど同意しやすい。"
+                        >
+                          バイアウト
+                        </TipButton>
+                      )}
+                    </div>
+                  ) : (
+                    <button onClick={() => onActionClick(player)} className="text-xs bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
+                  )}
                 </td>
               </tr>
             ))}
