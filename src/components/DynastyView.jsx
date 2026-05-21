@@ -311,8 +311,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <span className="text-xs font-mono text-stone-500">SCORE</span>
-        <span className="text-2xl font-mono font-black text-amber-400">{Math.max(0, season - 1)}</span>
+        <span className="text-xs font-mono text-stone-500">GM SCORE</span>
+        <span className="text-2xl font-mono font-black text-amber-400">{Math.max(0, season - 1) * 100}</span>
+        <span className="text-xs font-mono text-stone-600">pts</span>
         <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2 rounded-lg transition-all text-sm ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
       </div>
     </header>
