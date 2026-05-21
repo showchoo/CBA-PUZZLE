@@ -5,7 +5,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
     <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex flex-col min-h-0">
       <div className="px-4 py-3 border-b border-stone-900 flex justify-between items-center shrink-0">
         <h3 className="text-sm font-mono font-black text-cyan-400 uppercase tracking-widest">{title}</h3>
-        <span className="text-[10px] text-stone-500 font-mono">{players.length}人</span>
+        <span className="text-sm text-stone-500 font-mono">{players.length}人</span>
       </div>
 
       <div className="overflow-y-auto flex-1">
@@ -26,13 +26,13 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                   <div className="font-bold text-white text-sm">{player.name}</div>
                 </td>
                 <td className="text-center py-1.5 px-1">
-                  <span className="text-[11px] bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded font-mono">{player.experience}年</span>
+                  <span className="text-sm bg-stone-800 text-stone-300 px-1.5 py-0.5 rounded font-mono">{player.experience}年</span>
                 </td>
                 <td className="text-center py-1.5 px-1">
-                  <span className="font-mono font-black text-amber-400 text-sm">{player.rating}</span>
+                  <span className="font-mono font-black text-amber-400 text-xl">{player.rating}</span>
                 </td>
                 <td className="text-right py-1.5 px-3">
-                  <span className="font-mono text-stone-400 text-xs">${player.salary.toLocaleString()}</span>
+                  <span className="font-mono text-stone-400 text-lg">${player.salary.toLocaleString()}</span>
                 </td>
                 <td className="text-center py-1.5 px-2">
                   <button onClick={() => onActionClick(player)} className="text-xs bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
