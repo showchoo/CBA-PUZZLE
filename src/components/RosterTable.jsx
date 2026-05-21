@@ -6,9 +6,9 @@ function Badge({ children, tooltip, className }) {
   return (
     <span className="relative group inline-block">
       <span className={className + " cursor-help"}>{children}</span>
-      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 px-3 py-2 bg-stone-950 border border-stone-600 rounded-lg text-xs text-stone-200 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl shadow-black/50">
+      <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-stone-950 border border-stone-600 rounded-lg text-xs text-stone-200 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl shadow-black/50 w-56 break-words" style={{ wordBreak: 'break-word' }}>
         {tooltip}
-        <span className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-transparent border-t-stone-600"></span>
+        <span className="absolute top-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-600"></span>
       </span>
     </span>
   );
