@@ -9,6 +9,27 @@ import {
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT
 } from '../dynastyEngine';
 
+function HoverTip({ children, text }) {
+  const [show, setShow] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const handleEnter = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPos({ x: rect.left + rect.width / 2, y: rect.top });
+    setShow(true);
+  };
+  return (
+    <span className="relative inline-block cursor-help" onMouseEnter={handleEnter} onMouseLeave={() => setShow(false)}>
+      {children}
+      {show && (
+        <div className="fixed z-[9999] px-3 py-2.5 bg-stone-950 border border-stone-500 rounded-xl text-sm text-white leading-relaxed shadow-2xl shadow-black/60 w-72 pointer-events-none" style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -110%)' }}>
+          {text}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-500"></div>
+        </div>
+      )}
+    </span>
+  );
+}
+
 export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, toggleBGM }) {
   const [phase, setPhase] = useState('reroll');
   const [season, setSeason] = useState(1);
@@ -29,13 +50,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [taxHistory, setTaxHistory] = useState([]);
   const [mleUsed, setMleUsed] = useState(false);
 
-  // Trade state
   const [tradeMode, setTradeMode] = useState(false);
   const [tradeOffer, setTradeOffer] = useState([]);
   const [tradeTarget, setTradeTarget] = useState(null);
   const [tradeMarket, setTradeMarket] = useState([]);
 
-  // Sign & Trade state
   const [signTradePlayer, setSignTradePlayer] = useState(null);
 
   const totalCapHit = calcCapHit(roster, deadCap);
@@ -63,7 +82,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTradeMode(false);
   }
 
-  // ═══ FA SIGNING ═══
   function handleSignRequest(player) {
     playClickSound();
     setSigningPlayer(player);
@@ -81,7 +99,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
     let adjustedSalary = adjustSalaryForYears(player.salary, years);
 
-    // MLE使用時
     if (useMLE && mleAmount > 0 && !mleUsed) {
       adjustedSalary = Math.min(adjustedSalary, mleAmount);
     }
@@ -103,7 +120,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setSigningPlayer(null);
   }
 
-  // ═══ WAIVER (100% dead cap) ═══
   function handleWaiver(player) {
     playClickSound();
     const remaining = player.salary * player.contractYears;
@@ -115,7 +131,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setRoster(r => r.filter(p => p.id !== player.id));
   }
 
-  // ═══ BUYOUT (50-70% dead cap) ═══
   function handleBuyout(player) {
     playClickSound();
     const agreeChance = Math.max(5, 100 - player.rating);
@@ -134,7 +149,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     }
   }
 
-  // ═══ STRETCH PROVISION ═══
   function handleStretch(player) {
     playClickSound();
     const st = calcStretch(player);
@@ -146,7 +160,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setRoster(r => r.filter(p => p.id !== player.id));
   }
 
-  // ═══ SIGN & TRADE ═══
   function handleSignAndTrade(player) {
     playClickSound();
     setSignTradePlayer(player);
@@ -155,7 +168,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleConfirmSignAndTrade() {
     playClickSound();
     const p = signTradePlayer;
-    // ドラフトピック1つと引き換えに放出
     const newPicks = [...draftPicks, { id: 'pick_' + Date.now(), year: season + 1, round: Math.random() > 0.5 ? 1 : 2, own: true, from: p.name }];
     setDraftPicks(newPicks);
     setExpiredPlayers(ep => ep.filter(x => x.id !== p.id));
@@ -163,7 +175,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     alert(`${p.name}をサイン・アンド・トレード！\nドラフトピックを1つ獲得しました。`);
   }
 
-  // ═══ OPTION DECISION ═══
   function handleOptionDecision(player, exercise) {
     playClickSound();
     if (player.optionType === 'player') {
@@ -188,7 +199,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setOptionPlayers(op => op.filter(x => x.id !== player.id));
   }
 
-  // ═══ TRADE MACHINE ═══
   function handleOpenTrade() {
     playClickSound();
     setTradeMarket(genFA(6));
@@ -232,7 +242,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     alert(`トレード成立！\n${tradeOffer.map(p => p.name).join(', ')} → ${tradeTarget.name}`);
   }
 
-  // ═══ NEXT SEASON ═══
   function handleNextSeason() {
     playClickSound();
     const result = advanceSeason(roster);
@@ -243,7 +252,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setRoster(result.surviving);
     setDeadCap(deadResult.total);
     setDeadCapDetails(deadResult.details);
-    // リピータータックス記録
     setTaxHistory([...taxHistory, isOnTax]);
     setMleUsed(false);
     setPhase('seasonEnd');
@@ -251,7 +259,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   function handleToDraft() {
     playClickSound();
-    // Option decisions first
     if (optionPlayers.length > 0) {
       setPhase('optionDecision');
       return;
@@ -282,7 +289,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPhase('manage');
   }
 
-  // ═══ HEADER ═══
   const Header = () => (
     <header className="w-full max-w-7xl mx-auto mb-3 flex justify-between items-center shrink-0">
       <div className="flex items-center gap-3">
@@ -300,7 +306,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     </header>
   );
 
-  // ═══ SIGN MODAL ═══
   const SignModal = () => {
     if (!signingPlayer) return null;
     const adjustedSalary = useMLE && mleAmount > 0 && !mleUsed
@@ -385,7 +390,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     );
   };
 
-  // ═══ SIGN & TRADE MODAL ═══
   const SignTradeModal = () => {
     if (!signTradePlayer) return null;
     return (
@@ -542,17 +546,17 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </span>
                   </div>
 
-                  {/* MLE */}
                   {mleAmount > 0 && (
                     <div className="bg-stone-950 px-4 py-2 rounded-xl border border-cyan-900/50 flex justify-between items-center">
-                      <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
+                      <HoverTip text="Mid-Level Exception（MLE）：キャップ超過チームにも使える例外枠の補強予算。キャップ以下なら約$12.4M、1st Apron超えで約$5M、2nd Apron超えで没収。毎シーズン1回だけ使用可能。">
+                        <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
+                      </HoverTip>
                       <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
                         {mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}
                       </span>
                     </div>
                   )}
 
-                  {/* Repeater Tax */}
                   {repeaterSeasons >= 2 && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
                       <span className="text-red-400 font-sans font-black text-sm">⚠️ Repeater:</span>
@@ -588,16 +592,19 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     <span className="text-white font-black text-2xl">{roster.length}</span>
                   </div>
 
-                  {/* Draft Picks */}
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850">
-                    <span className="text-stone-400 font-sans font-black text-sm">🏀 Draft Picks:</span>
+                    <HoverTip text="ドラフトピック：新人選手を指名する権利。Y=年、R=巡目。トレードやサイン・アンド・トレードで獲得できる。連続する2年の1巡目ピックを同時に放出することはできない（Stepien Rule）。">
+                      <span className="text-stone-400 font-sans font-black text-sm">🏀 Draft Picks:</span>
+                    </HoverTip>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {draftPicks.length === 0 ? (
                         <span className="text-stone-500 text-xs font-mono">なし</span>
                       ) : draftPicks.map((pk, i) => (
-                        <span key={i} className="text-xs font-mono bg-stone-900 px-1.5 py-0.5 rounded text-cyan-400">
-                          Y{pk.year} R{pk.round}{pk.from ? ` (${pk.from})` : ''}
-                        </span>
+                        <HoverTip key={i} text={`ドラフトピック: ${pk.year}年目の${pk.round}巡目${pk.from ? `（${pk.from}から獲得）` : '（自チーム）'}`}>
+                          <span className="text-xs font-mono bg-stone-900 px-1.5 py-0.5 rounded text-cyan-400 cursor-help">
+                            Y{pk.year} R{pk.round}{pk.from ? ` (${pk.from})` : ''}
+                          </span>
+                        </HoverTip>
                       ))}
                     </div>
                   </div>
@@ -656,7 +663,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     <span className="text-white font-bold">{p.name}</span>
                     <span className="text-stone-500 font-mono text-lg ml-2">Rating {p.rating}</span>
                   </div>
-                  <button onClick={() => handleSignAndTrade(p)} className="text-xs bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded font-mono whitespace-nowrap">S&T</button>
+                  <HoverTip text="サイン・アンド・トレード（S&T）：FA選手と再契約してから即座に他チームへ放出。ドラフトピックを1つ獲得できる。3年以上の契約が必要。スターを逃さず補強素材に変換できる手段。">
+                    <button onClick={() => handleSignAndTrade(p)} className="text-xs bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded font-mono whitespace-nowrap">S&T</button>
+                  </HoverTip>
                 </div>
               ))}
             </div>
