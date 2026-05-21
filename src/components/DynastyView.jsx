@@ -46,25 +46,57 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setRoster(r => [...r, player]);
   }
 
+  // 解雇: デッドキャップ100%
   function handleRelease(player) {
     playClickSound();
+    if (!window.confirm(`${player.name}を解雇しますか？\n残り契約の100%がデッドキャップになります。\n\n残額: $${(player.salary * player.contractYears / 1000000).toFixed(1)}M`)) return;
     if (player.salary > 0 && player.contractYears > 0) {
-      const newDetails = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears }];
+      const newDetails = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears, type: 'Release' }];
       setDeadCapDetails(newDetails);
       setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
     }
     setRoster(r => r.filter(p => p.id !== player.id));
   }
 
+  // ウェイブ: 拾われれば0%、拾われなければ50%
+  function handleWaiver(player) {
+    playClickSound();
+    const claimChance = Math.min(100, player.rating * 2);
+    const claimed = Math.random() * 100 < claimChance;
+
+    if (claimed) {
+      alert(`{player.name}はウェイブリストで他のチームに拾われました！\nデッドキャップ: $0`);
+      setRoster(r => r.filter(p => p.id !== player.id));
+    } else {
+      const deadAmount = Math.floor(player.salary * 0.5);
+      alert(`${player.name}は誰にも拾われませんでした。\nデッドキャップ: $$$${(deadAmount / 1000000).toFixed(1)}M/yr`);
+      if (player.salary > 0 && player.contractYears > 0) {
+        const newDetails = [...deadCapDetails, { name: player.name + ' (W)', amount: deadAmount, yearsLeft: player.contractYears, type: 'Waiver' }];
+        setDeadCapDetails(newDetails);
+        setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
+      }
+      setRoster(r => r.filter(p => p.id !== player.id));
+    }
+  }
+
+  // バイアウト: デッドキャップ30%、拒否される可能性あり
   function handleBuyout(player) {
     playClickSound();
-    const bo = calcBuyout(player);
-    if (player.salary > 0 && player.contractYears > 0) {
-      const newDetails = [...deadCapDetails, { name: player.name + ' (B/O)', amount: bo.capHit, yearsLeft: player.contractYears }];
-      setDeadCapDetails(newDetails);
-      setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
+    const agreeChance = Math.max(5, 100 - player.rating);
+    const agreed = Math.random() * 100 < agreeChance;
+
+    if (agreed) {
+      const deadAmount = Math.floor(player.salary * 0.3);
+      alert(`${player.name}はバイアウトに同意しました！\nデッドキャップ: $${(deadAmount / 1000000).toFixed(1)}M/yr`);
+      if (player.salary > 0 && player.contractYears > 0) {
+        const newDetails = [...deadCapDetails, { name: player.name + ' (B/O)', amount: deadAmount, yearsLeft: player.contractYears, type: 'Buyout' }];
+        setDeadCapDetails(newDetails);
+        setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
+      }
+      setRoster(r => r.filter(p => p.id !== player.id));
+    } else {
+      alert(`{player.name}はバイアウトを拒否しました。\nOVRが高い選手ほど拒否されやすい。`);
     }
-    setRoster(r => r.filter(p => p.id !== player.id));
   }
 
   function handleNextSeason() {
@@ -174,7 +206,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                         <span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span>
                       </div>
                       {deadCapDetails.map((d, i) => (
-                        <div key={i} className="text-xs text-stone-500 mt-1 font-mono">{d.name}: ${(d.amount / 1000000).toFixed(1)}M × {d.yearsLeft}yr</div>
+                        <div key={i} className="text-xs text-stone-500 mt-1 font-mono">{d.name}: ${(d.amount / 1000000).toFixed(1)}M × {d.yearsLeft}yr [{d.type}]</div>
                       ))}
                     </div>
                   )}
@@ -195,7 +227,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             </div>
             <div className="w-full lg:w-[58%] space-y-4 flex flex-col justify-between">
               <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                <RosterTable title="ROSTER" players={roster} onActionClick={handleRelease} actionLabel="解雇" totalSalary={totalCapHit} dynastyMode onBuyout={handleBuyout} />
+                <RosterTable title="ROSTER" players={roster} onActionClick={handleRelease} actionLabel="解雇" totalSalary={totalCapHit} dynastyMode onWaiver={handleWaiver} onBuyout={handleBuyout} />
                 <RosterTable title="FREE AGENT" players={freeAgents} onActionClick={handleSign} actionLabel="契約" />
               </div>
             </div>
