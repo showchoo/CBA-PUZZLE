@@ -174,7 +174,7 @@ export default function App() {
     if (metrics.status === "FIRST_APRON") warnings.push({ label: "⚠️ 第1エプロン突破", text: "トレードで獲得する選手の年俸を、出す選手以下に抑える必要があります。" });
     if (metrics.status === "SECOND_APRON") warnings.push({ label: "🔥 第2エプロン突破", text: "MLE没収、トレード制限強化！" });
     setActiveWarnings(warnings);
-    if (warnings.length > activeWarnings.length && infoTab !== 'warning') setInfoTab('warning');
+
 
     let ok = metrics.totalCapHit <= currentStage.conditions.maxSalary
       && metrics.totalRating >= (currentStage.conditions.minTotalRating || 0)
