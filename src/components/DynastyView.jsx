@@ -73,8 +73,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
   const minOvr = 380 + (season - 1) * 8;
   const mleAmount = getMLEAmount(totalCapHit);
-  const repeaterSeasons = taxHistory.filter(Boolean).length;
-  const overTax = Math.max(0, totalCapHit - DYN_TAX);
+  const repe const overTax = Math.max(0, totalCapHit - DYN_TAX);
   const repeaterTax = calcRepeaterTax(overTax, repeaterSeasons);
   const isOnTax = totalCapHit > DYN_TAX;
 
@@ -150,7 +149,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (roll < agreeChance) {
       const pct = 50 + Math.floor(Math.random() * 21);
       const deadAmount = Math.floor(player.salary * pct / 100);
-      alert(`${player.name}はバイアウトに同意しました！\n\nデッドキャップ: $${(deadAmount / 1000000).toFixed(1)}M/年（{pct}%）× ${player.contractYears}年`);
+      alert(`${player.name}はバイアウトに同意しました！\n\nデッドキャップ: $${([]);
+    setTrade(deadAmount / 1000000).toFixed(1)}M/年（{pct}%）× ${player.contractYears}年`);
       if (player.salary > 0 && player.contractYears > 0) {
         const nd = [...deadCapDetails, { name: player.name + ' (B/O)', amount: deadAmount, yearsLeft: player.contractYears, type: 'Buyout' }];
         setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
@@ -164,16 +164,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleStretch(player) {
     playClickSound();
     const st = calcStretch(player);
-    if (!window.confirm(`${player.name}をストレッチしますか？\n\n通常: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\nストレッチ: $${(st.annualAmount / 1000000).toFixed(1)}M/年 × {st.stretchYears}年\n\n※今年のキャップは空くが、長期のデッドキャップになる。`)) return;
-    if (player.salary > 0 && player.contractYears > 0) {
-      const nd = [...deadCapDetails, { name: player.name + ' (ST)', amount: st.annualAmount, yearsLeft: st.stretchYears, type: 'Stretch' }];
-      setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
-    }
-    setRoster(r => r.filter(p => p.id !== player.id));
-  }
-
-  function handleSignAndTrade(player) {
-    playClickSound();
+    if (!window.confirm(`${player.name}をストレッチしますか？\n\n通常: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\nストレッチ: $${aterSeasons = taxHistory.filter(Boolean).length;
+ (st.annualClickSound();
     setSignTradePlayer(player);
   }
 
@@ -184,7 +176,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setDraftPicks(newPicks);
     setExpiredPlayers(ep => ep.filter(x => x.id !== p.id));
     setSignTradePlayer(null);
-    alert(`${p.name}をサイン・アンド・トレード！\nドラフトピックを1つ獲得しました。`);
+    alert(`{p.name}をサイン・アンド・トレード！\nドラフトピックを1つ獲得しました。`);
   }
 
   function handleOptionDecision(player, exercise) {
@@ -228,7 +220,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   function handleRemoveFromTradeOffer(player) {
     playClickSound();
-    setTradeOffer(tradeOffer.filter(p => p.id !== player.id));
+    setTradeOffer(trade Rating: <spanOffer.filter(p => p.id !== player.id));
   }
 
   function handleSelectTradeTarget(player) {
@@ -244,261 +236,12 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       [tradeTarget.salary]
     );
     if (!validation.allowed) {
-      alert(`トレード不可！\n\n送出: $$$${(validation.outgoing / 1000000).toFixed(1)}M\n範囲: $${(validation.minIncoming / 1000000).toFixed(1)}M 〜 $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M\n\n理由: {validation.reason}`);
+      alert(`トレード不可！\n\n送出: $$$${(validation.outgoing / 1000000).toFixed(1)}M\n範囲: $${(validation.minIncoming / 1000000).toFixed(1)}M 〜 $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M\n\n理由: ${validation.reason}`);
       return;
     }
     setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradeTarget]);
-    setTradeOffer([]);
-    setTradeTarget(null);
-    setTradeMode(false);
-    alert(`トレード成立！\n${tradeOffer.map(p => p.name).join(', ')} → ${tradeTarget.name}`);
-  }
-
-  function handleNextSeason() {
-    playClickSound();
-    const result = advanceSeason(roster);
-    const deadResult = advanceDeadCap(deadCapDetails);
-    setSummaries(result.summaries);
-    setExpiredPlayers(result.expired);
-    setOptionPlayers(result.optionPlayers);
-    setRoster(result.surviving);
-    setDeadCap(deadResult.total);
-    setDeadCapDetails(deadResult.details);
-    setTaxHistory([...taxHistory, isOnTax]);
-    setMleUsed(false);
-    setPhase('seasonEnd');
-  }
-
-  function handleToDraft() {
-    playClickSound();
-    if (optionPlayers.length > 0) {
-      setPhase('optionDecision');
-      return;
-    }
-    startDraft();
-  }
-
-  function startDraft() {
-    setDraftProspects(genDraft(10));
-    setPicksLeft(PICKS_PER_DRAFT);
-    setPhase('draft');
-  }
-
-  function handleDraft(prospect) {
-    playClickSound();
-    setRoster(r => [...r, { ...prospect, faStatus: 'None', hasOption: false, optionType: null, supermaxEligible: false }]);
-    setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
-    setPicksLeft(p => p - 1);
-  }
-
-  function handleDraftComplete() {
-    playClickSound();
-    const newSeason = season + 1;
-    const survival = checkSurvival(roster, newSeason);
-    if (!survival.alive) { setCollapseReason(survival.reason); setPhase('gameOver'); return; }
-    setFreeAgents(genFA(8));
-    setSeason(newSeason);
-    setPhase('manage');
-  }
-
-  const Header = () => (
-    <header className="w-full max-w-7xl mx-auto mb-3 flex justify-between items-center shrink-0">
-      <div className="flex items-center gap-3">
-        <button onClick={() => { playClickSound(); onBack(); }} className="px-3 py-2 text-stone-500 hover:text-stone-300 rounded-lg transition-all text-sm font-mono">🏠</button>
-        <div>
-          <h1 className="text-2xl font-black font-mono text-amber-400 tracking-wider">👑 DYNASTY MODE</h1>
-          <span className="text-sm font-mono text-stone-400">SEASON {season}</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-mono text-stone-500">SCORE</span>
-        <span className="text-2xl font-mono font-black text-amber-400">{Math.max(0, season - 1)}</span>
-        <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2 rounded-lg transition-all text-sm ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
-      </div>
-    </header>
-  );
-
-  const SignModal = () => {
-    if (!signingPlayer) return null;
-    const adjustedSalary = useMLE && mleAmount > 0 && !mleUsed
-      ? Math.min(adjustSalaryForYears(signingPlayer.salary, signingYears), mleAmount)
-      : adjustSalaryForYears(signingPlayer.salary, signingYears);
-    const gilbert = isGilbertArenasRestricted(signingPlayer);
-    const supermax = isSupermaxEligible(signingPlayer);
-
-    return (
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9998]" onClick={handleCancelSign}>
-        <div className="bg-[#141210] border border-stone-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-          <div className="text-center space-y-1">
-            <span className="text-xs font-mono font-black text-cyan-400 uppercase tracking-widest">FA SIGNING</span>
-            <h3 className="text-xl font-black text-white">{signingPlayer.name}</h3>
-            <div className="flex items-center justify-center gap-3 text-sm">
-              <span className="text-amber-400 font-mono font-black">Rating {signingPlayer.rating}</span>
-              <span className="text-stone-400">Age {signingPlayer.age}</span>
-            </div>
-          </div>
-
-          {supermax && (
-            <div className="bg-amber-950/40 border border-amber-700 rounded-lg p-2 text-xs text-amber-300 font-mono text-center">
-              ⭐ スーパーマックス対象選手（Rating 90+, チーム4年以上）
-            </div>
-          )}
-          {gilbert && (
-            <div className="bg-purple-950/40 border border-purple-700 rounded-lg p-2 text-xs text-purple-300 font-mono text-center">
-              🔒 ギルバート・アリーナス条項適用（他チームはMLE上限まで）
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-xs font-mono font-black text-stone-400 uppercase">契約年数を選択</label>
-            <div className="grid grid-cols-5 gap-2">
-              {[1, 2, 3, 4, 5].map(y => {
-                const check = canSignFA(signingPlayer, y);
-                return (
-                  <button key={y} onClick={() => setSigningYears(y)} disabled={!check.allowed}
-                    className={'py-2 rounded-lg border font-mono font-black text-sm transition-all ' + (
-                      signingYears === y ? 'bg-cyan-950 border-cyan-500 text-cyan-400'
-                      : check.allowed ? 'bg-stone-900 border-stone-800 text-stone-300 hover:bg-stone-850'
-                      : 'bg-stone-950 border-stone-900 text-stone-600 cursor-not-allowed'
-                    )}>{y}年</button>
-                );
-              })}
-            </div>
-            {signingPlayer.rating >= 85 && signingYears === 1 && (
-              <p className="text-xs text-red-400 font-mono">⚠️ スター級選手は1年契約を拒否します</p>
-            )}
-          </div>
-
-          {mleAmount > 0 && !mleUsed && (
-            <div className="flex items-center gap-2">
-              <input type="checkbox" id="useMLE" checked={useMLE} onChange={e => setUseMLE(e.target.checked)} className="accent-cyan-500" />
-              <label htmlFor="useMLE" className="text-xs text-cyan-400 font-mono">MLEを使用（残額: ${(mleAmount / 1000000).toFixed(1)}M）</label>
-            </div>
-          )}
-
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-400">年俸:</span>
-              <span className="text-white font-mono font-black">${(adjustedSalary / 1000000).toFixed(1)}M</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-400">契約総額:</span>
-              <span className="text-white font-mono font-black">${(adjustedSalary * signingYears / 1000000).toFixed(1)}M</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-400">契約後キャップ:</span>
-              <span className={(totalCapHit + adjustedSalary) <= DYN_CAP ? 'text-emerald-400 font-mono font-black' : 'text-red-400 font-mono font-black'}>
-                ${((totalCapHit + adjustedSalary) / 1000000).toFixed(1)}M
-              </span>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button onClick={handleCancelSign} className="flex-1 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-2.5 rounded-xl text-sm transition-all">キャンセル</button>
-            <button onClick={handleConfirmSign} className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-2.5 rounded-xl text-sm transition-all">契約する</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const SignTradeModal = () => {
-    if (!signTradePlayer) return null;
-    return (
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9998]" onClick={() => setSignTradePlayer(null)}>
-        <div className="bg-[#141210] border border-amber-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-          <div className="text-center space-y-1">
-            <span className="text-xs font-mono font-black text-amber-400 uppercase tracking-widest">SIGN & TRADE</span>
-            <h3 className="text-xl font-black text-white">{signTradePlayer.name}</h3>
-            <p className="text-sm text-stone-400">Rating {signTradePlayer.rating} / Age {signTradePlayer.age}</p>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-sm text-stone-300">
-            <p>再契約してから放出し、ドラフトピックと引き換えにできます。</p>
-            <p className="text-amber-400 mt-1 font-mono">→ 来シーズンのドラフトピックを1つ獲得</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setSignTradePlayer(null)} className="flex-1 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-2.5 rounded-xl text-sm">キャンセル</button>
-            <button onClick={handleConfirmSignAndTrade} className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-2.5 rounded-xl text-sm">S&T実行</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ═══ TRADE PHASE ═══
-  if (tradeMode) {
-    const validation = tradeOffer.length > 0 && tradeTarget ? validateTrade(tradeOffer.map(p => p.salary), [tradeTarget.salary]) : null;
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-5xl space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-black font-mono text-cyan-400">⚖️ TRADE MACHINE</h2>
-            <button onClick={() => { playClickSound(); setTradeMode(false); }} className="text-stone-400 hover:text-white font-mono text-sm">← 戻る</button>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400">
-            トレードルール: 獲得額は送出額の75%〜125%+$100Kの範囲内
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
-              <h3 className="text-sm font-mono font-black text-red-400 mb-2">送出選手</h3>
-              {tradeOffer.length === 0 ? (
-                <p className="text-stone-500 text-sm">← ロスターから選択</p>
-              ) : (
-                <div className="space-y-1">
-                  {tradeOffer.map(p => (
-                    <div key={p.id} className="flex justify-between items-center text-sm bg-stone-950 rounded p-2">
-                      <span className="text-white">{p.name} ({(p.salary / 1000000).toFixed(1)}M)</span>
-                      <button onClick={() => handleRemoveFromTradeOffer(p)} className="text-red-400 text-xs">✕</button>
-                    </div>
-                  ))}
-                  <div className="text-xs font-mono text-stone-400 mt-1">合計: ${(tradeOffer.reduce((s, p) => s + p.salary, 0) / 1000000).toFixed(1)}M</div>
-                </div>
-              )}
-            </div>
-            <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
-              <h3 className="text-sm font-mono font-black text-emerald-400 mb-2">獲得選手</h3>
-              {tradeTarget ? (
-                <div className="bg-stone-950 rounded p-2">
-                  <span className="text-white text-sm">{tradeTarget.name}</span>
-                  <span className="text-stone-400 text-xs ml-2">({(tradeTarget.salary / 1000000).toFixed(1)}M)</span>
-                </div>
-              ) : (
-                <p className="text-stone-500 text-sm">← 市場から選択</p>
-              )}
-            </div>
-            <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
-              <h3 className="text-sm font-mono font-black text-amber-400 mb-2">判定</h3>
-              {validation ? (
-                <div className="space-y-1 text-sm">
-                  <div>送出: <span className="text-white font-mono">${(validation.outgoing / 1000000).toFixed(1)}M</span></div>
-                  <div>下限: <span className="text-amber-400 font-mono">${(validation.minIncoming / 1000000).toFixed(1)}M</span></div>
-                  <div>上限: <span className="text-cyan-400 font-mono">${(validation.maxIncoming / 1000000).toFixed(1)}M</span></div>
-                  <div>獲得: <span className="text-white font-mono">${(validation.incoming / 1000000).toFixed(1)}M</span></div>
-                  <div className={validation.allowed ? 'text-emerald-400 font-black' : 'text-red-400 font-black'}>
-                    {validation.allowed ? '✓ トレード成立' : `✗ ${validation.reason}`}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-stone-500 text-sm">送出と獲得を選択してください</p>
-              )}
-              <button onClick={handleExecuteTrade} disabled={!validation?.allowed}
-                className="w-full mt-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:from-stone-800 disabled:to-stone-800 disabled:text-stone-600 text-stone-950 font-mono font-black py-2 rounded-lg text-sm">
-                トレード実行
-              </button>
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl p-4 max-h-60 overflow-y-auto">
-              <h3 className="text-xs font-mono font-black text-stone-400 mb-2">YOUR ROSTER（クリックで送出に追加）</h3>
-              {roster.map(p => (
-                <button key={p.id} onClick={() => handleAddToTradeOffer(p)}
-                  className="w-full text-left text-sm py-1 px-2 rounded hover:bg-stone-900/50 flex justify-between">
-                  <span className="text-white">{p.name}</span>
-                  <span className="text-stone-400">${(p.salary / 1000000).toFixed(1)}M</span>
-                </button>
-              ))}
-            </div>
-            <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl p-4 max-h-60 overflow-y-auto">
+    setTradeOfferTarget(null);
+   4 max-h-60 overflow-y-auto">
               <h3 className="text-xs font-mono font-black text-stone-400 mb-2">TRADE MARKET（クリックで獲得を選択）</h3>
               {tradeMarket.map(p => (
                 <button key={p.id} onClick={() => handleSelectTradeTarget(p)}
@@ -525,106 +268,14 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <p className="text-sm text-stone-400">満足のいくロスターが組めたら「START」を押してください</p>
           </div>
           <div className="flex gap-3 justify-center mb-4">
-            <button onClick={doReroll} className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-6 py-2.5 rounded-xl text-sm hover:bg-stone-850 transition-all">🔄 REROLL</button>
+            <button onClick={doReroll} className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-6 py-2.5 rounded-xl text-sm hover:bg-stone-850 transition-all">🔄 RER0 && (
+           OLL</button>
             <button onClick={() => { playClickSound(); setPhase('manage'); }} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black px-8 py-2.5 rounded-xl text-sm transition-all">START DYNASTY 💪</button>
             <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-500 font-mono font-black px-4 py-2.5 rounded-xl text-sm hover:text-stone-300 transition-all">← 戻る</button>
           </div>
           <RosterTable title="YOUR ROSTER" players={roster} onActionClick={() => {}} actionLabel="—" totalSalary={totalCapHit} dynastyMode />
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-sm text-stone-400 flex gap-6">
-            <span>Total Rating: <span className="text-white font-black text-lg">{totalOvr}</span></span>
-            <span>Cap Hit: <span className="text-cyan-400 font-black text-lg">${(totalCapHit / 1000000).toFixed(1)}M</span></span>
-            <span>Players: <span className="text-white font-black">{roster.length}</span></span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ MANAGE PHASE ═══
-  if (phase === 'manage') {
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <SignModal />
-        <div className="w-full flex flex-col flex-1 justify-start">
-          <Header />
-          <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
-            <div className="w-full lg:w-[42%] space-y-4 flex flex-col justify-between">
-              <section className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl p-5 space-y-3">
-                <span className="text-sm font-mono font-black text-cyan-400 uppercase tracking-wider">TEAM STATUS</span>
-                <div className="space-y-2">
-                  <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
-                    <span className={totalCapHit <= DYN_CAP ? 'text-emerald-400 font-black text-3xl' : totalCapHit <= DYN_TAX ? 'text-amber-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
-                      ${(totalCapHit / 1000000).toFixed(1)}M <span className="text-lg text-stone-500 font-sans">/ ${(DYN_CAP / 1000000).toFixed(0)}M</span>
-                    </span>
-                  </div>
-
-                  {mleAmount > 0 && (
-                    <div className="bg-stone-950 px-4 py-2 rounded-xl border border-cyan-900/50 flex justify-between items-center">
-                      <HoverTip text="Mid-Level Exception（MLE）：キャップ超過チームにも使える例外枠の補強予算。キャップ以下なら約$12.4M、1st Apron超えで約$5M、2nd Apron超えで没収。毎シーズン1回だけ使用可能。">
-                        <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
-                      </HoverTip>
-                      <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
-                        {mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}
-                      </span>
-                    </div>
-                  )}
-
-                  {repeaterSeasons >= 2 && (
-                    <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
-                      <span className="text-red-400 font-sans font-black text-sm">⚠️ Repeater:</span>
-                      <span className="text-red-400 font-black text-sm">{repeaterSeasons}/3 seasons</span>
-                    </div>
-                  )}
-                  {repeaterTax > 0 && (
-                    <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
-                      <span className="text-red-400 font-sans font-black text-sm">💸 Tax:</span>
-                      <span className="text-red-400 font-black text-lg">${(repeaterTax / 1000000).toFixed(1)}M</span>
-                    </div>
-                  )}
-
-                  {deadCap > 0 && (
-                    <div className="bg-stone-950 px-4 py-2 rounded-xl border border-red-900/50">
-                      <div className="flex justify-between items-center">
-                        <span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span>
-                        <span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span>
-                      </div>
-                      {deadCapDetails.map((d, i) => (
-                        <div key={i} className="text-xs text-stone-500 mt-1 font-mono">{d.name}: ${(d.amount / 1000000).toFixed(1)}M × {d.yearsLeft}yr [{d.type}]</div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
-                    <span className={totalOvr >= minOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
-                      {totalOvr} <span className="text-lg text-stone-500 font-sans">/ {minOvr}+</span>
-                    </span>
-                  </div>
-                  <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">👥 Players:</span>
-                    <span className="text-white font-black text-2xl">{roster.length}</span>
-                  </div>
-
-                  <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850">
-                    <HoverTip text="ドラフトピック：新人選手を指名する権利。Y=年、R=巡目。トレードやサイン・アンド・トレードで獲得できる。連続する2年の1巡目ピックを同時に放出することはできない（Stepien Rule）。">
-                      <span className="text-stone-400 font-sans font-black text-sm">🏀 Draft Picks:</span>
-                    </HoverTip>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {draftPicks.length === 0 ? (
-                        <span className="text-stone-500 text-xs font-mono">なし</span>
-                      ) : draftPicks.map((pk, i) => (
-                        <HoverTip key={i} text={`ドラフトピック: ${pk.year}年目の${pk.round}巡目${pk.from ? `（${pk.from}から獲得）` : '（自チーム）'}`}>
-                          <span className="text-xs font-mono bg-stone-900 px-1.5 py-0.5 rounded text-cyan-400 cursor-help">
-                            Y{pk.year} R{pk.round}{pk.from ? ` (${pk.from})` : ''}
-                          </span>
-                        </HoverTip>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <SalaryMeter totalSalary={totalCapHit} capLevel={DYN_CAP} taxLevel={DYN_TAX} firstApron={DYN_APRON1} secondApron={DYN_APRON2} />
-                <div className="flex gap-2">
-                  <button onClick={handleNextSeason} className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all">NEXT SEASON ➡️</button>
+            <span>Total className="text-white600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all">NEXT SEASON ➡️</button>
                   <button onClick={handleOpenTrade} className="bg-stone-900 border border-stone-800 text-cyan-400 hover:bg-stone-850 font-mono font-black py-3 px-4 rounded-xl text-sm transition-all">⚖️ TRADE</button>
                 </div>
               </section>
@@ -667,131 +318,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               ))}
             </div>
           </div>
-          {expiredPlayers.length > 0 && (
-            <div className="bg-stone-950 border border-amber-900/50 rounded-xl p-6 space-y-3">
-              <h3 className="text-xl font-mono font-black text-amber-400 uppercase">契約切れ → FA移行</h3>
-              {expiredPlayers.map((p, i) => (
-                <div key={i} className="flex justify-between items-center text-xl py-1.5 px-3">
-                  <div>
-                    <span className="text-white font-bold">{p.name}</span>
-                    <span className="text-stone-500 font-mono text-lg ml-2">Rating {p.rating}</span>
-                  </div>
-                  <HoverTip text="サイン・アンド・トレード（S&T）：FA選手と再契約してから即座に他チームへ放出。ドラフトピックを1つ獲得できる。3年以上の契約が必要。スターを逃さず補強素材に変換できる手段。">
-                    <button onClick={() => handleSignAndTrade(p)} className="text-xs bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded font-mono whitespace-nowrap">S&T</button>
-                  </HoverTip>
-                </div>
-              ))}
-            </div>
-          )}
-          <button onClick={handleToDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">
-            {optionPlayers.length > 0 ? 'OPTIONS → DRAFT' : 'DRAFT へ進む 🏀'}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ OPTION DECISION PHASE ═══
-  if (phase === 'optionDecision') {
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-2xl space-y-4 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
-          <div className="text-center space-y-2">
-            <span className="text-xl font-mono font-black text-purple-400 uppercase tracking-widest">📋 CONTRACT OPTIONS</span>
-            <h2 className="text-4xl font-black text-white">契約オプションの決定</h2>
-          </div>
-          <div className="space-y-3">
-            {optionPlayers.map((p, i) => (
-              <div key={i} className="bg-stone-950 border border-stone-800 rounded-xl p-4 flex items-center justify-between">
-                <div>
-                  <span className="text-white font-bold text-lg">{p.name}</span>
-                  <div className="flex items-center gap-3 mt-1 text-base">
-                    <span className="text-amber-400 font-mono font-black">Rating {p.rating}</span>
-                    <span className="text-stone-500">${(p.salary / 1000000).toFixed(1)}M</span>
-                    <span className="text-purple-400 font-mono text-sm">
-                      {p.optionType === 'player' ? 'Player Option' : 'Team Option'}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleOptionDecision(p, true)} className="bg-emerald-950 border border-emerald-700 text-emerald-400 hover:bg-emerald-900 font-mono font-black px-4 py-2 rounded-lg text-sm transition-all">行使</button>
-                  <button onClick={() => handleOptionDecision(p, false)} className="bg-red-950 border border-red-700 text-red-400 hover:bg-red-900 font-mono font-black px-4 py-2 rounded-lg text-sm transition-all">拒否</button>
-                </div>
-              </div>
-            ))}
-          </div>
-          {optionPlayers.length === 0 && (
-            <button onClick={startDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">DRAFT へ進む 🏀</button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ DRAFT PHASE ═══
-  if (phase === 'draft') {
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-3xl space-y-6 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
-          <div className="text-center space-y-3">
-            <span className="text-xl font-mono font-black text-cyan-400 uppercase tracking-widest">🏀 DRAFT</span>
-            <h2 className="text-5xl font-black text-white">新人選手ドラフト</h2>
-            <p className="text-xl text-stone-400">残りピック: <span className="text-cyan-400 font-black text-2xl">{picksLeft}</span></p>
-          </div>
-          {picksLeft > 0 ? (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {draftProspects.map((p, i) => (
-                <div key={p.id} className="bg-stone-950 border border-stone-800 rounded-xl p-4 flex items-center justify-between hover:border-cyan-800 transition-colors">
-                  <div>
-                    <span className="text-lg text-stone-500 font-mono mr-2">#{i + 1}</span>
-                    <span className="text-white font-bold text-xl">{p.name}</span>
-                    <div className="flex items-center gap-3 mt-1 text-lg">
-                      <span className="text-amber-400 font-mono font-black">Rating {p.rating}</span>
-                      <span className="text-stone-500">Age {p.age}</span>
-                      <span className="text-cyan-400 font-mono">${(p.salary / 1000000).toFixed(1)}M / {p.contractYears}yr</span>
-                    </div>
-                  </div>
-                  <button onClick={() => handleDraft(p)} className="bg-cyan-950 border border-cyan-700 text-cyan-400 hover:bg-cyan-900 font-mono font-black px-6 py-2 rounded-lg text-lg transition-all">DRAFT</button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center space-y-4 py-8">
-              <div className="text-emerald-400 font-mono font-black text-2xl">✓ ドラフト完了</div>
-              <div className="text-xl text-stone-400">ロスター: {roster.length}人 / Total Rating: {totalOvr}</div>
-              <button onClick={handleDraftComplete} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">新シーズン開始 🏀</button>
-            </div>
-          )}
-          {picksLeft > 0 && (
-            <button onClick={handleDraftComplete} className="w-full bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-3 rounded-xl text-lg transition-all">ドラフトをスキップ</button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ GAME OVER PHASE ═══
-  if (phase === 'gameOver') {
-    const score = Math.max(0, season - 1) * 100;
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-2xl space-y-6 bg-[#110f0e] border border-red-900 rounded-3xl p-8 text-center">
-          <div className="space-y-2">
-            <span className="text-sm font-mono font-black text-red-400 uppercase tracking-widest">DYNASTY COLLAPSED</span>
-            <h2 className="text-3xl font-black text-white">王朝崩壊</h2>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-6 space-y-3">
-            <div className="text-sm text-stone-400">存続期間</div>
-            <div className="text-5xl font-black text-amber-400 font-mono">{Math.max(0, season - 1)} seasons</div>
-            <div className="text-sm text-red-400 mt-2">{collapseReason}</div>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4">
-            <div className="text-xs text-stone-500 font-mono">GM SCORE</div>
-            <div className="text-4xl font-black text-yellow-400 font-mono">{score} pts</div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button onClick={() => { doReroll(); }} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black px-8 py-3 rounded-xl text-sm transition-all">TRY AGAIN 🔄</button>
-            <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black px-6 py-3 rounded-xl text-sm transition-all">タイトルに戻る</button>
+          {expiredPlayers.length >  <div className=" hover:text-white font-mono font-black px-6 py-3 rounded-xl text-sm transition-all">タイトルに戻る</button>
           </div>
         </div>
       </div>
