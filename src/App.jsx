@@ -4,7 +4,6 @@ import RosterTable from './components/RosterTable';
 import LeaderboardPage from './components/LeaderboardPage';
 import { CBACoreEngine } from './engine/cbaEngine';
 import stagesData from './data/stages.json';
-import { fetchCurrentChallenge, submitWeeklyScore, fetchWeeklyRanking, getCurrentWeekId } from './weeklyManager';
 
 export default function App() {
   const [currentView, setCurrentView] = useState('title');
@@ -27,15 +26,6 @@ export default function App() {
   const [isSending, setIsSending] = useState(false);
   const [isSent, setIsSent] = useState(false);
   const [isBgmOn, setIsBgmOn] = useState(false);
-
-  const [weeklyChallenge, setWeeklyChallenge] = useState(null);
-  const [weeklyRanking, setWeeklyRanking] = useState([]);
-  const [weeklySubmitted, setWeeklySubmitted] = useState(false);
-  const [playerId] = useState(() => {
-    let id = localStorage.getItem('cba_player_id');
-    if (!id) { id = Math.random().toString(36).substring(2, 10); localStorage.setItem('cba_player_id', id); }
-    return id;
-  });
 
   const ctxRef = useRef(null);
   const bgmStartedRef = useRef(false);
@@ -130,18 +120,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    const loadChallenge = async () => {
-      const challenge = await fetchCurrentChallenge();
-      if (challenge) {
-        setWeeklyChallenge(challenge);
-        const ranking = await fetchWeeklyRanking(challenge.week);
-        setWeeklyRanking(ranking);
-      }
-    };
-    loadChallenge();
-  }, []);
-
-  useEffect(() => {
     if (currentStage) {
       setRoster(currentStage.initialRoster);
       setFreeAgents(currentStage.initialFreeAgents);
@@ -149,7 +127,6 @@ export default function App() {
       setActiveWarnings([]);
       setClearScore(0);
       setIsSent(false);
-      setWeeklySubmitted(false);
       setInfoTab('mission');
     }
   }, [currentStageIdx]);
@@ -182,12 +159,6 @@ export default function App() {
       setIsCleared(false);
     }
   }, [roster, currentStage, currentView]);
-
-  useEffect(() => {
-    if (isCleared && weeklyChallenge && currentStage && weeklyChallenge.stageId === currentStage.id && clearScore > 0) {
-      submitWeeklyScore(weeklyChallenge.week, playerId, gmName.trim() || 'GM', clearScore).then(() => setWeeklySubmitted(true));
-    }
-  }, [isCleared, clearScore]);
 
   const handleSignPlayer = (player) => {
     playClickSound();
@@ -226,8 +197,6 @@ export default function App() {
     else alert("全シチュエーションクリア！");
   };
 
-  const isWeeklyStage = weeklyChallenge && currentStage && weeklyChallenge.stageId === currentStage.id;
-
   return (
     <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
 
@@ -244,98 +213,16 @@ export default function App() {
             <p>「勝つためにスターを並べろ。ただし、1ドルでも規約を超えればチームを剥奪する。」</p>
             <p>NBAの鬼畜な裏法律『CBA』の隙間を突き、最強ロスターを構築する、大人の数字パズルシミュレーター。</p>
           </div>
-
-          {weeklyChallenge && (
-            <div className="bg-gradient-to-r from-amber-950/60 to-orange-950/60 border border-amber-700/50 rounded-xl p-4 space-y-2 text-left max-w-md mx-auto">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-black text-amber-400 uppercase tracking-widest">📅 WEEKLY CHALLENGE</span>
-                <span className="text-[10px] text-stone-500 font-mono">{weeklyChallenge.week}</span>
-              </div>
-              <div className="text-lg font-black text-white">STAGE {String(weeklyChallenge.stageId).padStart(2, '0')}</div>
-              <div className="text-xs text-stone-400">{weeklyChallenge.startDate} 〜 {weeklyChallenge.endDate}</div>
-              {weeklyRanking.length > 0 && (
-                <div className="text-xs text-stone-500 pt-1 border-t border-stone-800 mt-2">
-                  👑 TOP: {weeklyRanking[0].name} ({weeklyRanking[0].score} pts) | {weeklyRanking.length}人参加中
-                </div>
-              )}
-              <button onClick={() => {
-                playClickSound();
-                const idx = stagesData.findIndex(s => s.id === weeklyChallenge.stageId);
-                if (idx >= 0) setCurrentStageIdx(idx);
-                setCurrentView('game');
-              }} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-black py-2.5 rounded-lg transition-all text-sm tracking-widest">
-                CHALLENGE NOW 🔥
-              </button>
-            </div>
-          )}
-
-          <div className="max-w-xs mx-auto">
-            <input type="text" placeholder="GMネームを入力..." value={gmName} onChange={(e) => setGmName(e.target.value)} maxLength={15} className="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 font-bold text-center" />
+          <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('game'); }} className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-cyan-950/50 hover:scale-[1.02] active:scale-[0.98]">START MANAGEMENT 💼</button>
+            <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="w-full sm:w-auto bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 text-sm font-black px-6 py-3.5 rounded-xl transition-all tracking-wider">LEADERBOARD 🏆</button>
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-            <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('game'); }} className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg hover:scale-[1.02] active:scale-[0.98]">SOLO PLAY 💼</button>
-            <button onClick={() => { playClickSound(); setCurrentView('weekly'); }} className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg hover:scale-[1.02] active:scale-[0.98]">📅 WEEKLY</button>
-            <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="w-full sm:w-auto bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 text-sm font-black px-6 py-3.5 rounded-xl transition-all tracking-wider">🏆 RANK</button>
-          </div>
-          <div className="text-[10px] text-stone-600 pt-2 font-mono uppercase tracking-widest">Developed by Higashimura & Gemini Pro Engine</div>
+          <div className="text-[10px] text-stone-600 pt-4 font-mono uppercase tracking-widest">Developed by Higashimura & Gemini Pro Engine</div>
         </div>
       )}
 
-      {/* 週間ランキング画面 */}
-      {currentView === 'weekly' && (
-        <div className="w-full max-w-lg space-y-4 py-8 px-8 bg-[#110f0e] border border-amber-900 rounded-3xl shadow-2xl font-mono animate-fade-in">
-          <div className="text-center space-y-2">
-            <div className="inline-block bg-amber-950/60 border border-amber-800/80 text-amber-400 text-xs font-black px-4 py-1.5 rounded-full tracking-widest uppercase">📅 WEEKLY CHALLENGE</div>
-            <h2 className="text-2xl font-black text-white">WEEKLY RANKING</h2>
-          </div>
-
-          {weeklyChallenge && (
-            <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-stone-400">今週のお題</span>
-                <span className="text-xs text-stone-500">{weeklyChallenge.week}</span>
-              </div>
-              <div className="text-lg font-black text-amber-400">STAGE {String(weeklyChallenge.stageId).padStart(2, '0')}</div>
-              <div className="text-xs text-stone-500">{weeklyChallenge.startDate} 〜 {weeklyChallenge.endDate}</div>
-              <button onClick={() => {
-                playClickSound();
-                const idx = stagesData.findIndex(s => s.id === weeklyChallenge.stageId);
-                if (idx >= 0) setCurrentStageIdx(idx);
-                setCurrentView('game');
-              }} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-black py-2.5 rounded-lg transition-all text-sm tracking-widest mt-2">
-                CHALLENGE NOW 🔥
-              </button>
-            </div>
-          )}
-
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
-            <div className="text-xs font-mono font-black text-amber-400 uppercase tracking-widest">RANKING</div>
-            {weeklyRanking.length === 0 ? (
-              <div className="text-stone-500 text-sm text-center py-4">まだ参加者がいません</div>
-            ) : (
-              <div className="space-y-1">
-                {weeklyRanking.map((entry, i) => (
-                  <div key={entry.id} className={'flex items-center justify-between py-2 px-3 rounded-lg ' + (i === 0 ? 'bg-amber-950/40 border border-amber-800' : i === 1 ? 'bg-stone-800/40' : i === 2 ? 'bg-orange-950/20' : 'bg-stone-950')}>
-                    <div className="flex items-center gap-3">
-                      <span className={'text-lg font-black w-8 ' + (i === 0 ? 'text-amber-400' : i === 1 ? 'text-stone-300' : i === 2 ? 'text-orange-400' : 'text-stone-500')}>
-                        {i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i + 1)}
-                      </span>
-                      <span className={'font-bold ' + (i === 0 ? 'text-white' : 'text-stone-300')}>{entry.name}</span>
-                    </div>
-                    <span className={'font-black ' + (i === 0 ? 'text-amber-400 text-lg' : 'text-stone-400')}>{entry.score} pts</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button onClick={() => { playClickSound(); setCurrentView('title'); }} className="w-full text-center text-xs text-stone-500 hover:text-stone-300 font-mono py-2">← タイトルに戻る</button>
-        </div>
-      )}
-
-      {/* メインゲーム画面 */}
-      {currentView !== 'title' && currentView !== 'weekly' && (
+      {/* メインゲーム画面 & ランキング */}
+      {currentView !== 'title' && (
         <div className="w-full flex flex-col flex-1 justify-start">
           <header className="w-full max-w-7xl mx-auto mb-2 border-b border-stone-800 pb-3 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
             <div className="cursor-pointer" onClick={() => { playClickSound(); setCurrentView('title'); }}>
@@ -345,28 +232,15 @@ export default function App() {
             <div className="flex bg-stone-950 p-1.5 rounded-xl border border-stone-850 font-mono text-sm font-black">
               <button onClick={() => { playClickSound(); setCurrentView('title'); }} className="px-4 py-2.5 text-stone-500 hover:text-stone-300 rounded-lg transition-all">🏠</button>
               <button onClick={() => { playClickSound(); setCurrentView('game'); }} className={'px-5 py-2.5 rounded-lg transition-all ' + (currentView === 'game' ? 'bg-cyan-500 text-stone-950 shadow-lg' : 'text-stone-400 hover:text-white')}>🎮</button>
-              <button onClick={() => { playClickSound(); setCurrentView('weekly'); }} className="px-4 py-2.5 text-stone-400 hover:text-stone-300 rounded-lg transition-all">📅</button>
               <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className={'px-5 py-2.5 rounded-lg transition-all ' + (currentView === 'leaderboard' ? 'bg-amber-500 text-stone-950 shadow-lg' : 'text-stone-400 hover:text-white')}>🏆</button>
               <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2.5 rounded-lg transition-all ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
             </div>
           </header>
 
-          {weeklyChallenge && isWeeklyStage && !isCleared && (
-            <div className="w-full max-w-7xl mx-auto mb-2 shrink-0">
-              <div className="bg-amber-950/40 border border-amber-800 rounded-xl px-4 py-2 flex items-center justify-between font-mono text-sm">
-                <span className="text-amber-400 font-black">📅 WEEKLY CHALLENGE</span>
-                <span className="text-stone-400">STAGE {String(weeklyChallenge.stageId).padStart(2, '0')} | {weeklyChallenge.endDate} まで</span>
-              </div>
-            </div>
-          )}
-
           {currentView === 'game' && (
             <div className="w-full max-w-7xl mx-auto mb-3 shrink-0 flex justify-end space-x-2">
               {stagesData.map((stage, idx) => (
-                <button key={stage.id} onClick={() => { playClickSound(); setCurrentStageIdx(idx); }} className={'px-5 py-2 text-base font-mono font-black rounded border transition-all relative ' + (idx === currentStageIdx ? 'bg-cyan-950 border-cyan-500 text-cyan-400 shadow-md shadow-cyan-950/50' : 'bg-stone-900 border-stone-800 text-white hover:bg-stone-850')}>
-                  STAGE 0{stage.id}
-                  {weeklyChallenge && weeklyChallenge.stageId === stage.id && <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full animate-pulse"></span>}
-                </button>
+                <button key={stage.id} onClick={() => { playClickSound(); setCurrentStageIdx(idx); }} className={'px-5 py-2 text-base font-mono font-black rounded border transition-all ' + (idx === currentStageIdx ? 'bg-cyan-950 border-cyan-500 text-cyan-400 shadow-md shadow-cyan-950/50' : 'bg-stone-900 border-stone-800 text-white hover:bg-stone-850')}>STAGE 0{stage.id}</button>
               ))}
             </div>
           )}
@@ -437,35 +311,7 @@ export default function App() {
                     </div>
                   </section>
 
-                  {isCleared && isWeeklyStage && (
-                    <div className="bg-gradient-to-r from-amber-950 to-stone-900 border-2 border-amber-500 rounded-xl p-5 shadow-2xl space-y-3 shrink-0">
-                      <div className="flex justify-between items-center border-b border-amber-900 pb-2">
-                        <h3 className="text-base font-black text-amber-400 font-mono uppercase">📅 WEEKLY CLEARED!</h3>
-                        <div className="text-right shrink-0">
-                          <span className="block text-[10px] text-stone-400 font-mono">GM SCORE</span>
-                          <span className="text-2xl font-black text-yellow-400 font-mono">{clearScore} pts</span>
-                        </div>
-                      </div>
-                      {!weeklySubmitted ? (
-                        <button onClick={async () => {
-                          if (!weeklyChallenge || !gmName.trim()) return;
-                          setIsSending(true);
-                          const ok = await submitWeeklyScore(weeklyChallenge.week, playerId, gmName.trim(), clearScore);
-                          if (ok) { setWeeklySubmitted(true); const r = await fetchWeeklyRanking(weeklyChallenge.week); setWeeklyRanking(r); }
-                          setIsSending(false);
-                        }} disabled={isSending || !gmName.trim()} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 disabled:from-stone-800 disabled:to-stone-800 disabled:text-stone-600 text-stone-950 font-black py-3 rounded-lg transition-all text-sm tracking-widest">
-                          {isSending ? '送信中...' : !gmName.trim() ? 'GMネームを入力してください' : '📅 WEEKLYにスコア送信'}
-                        </button>
-                      ) : (
-                        <div className="space-y-2">
-                          <div className="text-center text-amber-400 text-sm font-mono animate-pulse">✓ 送信完了！</div>
-                          <button onClick={() => { playClickSound(); setCurrentView('weekly'); }} className="w-full bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 font-black py-2.5 rounded-lg transition-all text-sm tracking-wider">📅 ランキングを見る</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {isCleared && !isWeeklyStage && (
+                  {isCleared && (
                     <div className="bg-gradient-to-r from-emerald-950 to-stone-900 border-2 border-emerald-500 rounded-xl p-5 shadow-2xl space-y-3 shrink-0">
                       <div className="flex justify-between items-center border-b border-emerald-900 pb-2">
                         <h3 className="text-base font-black text-emerald-400 font-mono uppercase">✓ MISSION ACCOMPLISHED</h3>
