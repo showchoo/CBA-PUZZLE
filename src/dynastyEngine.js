@@ -159,7 +159,15 @@ export function validateTrade(outgoingSalaries, incomingSalaries) {
   const out = outgoingSalaries.reduce((s, v) => s + v, 0);
   const inc = incomingSalaries.reduce((s, v) => s + v, 0);
   const maxInc = out * 1.25 + 100000;
-  return { allowed: inc <= maxInc, outgoing: out, incoming: inc, maxIncoming: maxInc };
+  const minInc = out * 0.75;
+  return {
+    allowed: inc <= maxInc && inc >= minInc,
+    outgoing: out,
+    incoming: inc,
+    maxIncoming: maxInc,
+    minIncoming: minInc,
+    reason: inc > maxInc ? '125%ルール（上限）違反' : inc < minInc ? '75%ルール（下限）違反' : null
+  };
 }
 
 export function isGilbertArenasRestricted(player) {
