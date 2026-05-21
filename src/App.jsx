@@ -402,7 +402,6 @@ export default function App() {
                           <p className="text-xs sm:text-base text-stone-100 font-bold leading-relaxed bg-stone-950/50 p-3 sm:p-4 rounded-xl border border-stone-900 mt-2">{currentStage?.ruleExplanation?.text}</p>
                         </div>
                       )}
-                      {/* ★ 修正: 警告テキストがスマホで重ならないように */}
                       {infoTab === 'warning' && (
                         <div className={'space-y-2 sm:space-y-3 ' + (activeWarnings.length > 0 ? 'animate-[pulse_3s_infinite]' : '')}>
                           <span className="text-[10px] sm:text-sm font-mono font-black text-red-500 tracking-widest block uppercase">REGULATORY STATUS</span>
@@ -411,9 +410,9 @@ export default function App() {
                           ) : (
                             <div className="space-y-2 sm:space-y-3 pt-1">
                               {activeWarnings.map((w, i) => (
-                                <div key={i} className="bg-stone-950 border border-stone-900 p-2 sm:p-4 rounded-xl border-l-4 border-l-red-500">
-                                  <h4 className="text-[10px] sm:text-base font-black text-red-400 font-mono uppercase tracking-wide break-words">{w.label}</h4>
-                                  <p className="text-[10px] sm:text-base text-white mt-1 sm:mt-1.5 leading-relaxed font-sans font-extrabold break-words">{w.text}</p>
+                                <div key={i} className="bg-stone-950 border border-stone-900 p-2 sm:p-4 rounded-xl border-l-4 border-l-red-500 overflow-hidden">
+                                  <h4 className="text-[9px] sm:text-base font-black text-red-400 font-mono uppercase tracking-wide break-all leading-tight">{w.label}</h4>
+                                  <p className="text-[9px] sm:text-base text-white mt-1 sm:mt-1.5 leading-tight font-sans font-bold break-all">{w.text}</p>
                                 </div>
                               ))}
                             </div>
