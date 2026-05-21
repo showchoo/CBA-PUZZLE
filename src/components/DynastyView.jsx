@@ -244,7 +244,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       [tradeTarget.salary]
     );
     if (!validation.allowed) {
-      alert(`125%ルールに抵触！\n\n送出: $$$${(validation.outgoing / 1000000).toFixed(1)}M\n獲得上限: $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M`);
+      alert(`トレード不可！\n\n送出: $$$${(validation.outgoing / 1000000).toFixed(1)}M\n範囲: $${(validation.minIncoming / 1000000).toFixed(1)}M 〜 $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M\n\n理由: {validation.reason}`);
       return;
     }
     setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradeTarget]);
@@ -436,7 +436,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <button onClick={() => { playClickSound(); setTradeMode(false); }} className="text-stone-400 hover:text-white font-mono text-sm">← 戻る</button>
           </div>
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400">
-            125%ルール: 送出額 × 1.25 + $100K 以下の選手しか受け取れない
+            トレードルール: 獲得額は送出額の75%〜125%+$100Kの範囲内
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
@@ -471,10 +471,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               {validation ? (
                 <div className="space-y-1 text-sm">
                   <div>送出: <span className="text-white font-mono">${(validation.outgoing / 1000000).toFixed(1)}M</span></div>
+                  <div>下限: <span className="text-amber-400 font-mono">${(validation.minIncoming / 1000000).toFixed(1)}M</span></div>
                   <div>上限: <span className="text-cyan-400 font-mono">${(validation.maxIncoming / 1000000).toFixed(1)}M</span></div>
                   <div>獲得: <span className="text-white font-mono">${(validation.incoming / 1000000).toFixed(1)}M</span></div>
                   <div className={validation.allowed ? 'text-emerald-400 font-black' : 'text-red-400 font-black'}>
-                    {validation.allowed ? '✓ トレード成立' : '✗ 125%ルール違反'}
+                    {validation.allowed ? '✓ トレード成立' : `✗ ${validation.reason}`}
                   </div>
                 </div>
               ) : (
@@ -564,7 +565,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                         <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
                       </HoverTip>
                       <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
-                        {mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}
+                        {mleUsed ? '使用済み' : `$$$${(mleAmount / 1000000).toFixed(1)}M`}
                       </span>
                     </div>
                   )}
