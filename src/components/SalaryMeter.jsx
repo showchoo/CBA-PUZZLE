@@ -5,9 +5,10 @@ export default function SalaryMeter({ totalSalary }) {
   const taxLevel = 165000000;
   const firstApron = 172000000;
   const secondApron = 182500000;
+  const minRange = 100000000;
   const maxRange = 210000000;
 
-  const getPercent = (value) => Math.min((value / maxRange) * 100, 100);
+  const getPercent = (value) => Math.min(Math.max(((value - minRange) / (maxRange - minRange)) * 100, 0), 100);
   const currentPercent = getPercent(totalSalary);
 
   return (
@@ -24,6 +25,13 @@ export default function SalaryMeter({ totalSalary }) {
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-cyan-300 shadow-[0_0_8px_#22d3ee]"></div>
         </div>
 
+        {/* 左端: 範囲開始 */}
+        <div className="absolute top-0 bottom-0 w-0.5 bg-stone-700/40" style={{ left: '0%' }}>
+          <div className="absolute top-11 left-1/2 -translate-x-1/2 whitespace-nowrap text-center">
+            <span className="block text-stone-500 text-[10px] font-bold">${(minRange / 1000000).toFixed(0)}M~</span>
+          </div>
+        </div>
+
         {/* 上側: TAX */}
         <div className="absolute top-0 bottom-0 w-0.5 bg-amber-500/50" style={{ left: `${getPercent(taxLevel)}%` }}>
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-center">
@@ -32,7 +40,7 @@ export default function SalaryMeter({ totalSalary }) {
           </div>
         </div>
 
-        {/* 上側: 2nd APRON（位置を上げて重なり防止） */}
+        {/* 上側: 2nd APRON */}
         <div className="absolute top-0 bottom-0 w-0.5 bg-red-500/60" style={{ left: `${getPercent(secondApron)}%` }}>
           <div className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap text-center">
             <span className="block text-red-500 text-xs font-black">2nd APRON</span>
