@@ -1,349 +1,162 @@
-import React, { useState, useEffect } from 'react';
-import RosterTable from './RosterTable';
-import SalaryMeter from './SalaryMeter';
-import {
-  genRoster, genFA, genDraft, advanceSeason, advanceDeadCap,
-  checkSurvival, calcCapHit,
-  DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT
-} from '../dynastyEngine';
+// ═══════════════════════════════════════
+// DYNASTY ENGINE
+// ═══════════════════════════════════════
 
-export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, toggleBGM }) {
-  const [phase, setPhase] = useState('reroll');
-  const [season, setSeason] = useState(1);
-  const [roster, setRoster] = useState([]);
-  const [freeAgents, setFreeAgents] = useState([]);
-  const [deadCap, setDeadCap] = useState(0);
-  const [deadCapDetails, setDeadCapDetails] = useState([]);
-  const [draftProspects, setDraftProspects] = useState([]);
-  const [picksLeft, setPicksLeft] = useState(0);
-  const [summaries, setSummaries] = useState([]);
-  const [expiredPlayers, setExpiredPlayers] = useState([]);
-  const [collapseReason, setCollapseReason] = useState('');
+export const DYN_CAP = 140000000;
+export const DYN_TAX = 170000000;
+export const DYN_APRON1 = 178000000;
+export const DYN_APRON2 = 189000000;
+export const PICKS_PER_DRAFT = 2;
 
-  const totalCapHit = calcCapHit(roster, deadCap);
+function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+
+const DESC = [
+  "高給", "若手有望", "中堅", "ベテラン", "控え", "コスパ抜群",
+  "怪我明け", "伸びしろ大", "即戦力", "ルーキー", "エース級",
+  "MVP候補", "守備職人", "3&D", "スラッシャー", "ビッグマン",
+  "司令塔", "フランチャイズ", "シックスマン", "ハッスル系",
+  "シューター", "鉄壁", "オールラウンド", "クラッチ",
+  "エナジザー", "スペースメーカー", "ロールプレイヤー", "ジャンクション"
+];
+
+const POS = [
+  "ガード", "フォワード", "センター", "ウイング", "ビッグ",
+  "ポイント", "シューター", "タレント"
+];
+
+let _id = 1000;
+function genName() { return pick(DESC) + pick(POS) + (rand(0, 2) > 0 ? '' : String.fromCharCode(65 + rand(0, 4))); }
+function genId() { return 'dyn_' + (_id++); }
+
+function genSalary(rating, exp) {
+  let base;
+  if (rating >= 92) base = rand(45, 65);
+  else if (rating >= 87) base = rand(30, 48);
+  else if (rating >= 82) base = rand(20, 35);
+  else if (rating >= 77) base = rand(12, 25);
+  else if (rating >= 72) base = rand(6, 15);
+  else if (rating >= 67) base = rand(3, 8);
+  else base = rand(1, 4);
+  if (exp >= 10) base = Math.floor(base * 1.15);
+  return base * 1000000;
+}
+
+function genContractYears() { return pick([1, 2, 2, 3, 3, 3, 3, 4, 4, 5]); }
+
+export function genPlayer(tier) {
+  let rating, age, exp, cType;
+  switch (tier) {
+    case 'star': rating = rand(88, 97); age = rand(24, 31); exp = rand(5, 12); break;
+    case 'starter': rating = rand(78, 87); age = rand(22, 29); exp = rand(3, 8); break;
+    case 'role': rating = rand(72, 79); age = rand(22, 30); exp = rand(2, 7); break;
+    case 'bench': rating = rand(65, 73); age = rand(21, 28); exp = rand(1, 5); break;
+    case 'rookie': rating = rand(65, 77); age = rand(19, 22); exp = 0; cType = 'rookie'; break;
+    case 'twoway': rating = rand(62, 72); age = rand(19, 24); exp = rand(0, 2); cType = 'twoway'; break;
+    default: rating = rand(70, 80); age = rand(23, 28); exp = rand(2, 5);
+  }
+  const cy = cType === 'twoway' ? rand(1, 2) : cType === 'rookie' ? rand(2, 4) : genContractYears();
+  const sal = cType === 'twoway' ? 0 : genSalary(rating, exp);
+  const by = rand(0, Math.max(0, exp));
+  return {
+    id: genId(), name: genName(), rating, age, experience: exp,
+    salary: sal, contractYears: cy, contractType: cType || 'regular',
+    birdRights: by >= 3 ? 'Full' : by >= 2 ? 'Early' : 'None',
+    faStatus: 'None', teamYears: by
+  };
+}
+
+export function genRoster() {
+  return [
+    genPlayer('star'), genPlayer('starter'), genPlayer('starter'),
+    genPlayer('role'), genPlayer('role'), genPlayer('role'),
+    genPlayer('bench'), genPlayer('bench'), genPlayer('twoway'), genPlayer('twoway')
+  ];
+}
+
+export function genFA(count = 8) {
+  const tiers = ['starter', 'starter', 'role', 'role', 'role', 'bench', 'bench', 'bench'];
+  return Array.from({ length: count }, (_, i) => {
+    const p = genPlayer(tiers[i] || 'bench');
+    p.faStatus = 'UFA';
+    return p;
+  });
+}
+
+// ドラフト: 順位に応じたOVR・契約年数・給与
+export function genDraft(count = 10) {
+  return Array.from({ length: count }, (_, i) => {
+    let rating, cy, sal;
+    if (i === 0) { rating = rand(72, 80); cy = 4; sal = 4000000; }
+    else if (i === 1) { rating = rand(69, 76); cy = 3; sal = 3500000; }
+    else if (i === 2) { rating = rand(67, 74); cy = 3; sal = 3000000; }
+    else if (i <= 5) { rating = rand(65, 72); cy = 2; sal = 2500000; }
+    else { rating = rand(62, 69); cy = 2; sal = 2000000; }
+    return {
+      id: genId(), name: genName(), rating, age: rand(19, 22), experience: 0,
+      salary: sal, contractYears: cy, contractType: 'rookie',
+      birdRights: 'None', faStatus: 'UFA'
+    };
+  });
+}
+
+// FA獲得時の契約年数に応じた判定
+export function canSignFA(player, years) {
+  // スター級（OVR 85+）は1年契約を拒否
+  if (player.rating >= 85 && years === 1) {
+    return { allowed: false, reason: `${player.name}（OVR ${player.rating}）は1年契約を拒否しました。スター級選手は最低2年の契約を求めます。` };
+  }
+  return { allowed: true };
+}
+
+// 契約年数に応じた給与調整（長い契約ほど割増）
+export function adjustSalaryForYears(baseSalary, years) {
+  const multipliers = { 1: 0.95, 2: 1.0, 3: 1.05, 4: 1.10, 5: 1.15 };
+  return Math.floor(baseSalary * (multipliers[years] || 1.0));
+}
+
+export function advanceSeason(roster) {
+  const expired = [];
+  const surviving = [];
+  const summaries = [];
+
+  roster.forEach(p => {
+    const oldRating = p.rating;
+    p.age += 1;
+    p.experience += 1;
+    const change = -rand(1, 3);
+    p.rating = Math.max(40, p.rating + change);
+    p.contractYears -= 1;
+    summaries.push({ name: p.name, oldRating, newRating: p.rating, change });
+    if (p.contractYears <= 0) {
+      p.faStatus = p.birdRights !== 'None' ? 'RFA' : 'UFA';
+      expired.push({ ...p });
+    } else {
+      if (p.teamYears !== undefined) { p.teamYears += 1; p.birdRights = p.teamYears >= 3 ? 'Full' : 'Early'; }
+      surviving.push(p);
+    }
+  });
+  return { surviving, expired, summaries };
+}
+
+export function advanceDeadCap(details) {
+  const remaining = [];
+  let total = 0;
+  details.forEach(d => {
+    d.yearsLeft -= 1;
+    if (d.yearsLeft > 0) { remaining.push(d); total += d.amount; }
+  });
+  return { details: remaining, total };
+}
+
+export function checkSurvival(roster, season) {
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
   const minOvr = 380 + (season - 1) * 8;
+  if (roster.length < 8) return { alive: false, reason: `ロースターが少なすぎます（${roster.length}人 / 最低8人必要）` };
+  if (totalOvr < minOvr) return { alive: false, reason: `戦力が低下しました（Total OVR: ${totalOvr} / 最低: ${minOvr}）` };
+  return { alive: true };
+}
 
-  useEffect(() => { doReroll(); }, []);
-
-  function doReroll() {
-    playClickSound();
-    setRoster(genRoster());
-    setFreeAgents(genFA(8));
-    setDeadCap(0);
-    setDeadCapDetails([]);
-    setSeason(1);
-    setPhase('reroll');
-  }
-
-  function handleSign(player) {
-    playClickSound();
-    if (totalCapHit + player.salary > DYN_APRON2) {
-      alert('第2エプロンを超えてしまうため補強できません！');
-      return;
-    }
-    setFreeAgents(fa => fa.filter(p => p.id !== player.id));
-    setRoster(r => [...r, player]);
-  }
-
-  // ウェイブ: 選手を放出する唯一の方法。デッドキャップ100%
-  function handleWaiver(player) {
-    playClickSound();
-    const remaining = player.salary * player.contractYears;
-    if (!window.confirm(
-      `${player.name}をウェイブしますか？\n\n` +
-      `残り契約: $${(remaining / 1000000).toFixed(1)}M（{player.contractYears}年）\n` +
-      `デッドキャップ: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\n\n` +
-      `※NBAでは全放出がワイブを経由します。デッドキャップは100%です。`
-    )) return;
-
-    if (player.salary > 0 && player.contractYears > 0) {
-      const newDetails = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears, type: 'Waive' }];
-      setDeadCapDetails(newDetails);
-      setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
-    }
-    setRoster(r => r.filter(p => p.id !== player.id));
-  }
-
-  // バイアウト: 選手と交渉して契約を減額。デッドキャップ50〜70%
-  function handleBuyout(player) {
-    playClickSound();
-    const agreeChance = Math.max(5, 100 - player.rating);
-    const roll = Math.random() * 100;
-    const agreed = roll < agreeChance;
-
-    if (agreed) {
-      const pct = 50 + Math.floor(Math.random() * 21);
-      const deadAmount = Math.floor(player.salary * pct / 100);
-      alert(
-        `${player.name}はバイアウトに同意しました！\n\n` +
-        `デッドキャップ: $${(deadAmount / 1000000).toFixed(1)}M/年（{pct}%）× ${player.contractYears}年\n` +
-        `節約額: $$$${((player.salary - deadAmount) * player.contractYears / 1000000).toFixed(1)}M`
-      );
-      if (player.salary > 0 && player.contractYears > 0) {
-        const newDetails = [...deadCapDetails, { name: player.name + ' (B/O)', amount: deadAmount, yearsLeft: player.contractYears, type: 'Buyout' }];
-        setDeadCapDetails(newDetails);
-        setDeadCap(newDetails.reduce((s, d) => s + d.amount, 0));
-      }
-      setRoster(r => r.filter(p => p.id !== player.id));
-    } else {
-      alert(
-        `${player.name}はバイアウトを拒否しました。\n\n` +
-        `同意確率: ${agreeChance}%（OVRが低いほど同意しやすい）\n` +
-        `判定: ${roll.toFixed(0)} / ${agreeChance}`
-      );
-    }
-  }
-
-  function handleNextSeason() {
-    playClickSound();
-    const result = advanceSeason(roster);
-    const deadResult = advanceDeadCap(deadCapDetails);
-    setSummaries(result.summaries);
-    setExpiredPlayers(result.expired);
-    setRoster(result.surviving);
-    setDeadCap(deadResult.total);
-    setDeadCapDetails(deadResult.details);
-    setPhase('seasonEnd');
-  }
-
-  function handleToDraft() {
-    playClickSound();
-    setDraftProspects(genDraft(10));
-    setPicksLeft(PICKS_PER_DRAFT);
-    setPhase('draft');
-  }
-
-  function handleDraft(prospect) {
-    playClickSound();
-    setRoster(r => [...r, { ...prospect, faStatus: 'None' }]);
-    setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
-    setPicksLeft(p => p - 1);
-  }
-
-  function handleDraftComplete() {
-    playClickSound();
-    const newSeason = season + 1;
-    const survival = checkSurvival(roster, newSeason);
-    if (!survival.alive) {
-      setCollapseReason(survival.reason);
-      setPhase('gameOver');
-      return;
-    }
-    setFreeAgents(genFA(8));
-    setSeason(newSeason);
-    setPhase('manage');
-  }
-
-  const Header = () => (
-    <header className="w-full max-w-7xl mx-auto mb-3 flex justify-between items-center shrink-0">
-      <div className="flex items-center gap-3">
-        <button onClick={() => { playClickSound(); onBack(); }} className="px-3 py-2 text-stone-500 hover:text-stone-300 rounded-lg transition-all text-sm font-mono">🏠</button>
-        <div>
-          <h1 className="text-2xl font-black font-mono text-amber-400 tracking-wider">👑 DYNASTY MODE</h1>
-          <span className="text-sm font-mono text-stone-400">SEASON {season}</span>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="text-xs font-mono text-stone-500">DYNASTY SCORE</span>
-        <span className="text-2xl font-mono font-black text-amber-400">{Math.max(0, season - 1)}</span>
-        <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2 rounded-lg transition-all text-sm ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
-      </div>
-    </header>
-  );
-
-  // ═══ REROLL PHASE ═══
-  if (phase === 'reroll') {
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-5xl space-y-4">
-          <div className="text-center space-y-2 mb-4">
-            <span className="text-sm font-mono font-black text-amber-400 uppercase tracking-widest">👑 DYNASTY MODE</span>
-            <h2 className="text-3xl font-black text-white">あなたの王朝を築け</h2>
-            <p className="text-sm text-stone-400">満足のいくロスターが組めたら「START」を押してください</p>
-          </div>
-          <div className="flex gap-3 justify-center mb-4">
-            <button onClick={doReroll} className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-6 py-2.5 rounded-xl text-sm hover:bg-stone-850 transition-all">🔄 REROLL</button>
-            <button onClick={() => { playClickSound(); setPhase('manage'); }} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black px-8 py-2.5 rounded-xl text-sm transition-all">START DYNASTY 💪</button>
-            <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-500 font-mono font-black px-4 py-2.5 rounded-xl text-sm hover:text-stone-300 transition-all">← 戻る</button>
-          </div>
-          <RosterTable title="YOUR ROSTER" players={roster} onActionClick={() => {}} actionLabel="—" totalSalary={totalCapHit} dynastyMode />
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-sm text-stone-400 flex gap-6">
-            <span>Total OVR: <span className="text-white font-black text-lg">{totalOvr}</span></span>
-            <span>Cap Hit: <span className="text-cyan-400 font-black text-lg">${(totalCapHit / 1000000).toFixed(1)}M</span></span>
-            <span>Players: <span className="text-white font-black">{roster.length}</span></span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ MANAGE PHASE ═══
-  if (phase === 'manage') {
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full flex flex-col flex-1 justify-start">
-          <Header />
-          <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
-            <div className="w-full lg:w-[42%] space-y-4 flex flex-col justify-between">
-              <section className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl p-5 space-y-3">
-                <span className="text-sm font-mono font-black text-cyan-400 uppercase tracking-wider">TEAM STATUS</span>
-                <div className="space-y-2">
-                  <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
-                    <span className={totalCapHit <= DYN_CAP ? 'text-emerald-400 font-black text-3xl' : totalCapHit <= DYN_TAX ? 'text-amber-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
-                      ${(totalCapHit / 1000000).toFixed(1)}M <span className="text-lg text-stone-500 font-sans">/ ${(DYN_CAP / 1000000).toFixed(0)}M</span>
-                    </span>
-                  </div>
-                  {deadCap > 0 && (
-                    <div className="bg-stone-950 px-4 py-2 rounded-xl border border-red-900/50">
-                      <div className="flex justify-between items-center">
-                        <span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span>
-                        <span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span>
-                      </div>
-                      {deadCapDetails.map((d, i) => (
-                        <div key={i} className="text-xs text-stone-500 mt-1 font-mono">{d.name}: ${(d.amount / 1000000).toFixed(1)}M × {d.yearsLeft}yr [{d.type}]</div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">🔥 Total OVR:</span>
-                    <span className={totalOvr >= minOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
-                      {totalOvr} <span className="text-lg text-stone-500 font-sans">/ {minOvr}+</span>
-                    </span>
-                  </div>
-                  <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">👥 Players:</span>
-                    <span className="text-white font-black text-2xl">{roster.length}</span>
-                  </div>
-                </div>
-                <SalaryMeter totalSalary={totalCapHit} capLevel={DYN_CAP} taxLevel={DYN_TAX} firstApron={DYN_APRON1} secondApron={DYN_APRON2} />
-                <button onClick={handleNextSeason} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all">NEXT SEASON ➡️</button>
-              </section>
-            </div>
-            <div className="w-full lg:w-[58%] space-y-4 flex flex-col justify-between">
-              <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                <RosterTable title="ROSTER" players={roster} totalSalary={totalCapHit} dynastyMode onWaiver={handleWaiver} onBuyout={handleBuyout} />
-                <RosterTable title="FREE AGENT" players={freeAgents} onActionClick={handleSign} actionLabel="契約" />
-              </div>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ SEASON END PHASE ═══
-  if (phase === 'seasonEnd') {
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-2xl space-y-4 bg-[#110f0e] border border-stone-800 rounded-3xl p-8">
-          <div className="text-center space-y-2">
-            <span className="text-sm font-mono font-black text-amber-400 uppercase tracking-widest">SEASON {season} COMPLETE</span>
-            <h2 className="text-2xl font-black text-white">シーズン終了レポート</h2>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
-            <h3 className="text-sm font-mono font-black text-cyan-400 uppercase">選手の経年変化</h3>
-            <div className="space-y-1 max-h-60 overflow-y-auto">
-              {summaries.map((s, i) => (
-                <div key={i} className="flex justify-between items-center text-sm py-1 px-2 rounded hover:bg-stone-900/50">
-                  <span className="text-white font-bold">{s.name}</span>
-                  <span className="font-mono">
-                    <span className="text-stone-400">{s.oldRating}</span>
-                    <span className="text-stone-600 mx-1">→</span>
-                    <span className={s.change <= -2 ? 'text-red-400 font-black' : 'text-amber-400 font-black'}>{s.newRating}</span>
-                    <span className="text-red-500 ml-1 text-xs">({s.change})</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-          {expiredPlayers.length > 0 && (
-            <div className="bg-stone-950 border border-amber-900/50 rounded-xl p-4 space-y-2">
-              <h3 className="text-sm font-mono font-black text-amber-400 uppercase">契約切れ → FA移行</h3>
-              {expiredPlayers.map((p, i) => (
-                <div key={i} className="flex justify-between items-center text-sm py-1 px-2">
-                  <span className="text-white font-bold">{p.name}</span>
-                  <span className="text-stone-500 font-mono text-xs">OVR {p.rating} → FA</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <button onClick={handleToDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all">DRAFT へ進む 🏀</button>
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ DRAFT PHASE ═══
-  if (phase === 'draft') {
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-2xl space-y-4 bg-[#110f0e] border border-stone-800 rounded-3xl p-8">
-          <div className="text-center space-y-2">
-            <span className="text-sm font-mono font-black text-cyan-400 uppercase tracking-widest">🏀 DRAFT</span>
-            <h2 className="text-2xl font-black text-white">新人選手ドラフト</h2>
-            <p className="text-sm text-stone-400">残りピック: <span className="text-cyan-400 font-black text-lg">{picksLeft}</span></p>
-          </div>
-          {picksLeft > 0 ? (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {draftProspects.map((p, i) => (
-                <div key={p.id} className="bg-stone-950 border border-stone-800 rounded-xl p-3 flex items-center justify-between hover:border-cyan-800 transition-colors">
-                  <div>
-                    <span className="text-xs text-stone-500 font-mono mr-2">#{i + 1}</span>
-                    <span className="text-white font-bold text-sm">{p.name}</span>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs">
-                      <span className="text-amber-400 font-mono font-black">OVR {p.rating}</span>
-                      <span className="text-stone-500">Age {p.age}</span>
-                      <span className="text-stone-500">${(p.salary / 1000000).toFixed(1)}M / {p.contractYears}yr</span>
-                    </div>
-                  </div>
-                  <button onClick={() => handleDraft(p)} className="bg-cyan-950 border border-cyan-700 text-cyan-400 hover:bg-cyan-900 font-mono font-black px-4 py-1.5 rounded-lg text-xs transition-all">DRAFT</button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center space-y-4 py-8">
-              <div className="text-emerald-400 font-mono font-black text-lg">✓ ドラフト完了</div>
-              <div className="text-sm text-stone-400">現在のロスター: {roster.length}人 / Total OVR: {totalOvr}</div>
-              <button onClick={handleDraftComplete} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all">新シーズン開始 🏀</button>
-            </div>
-          )}
-          {picksLeft > 0 && (
-            <button onClick={handleDraftComplete} className="w-full bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-2.5 rounded-xl text-xs transition-all">ドラフトをスキップ</button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ═══ GAME OVER PHASE ═══
-  if (phase === 'gameOver') {
-    const score = Math.max(0, season - 1) * 100;
-    return (
-      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-2xl space-y-6 bg-[#110f0e] border border-red-900 rounded-3xl p-8 text-center">
-          <div className="space-y-2">
-            <span className="text-sm font-mono font-black text-red-400 uppercase tracking-widest">DYNASTY COLLAPSED</span>
-            <h2 className="text-3xl font-black text-white">王朝崩壊</h2>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-6 space-y-3">
-            <div className="text-sm text-stone-400">存続期間</div>
-            <div className="text-5xl font-black text-amber-400 font-mono">{Math.max(0, season - 1)} seasons</div>
-            <div className="text-sm text-red-400 mt-2">{collapseReason}</div>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4">
-            <div className="text-xs text-stone-500 font-mono">GM SCORE</div>
-            <div className="text-4xl font-black text-yellow-400 font-mono">{score} pts</div>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button onClick={() => { doReroll(); }} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black px-8 py-3 rounded-xl text-sm transition-all">TRY AGAIN 🔄</button>
-            <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black px-6 py-3 rounded-xl text-sm transition-all">タイトルに戻る</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+export function calcCapHit(roster, deadCap = 0) {
+  return roster.reduce((s, p) => s + p.salary, 0) + deadCap;
 }
