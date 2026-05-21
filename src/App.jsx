@@ -18,7 +18,7 @@ export default function App() {
   const [infoTab, setInfoTab] = useState('mission');
 
   const [cbaMetrics, setCbaMetrics] = useState({
-    totalCapHit: 0, actualPayroll: 0, totalOvr: 0,
+    totalCapHit: 0, actualPayroll: 0, totalRating: 0,
     regularContractCount: 0, twoWayCount: 0, status: "UNDER_CAP"
   });
 
@@ -148,16 +148,16 @@ export default function App() {
     if (warnings.length > activeWarnings.length && infoTab !== 'warning') setInfoTab('warning');
 
     let ok = metrics.totalCapHit <= currentStage.conditions.maxSalary
-      && metrics.totalOvr >= (currentStage.conditions.minTotalOvr || 0)
+      && metrics.totalRating >= (currentStage.conditions.minTotalRating || 0)
       && (currentStage.conditions.mustHaveStar ? metrics.hasStar : true)
       && metrics.violations.length === 0;
 
     if (ok) {
       setIsCleared(true);
-      const ovrBonus = metrics.totalOvr * 100;
+      const RatingBonus = metrics.totalRating * 100;
       const remaining = currentStage.conditions.maxSalary - metrics.totalCapHit;
       const budgetBonus = Math.max(0, Math.floor((remaining / 1000000) * 50));
-      setClearScore(ovrBonus + budgetBonus);
+      setClearScore(RatingBonus + budgetBonus);
     } else {
       setIsCleared(false);
     }
@@ -318,8 +318,8 @@ export default function App() {
                         <span className="text-amber-400 font-black text-3xl">{fmt(cbaMetrics.actualPayroll)}</span>
                       </div>
                       <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                        <span className="text-stone-400 font-sans font-black text-sm">🔥 Total OVR:</span>
-                        <span className={cbaMetrics.totalOvr >= currentStage?.conditions.minTotalOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{cbaMetrics.totalOvr} <span className="text-lg text-stone-500 font-sans">/ {currentStage?.conditions.minTotalOvr}+</span></span>
+                        <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
+                        <span className={cbaMetrics.totalRating >= currentStage?.conditions.minTotalRating ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{cbaMetrics.totalRating} <span className="text-lg text-stone-500 font-sans">/ {currentStage?.conditions.minTotalRating}+</span></span>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-center text-sm font-sans font-bold pt-0.5">
                         <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Regular: <span className="text-cyan-400 font-mono font-black text-2xl">{cbaMetrics.regularContractCount}</span></div>
