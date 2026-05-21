@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import SalaryMeter from './components/SalaryMeter';
 import RosterTable from './components/RosterTable';
 import LeaderboardPage from './components/LeaderboardPage';
+import DynastyView from './components/DynastyView';
 import { CBACoreEngine } from './engine/cbaEngine';
 import stagesData from './data/stages.json';
 
@@ -134,7 +135,7 @@ export default function App() {
   }, [currentStageIdx]);
 
   useEffect(() => {
-    if (!currentStage || currentView === 'title') return;
+    if (!currentStage || currentView !== 'game') return;
 
     const metrics = CBACoreEngine.evaluate(roster);
     setCbaMetrics(metrics);
@@ -160,7 +161,7 @@ export default function App() {
     } else {
       setIsCleared(false);
     }
-  }, [roster, currentStage, currentView]);
+  }, [roster, currentStage, currentView, infoTab, activeWarnings.length]);
 
   const handleSignPlayer = (player) => {
     playClickSound();
@@ -202,7 +203,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
 
-      {/* タイトル画面 */}
+      {/* ═══ タイトル画面 ═══ */}
       {currentView === 'title' && (
         <div className="w-full max-w-2xl text-center space-y-8 py-12 px-8 bg-[#110f0e] border border-stone-850 rounded-3xl shadow-2xl font-mono animate-fade-in relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-pulse"></div>
@@ -215,16 +216,31 @@ export default function App() {
             <p>「勝つためにスターを並べろ。ただし、1ドルでも規約を超えればチームを剥奪する。」</p>
             <p>NBAの鬼畜な裏法律『CBA』の隙間を突き、最強ロスターを構築する、大人の数字パズルシミュレーター。</p>
           </div>
+          <div className="max-w-xs mx-auto">
+            <input type="text" placeholder="GMネームを入力..." value={gmName} onChange={(e) => setGmName(e.target.value)} maxLength={15} className="w-full bg-stone-900 border border-stone-700 rounded-lg px-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500 font-bold text-center" />
+          </div>
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
-            <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('game'); }} className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-cyan-950/50 hover:scale-[1.02] active:scale-[0.98]">START MANAGEMENT 💼</button>
-            <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="w-full sm:w-auto bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 text-sm font-black px-6 py-3.5 rounded-xl transition-all tracking-wider">LEADERBOARD 🏆</button>
+            <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('game'); }} className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-cyan-950/50 hover:scale-[1.02] active:scale-[0.98]">STAGES 💼</button>
+            <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('dynasty'); }} className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-amber-950/50 hover:scale-[1.02] active:scale-[0.98]">DYNASTY 👑</button>
+            <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="w-full sm:w-auto bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 text-sm font-black px-6 py-3.5 rounded-xl transition-all tracking-wider">RANK 🏆</button>
           </div>
           <div className="text-[10px] text-stone-600 pt-4 font-mono uppercase tracking-widest">Developed by Higashimura & Gemini Pro Engine</div>
         </div>
       )}
 
-      {/* メインゲーム画面 & ランキング */}
-      {currentView !== 'title' && (
+      {/* ═══ 王朝モード ═══ */}
+      {currentView === 'dynasty' && (
+        <DynastyView
+          onBack={() => { playClickSound(); setCurrentView('title'); }}
+          gmName={gmName}
+          playClickSound={playClickSound}
+          isBgmOn={isBgmOn}
+          toggleBGM={toggleBGM}
+        />
+      )}
+
+      {/* ═══ メインゲーム画面 & ランキング ═══ */}
+      {currentView !== 'title' && currentView !== 'dynasty' && (
         <div className="w-full flex flex-col flex-1 justify-start">
           <header className="w-full max-w-7xl mx-auto mb-2 border-b border-stone-800 pb-3 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
             <div className="cursor-pointer" onClick={() => { playClickSound(); setCurrentView('title'); }}>
