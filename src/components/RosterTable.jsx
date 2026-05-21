@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$$$${v.toLocaleString()}`;
+const fmt = (v) => v >= 1000000 ? `$$$${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M` : `$${v.toLocaleString()}`;
 
 function Badge({ children, tooltip, className }) {
   const [show, setShow] = useState(false);
@@ -23,7 +23,7 @@ function Badge({ children, tooltip, className }) {
   );
 }
 
-export default function RosterTable({ title, players, onActionClick, actionLabel, totalSalary, dynastyMode, onBuyout }) {
+export default function RosterTable({ title, players, onActionClick, actionLabel, totalSalary, dynastyMode, onWaiver, onBuyout }) {
   return (
     <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex flex-col min-h-0">
       <div className="px-4 py-3 border-b border-stone-900 flex justify-between items-center shrink-0">
@@ -88,9 +88,16 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                 )}
                 <td className="text-center py-1.5 px-2">
                   <div className="flex flex-col gap-0.5">
-                    <button onClick={() => onActionClick(player)} className="text-xs bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
-                    {dynastyMode && onBuyout && player.contractYears > 1 && (
-                      <button onClick={() => onBuyout(player)} className="text-[10px] bg-stone-900 border border-stone-800 text-amber-500 hover:text-amber-300 hover:border-amber-700 px-2 py-0.5 rounded transition-colors font-mono">バイアウト</button>
+                    {dynastyMode ? (
+                      <>
+                        <button onClick={() => onActionClick(player)} className="text-[10px] bg-red-950/60 border border-red-800 text-red-400 hover:text-red-300 hover:border-red-600 px-2 py-0.5 rounded transition-colors font-mono" title="残り100%デッドキャップ">解雇</button>
+                        <button onClick={() => onWaiver && onWaiver(player)} className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-2 py-0.5 rounded transition-colors font-mono" title="拾われれば0%、拾われなければ50%デッドキャップ">ウェイブ</button>
+                        {player.contractYears > 1 && (
+                          <button onClick={() => onBuyout && onBuyout(player)} className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-2 py-0.5 rounded transition-colors font-mono" title="30%デッドキャップ、拒否される可能性あり">バイアウト</button>
+                        )}
+                      </>
+                    ) : (
+                      <button onClick={() => onActionClick(player)} className="text-xs bg-stone-900 border border-stone-800 text-stone-400 hover:text-white hover:border-stone-600 px-2 py-0.5 rounded transition-colors font-mono">{actionLabel}</button>
                     )}
                   </div>
                 </td>
