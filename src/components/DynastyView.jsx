@@ -23,8 +23,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [signingYears, setSigningYears] = useState(2);
 
   const totalCapHit = calcCapHit(roster, deadCap);
-  const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
-  const minOvr = 380 + (season - 1) * 8;
+  const totalRating = roster.reduce((s, p) => s + p.rating, 0);
+  const minRating = 380 + (season - 1) * 8;
 
   useEffect(() => { doReroll(); }, []);
 
@@ -120,7 +120,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     } else {
       alert(
         `${player.name}はバイアウトを拒否しました。\n\n` +
-        `同意確率: ${agreeChance}%（OVRが低いほど同意しやすい）\n` +
+        `同意確率: ${agreeChance}%（Ratingが低いほど同意しやすい）\n` +
         `判定: ${roll.toFixed(0)} / ${agreeChance}`
       );
     }
@@ -271,7 +271,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           </div>
           <RosterTable title="YOUR ROSTER" players={roster} onActionClick={() => {}} actionLabel="—" totalSalary={totalCapHit} dynastyMode />
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-sm text-stone-400 flex gap-6">
-            <span>Total OVR: <span className="text-white font-black text-lg">{totalOvr}</span></span>
+            <span>Total Rating: <span className="text-white font-black text-lg">{totalRating}</span></span>
             <span>Cap Hit: <span className="text-cyan-400 font-black text-lg">${(totalCapHit / 1000000).toFixed(1)}M</span></span>
             <span>Players: <span className="text-white font-black">{roster.length}</span></span>
           </div>
@@ -311,8 +311,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
-                    <span className={totalOvr >= minOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
-                      {totalOvr} <span className="text-lg text-stone-500 font-sans">/ {minOvr}+</span>
+                    <span className={totalRating >= minRating ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
+                      {totalRating} <span className="text-lg text-stone-500 font-sans">/ {minRating}+</span>
                     </span>
                   </div>
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
@@ -408,7 +408,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           ) : (
             <div className="text-center space-y-4 py-8">
               <div className="text-emerald-400 font-mono font-black text-lg">✓ ドラフト完了</div>
-              <div className="text-sm text-stone-400">現在のロスター: {roster.length}人 / Total Rating: {totalOvr}</div>
+              <div className="text-sm text-stone-400">現在のロスター: {roster.length}人 / Total Rating: {totalRating}</div>
               <button onClick={handleDraftComplete} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all">新シーズン開始 🏀</button>
             </div>
           )}
