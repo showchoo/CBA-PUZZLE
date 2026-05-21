@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SalaryMeter from './components/SalaryMeter';
-import RosterTable from './components/RosterTable';
 import LeaderboardPage from './components/LeaderboardPage';
 import DynastyView from './components/DynastyView';
 import { CBACoreEngine } from './engine/cbaEngine';
@@ -18,8 +17,11 @@ export default function App() {
   const [infoTab, setInfoTab] = useState('mission');
 
   const [cbaMetrics, setCbaMetrics] = useState({
-    totalCapHit: 0, actualPayroll: 0, totalRating: 0,
-    regularContractCount: 0, twoWayCount: 0, status: "UNDER_CAP"
+    totalCapHit: 0, actualPayroll: 0, totalOvr: 0,
+    regularContractCount: 0, twoWayCount: 0, status: "UNDER_CAP",
+    totalRating: 0, hasStar: false, deadCapHit: 0, draftPicks: 0,
+    apronStatus: "UNDER", mleRemaining: 0, mleUsedThisSeason: false,
+    repeaterTaxActive: false, violations: []
   });
 
   const [clearScore, setClearScore] = useState(0);
@@ -28,8 +30,19 @@ export default function App() {
   const [isSent, setIsSent] = useState(false);
   const [isBgmOn, setIsBgmOn] = useState(false);
 
-  const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$$$${v.toLocaleString()}`;
+  // ★ 新規state
+  const [deadCap, setDeadCap] = useState([]);
+  const [draftPicks, setDraftPicks] = useState(0);
+  const [taxHistory, setTaxHistory] = useState([]);
+  const [mleUsedThisSeason, setMleUsedThisSeason] = useState(false);
+  const [useMle, setUseMle] = useState(false);
+  const [tradeModalTarget, setTradeModalTarget] = useState(null);
 
+  const fmt = (v) => v >= 1000000 ? `$$$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
+
+  // ═══════════════════════════════════════
+  // オーディオ（変更なし）
+  // ═══════════════════════════════════════
   const ctxRef = useRef(null);
   const bgmStartedRef = useRef(false);
   const bgmGainRef = useRef(null);
@@ -76,13 +89,11 @@ export default function App() {
       const master = ctx.createGain();
       master.gain.setValueAtTime(0, now); master.gain.linearRampToValueAtTime(1, now + 3);
       master.connect(ctx.destination); bgmGainRef.current = master;
-
       [[65.41, 0.06], [65.81, 0.04]].forEach(([f, v]) => {
         const o = ctx.createOscillator(); const g = ctx.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(f, now); g.gain.setValueAtTime(v, now);
         o.connect(g); g.connect(master); o.start(now);
       });
-
       [130.81, 164.81, 196.00, 246.94].forEach((f, i) => {
         const o = ctx.createOscillator(); const g = ctx.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(f, now); g.gain.setValueAtTime(0.018, now);
@@ -91,7 +102,6 @@ export default function App() {
         lg.gain.setValueAtTime(0.006, now); l.connect(lg); lg.connect(g.gain); l.start(now);
         o.connect(g); g.connect(master); o.start(now);
       });
-
       const notes = [523.25, 659.25, 783.99, 880.00, 1046.50];
       function sparkle() {
         if (!bgmStartedRef.current) return;
@@ -122,6 +132,9 @@ export default function App() {
     else { startBGM(); setIsBgmOn(true); }
   };
 
+  // ═══════════════════════════════════════
+  // ステージ初期化（★ 拡張）
+  // ═══════════════════════════════════════
   useEffect(() => {
     if (currentStage) {
       setRoster(currentStage.initialRoster);
@@ -131,26 +144,44 @@ export default function App() {
       setClearScore(0);
       setIsSent(false);
       setInfoTab('mission');
+      setDeadCap([]);
+      setDraftPicks(currentStage.initialDraftPicks || 0);
+      setUseMle(false);
+      setMleUsedThisSeason(false);
+      setTaxHistory(currentStage.taxHistoryInitial || []);
+      setTradeModalTarget(null);
     }
   }, [currentStageIdx]);
 
+  // ═══════════════════════════════════════
+  // メトリクス評価（★ 拡張）
+  // ═══════════════════════════════════════
   useEffect(() => {
     if (!currentStage || currentView !== 'game') return;
 
-    const metrics = CBACoreEngine.evaluate(roster);
+    const metrics = CBACoreEngine.evaluate(roster, null, null, {
+      deadCap,
+      features: currentStage.features || {},
+      draftPicks,
+      taxHistory,
+      mleUsedThisSeason,
+      minPlayers: currentStage.conditions.minPlayers || 14,
+    });
     setCbaMetrics(metrics);
 
     const warnings = [...metrics.violations];
     if (metrics.status === "LUXURY_TAX") warnings.push({ label: "💸 贅沢税発生中", text: "ラインを超える額が多ければ多いほど、オーナーの罰金が指数関数的に跳ね上がります！" });
     if (metrics.status === "FIRST_APRON") warnings.push({ label: "⚠️ 第1エプロン突破", text: "トレードで獲得する選手の年俸を、出す選手以下に抑える必要があります。" });
-    if (metrics.status === "SECOND_APRON") warnings.push({ label: "🔥 第2エプロン突破", text: "2人以上のパッケージトレード禁止、MLE没収、RFAオファー全面禁止！" });
+    if (metrics.status === "SECOND_APRON") warnings.push({ label: "🔥 第2エプロン突破", text: "MLE没収、トレード制限強化！" });
     setActiveWarnings(warnings);
     if (warnings.length > activeWarnings.length && infoTab !== 'warning') setInfoTab('warning');
 
     let ok = metrics.totalCapHit <= currentStage.conditions.maxSalary
       && metrics.totalRating >= (currentStage.conditions.minTotalRating || 0)
       && (currentStage.conditions.mustHaveStar ? metrics.hasStar : true)
-      && metrics.violations.length === 0;
+      && metrics.violations.length === 0
+      && metrics.regularContractCount >= (currentStage.conditions.minPlayers || 0)
+      && (currentStage.conditions.minDraftPicks ? metrics.draftPicks >= currentStage.conditions.minDraftPicks : true);
 
     if (ok) {
       setIsCleared(true);
@@ -161,22 +192,117 @@ export default function App() {
     } else {
       setIsCleared(false);
     }
-  }, [roster, currentStage, currentView, infoTab, activeWarnings.length]);
+  }, [roster, currentStage, currentView, deadCap, draftPicks, mleUsedThisSeason, infoTab, activeWarnings.length]);
 
-  const handleSignPlayer = (player) => {
+  // ═══════════════════════════════════════
+  // ハンドラー群
+  // ═══════════════════════════════════════
+
+  // ★ ウェイブ（デッドキャップ対応）
+  const handleWaiver = (player) => {
     playClickSound();
-    const m = CBACoreEngine.evaluate(roster, null, player);
-    if (!m.tradeCheck.allowed) { alert(m.tradeCheck.message); return; }
+    const features = currentStage.features || {};
+    if (features.deadCap) {
+      const entries = Array.from({ length: player.contractYears || 1 }, (_, i) => ({
+        id: `dc_${player.id}_${i}`,
+        label: `ウェイブ: ${player.name}`,
+        salary: player.salary,
+        yearsRemaining: (player.contractYears || 1) - i,
+        source: 'waiver'
+      }));
+      setDeadCap(prev => [...prev, ...entries]);
+      setRoster(roster.filter(p => p.id !== player.id));
+    } else {
+      setRoster(roster.filter(p => p.id !== player.id));
+      setFreeAgents([...freeAgents, player]);
+    }
+  };
+
+  // ★ バイアウト
+  const handleBuyout = (player) => {
+    playClickSound();
+    const result = CBACoreEngine.executeBuyout(player);
+    setDeadCap(prev => [...prev, ...result.deadCapEntries]);
+    setRoster(roster.filter(p => p.id !== player.id));
+    alert(result.message);
+  };
+
+  // ★ ストレッチ
+  const handleStretch = (player) => {
+    playClickSound();
+    const result = CBACoreEngine.executeStretch(player);
+    setDeadCap(prev => [...prev, ...result.deadCapEntries]);
+    setRoster(roster.filter(p => p.id !== player.id));
+    alert(result.message);
+  };
+
+  // ★ Player Option
+  const handlePlayerOption = (player, exercise) => {
+    playClickSound();
+    if (exercise) {
+      alert(`${player.name}のPlayer Optionを行使。契約延長します。`);
+    } else {
+      setRoster(roster.filter(p => p.id !== player.id));
+      setFreeAgents([...freeAgents, { ...player, faStatus: "UFA", optionType: null }]);
+    }
+  };
+
+  // ★ Team Option
+  const handleTeamOption = (player, exercise) => {
+    playClickSound();
+    if (exercise) {
+      alert(`${player.name}のTeam Optionを行使。契約延長します。`);
+    } else {
+      setRoster(roster.filter(p => p.id !== player.id));
+    }
+  };
+
+  // ★ FA契約（MLE対応）
+  const handleSignFA = (player) => {
+    playClickSound();
+    if (useMle) {
+      const check = CBACoreEngine.canUseMLE(player.salary, cbaMetrics.mleRemaining, cbaMetrics.apronStatus);
+      if (!check.allowed) { alert(check.message); return; }
+      setMleUsedThisSeason(true);
+      setUseMle(false);
+    } else {
+      const m = CBACoreEngine.evaluate(roster, null, player, {
+        deadCap, features: currentStage.features || {},
+        draftPicks, taxHistory, mleUsedThisSeason,
+        minPlayers: currentStage.conditions.minPlayers || 14,
+      });
+      if (!m.tradeCheck.allowed) { alert(m.tradeCheck.message); return; }
+    }
     setFreeAgents(freeAgents.filter(p => p.id !== player.id));
     setRoster([...roster, player]);
   };
 
-  const handleReleasePlayer = (player) => {
+  // ★ トレード
+  const handleTrade = (rosterPlayer) => {
     playClickSound();
-    setRoster(roster.filter(p => p.id !== player.id));
-    setFreeAgents([...freeAgents, player]);
+    const faPlayer = tradeModalTarget;
+    const m = CBACoreEngine.evaluate(roster, rosterPlayer, faPlayer, {
+      deadCap, features: currentStage.features || {},
+      draftPicks, taxHistory, mleUsedThisSeason,
+      minPlayers: currentStage.conditions.minPlayers || 14,
+    });
+    if (!m.tradeCheck.allowed) { alert(m.tradeCheck.message); return; }
+    setRoster(roster.map(p => p.id === rosterPlayer.id ? { ...faPlayer, contractYears: faPlayer.contractYears || 2 } : p));
+    setFreeAgents(freeAgents.filter(p => p.id !== faPlayer.id));
+    setTradeModalTarget(null);
   };
 
+  // ★ S&T
+  const handleSignAndTrade = (player) => {
+    playClickSound();
+    const v = CBACoreEngine.validateSignAndTrade(player, 3);
+    if (!v.allowed) { alert(v.message); return; }
+    setRoster(roster.filter(p => p.id !== player.id));
+    setDraftPicks(prev => prev + 1);
+    alert(`S&T成功！ ${player.name}を放出し、ドラフトピック+1`);
+  };
+
+  // ランキング送信（変更なし）
   const handleSubmitRanking = async (e) => {
     e.preventDefault();
     if (!gmName.trim() || isSending || isSent) return;
@@ -197,13 +323,30 @@ export default function App() {
   const handleNextStage = () => {
     playClickSound();
     if (currentStageIdx < stagesData.length - 1) setCurrentStageIdx(currentStageIdx + 1);
-    else alert("全シチュエーションクリア！");
+    else alert("全ステージクリア！");
   };
 
+  // バッジヘルパー
+  const getBadges = (player) => {
+    const badges = [];
+    if (player.birdRights === "Full") badges.push({ text: "🐦", title: "Full Bird Rights", color: "bg-blue-900 text-blue-300" });
+    if (player.contractType === "twoway") badges.push({ text: "2W", title: "Two-Way", color: "bg-purple-900 text-purple-300" });
+    if (player.contractType === "minimum") badges.push({ text: "MIN", title: "Minimum", color: "bg-orange-900 text-orange-300" });
+    if (player.optionType === "player") badges.push({ text: "PO", title: "Player Option", color: "bg-yellow-900 text-yellow-300" });
+    if (player.optionType === "team") badges.push({ text: "TO", title: "Team Option", color: "bg-yellow-900 text-yellow-300" });
+    if (CBACoreEngine.isSupermaxEligible(player)) badges.push({ text: "SMAX", title: "Supermax Eligible", color: "bg-amber-900 text-amber-300" });
+    return badges;
+  };
+
+  const features = currentStage?.features || {};
+
+  // ═══════════════════════════════════════
+  // JSX
+  // ═══════════════════════════════════════
   return (
     <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
 
-      {/* ═══ タイトル画面 ═══ */}
+      {/* ═══ タイトル画面（変更なし）═══ */}
       {currentView === 'title' && (
         <div className="w-full max-w-2xl text-center space-y-8 py-12 px-8 bg-[#110f0e] border border-stone-850 rounded-3xl shadow-2xl font-mono animate-fade-in relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent animate-pulse"></div>
@@ -228,15 +371,9 @@ export default function App() {
         </div>
       )}
 
-      {/* ═══ 王朝モード ═══ */}
+      {/* ═══ 王朝モード（変更なし）═══ */}
       {currentView === 'dynasty' && (
-        <DynastyView
-          onBack={() => { playClickSound(); setCurrentView('title'); }}
-          gmName={gmName}
-          playClickSound={playClickSound}
-          isBgmOn={isBgmOn}
-          toggleBGM={toggleBGM}
-        />
+        <DynastyView onBack={() => { playClickSound(); setCurrentView('title'); }} gmName={gmName} playClickSound={playClickSound} isBgmOn={isBgmOn} toggleBGM={toggleBGM} />
       )}
 
       {/* ═══ メインゲーム画面 & ランキング ═══ */}
@@ -255,19 +392,54 @@ export default function App() {
             </div>
           </header>
 
+          {/* ★ ステージ選択ボタン（13ステージ対応） */}
           {currentView === 'game' && (
-            <div className="w-full max-w-7xl mx-auto mb-3 shrink-0 flex justify-end space-x-2">
+            <div className="w-full max-w-7xl mx-auto mb-3 shrink-0 flex flex-wrap justify-center gap-2">
               {stagesData.map((stage, idx) => (
-                <button key={stage.id} onClick={() => { playClickSound(); setCurrentStageIdx(idx); }} className={'px-5 py-2 text-base font-mono font-black rounded border transition-all ' + (idx === currentStageIdx ? 'bg-cyan-950 border-cyan-500 text-cyan-400 shadow-md shadow-cyan-950/50' : 'bg-stone-900 border-stone-800 text-white hover:bg-stone-850')}>STAGE 0{stage.id}</button>
+                <button key={stage.id} onClick={() => { playClickSound(); setCurrentStageIdx(idx); }}
+                  className={'px-4 py-2 text-xs font-mono font-black rounded border transition-all ' + (idx === currentStageIdx ? 'bg-cyan-950 border-cyan-500 text-cyan-400 shadow-md shadow-cyan-950/50' : 'bg-stone-900 border-stone-800 text-white hover:bg-stone-850')}>
+                  {String(stage.id).padStart(2, '0')}
+                </button>
               ))}
+            </div>
+          )}
+
+          {/* ★ トレードモーダル */}
+          {tradeModalTarget && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setTradeModalTarget(null)}>
+              <div className="bg-[#141210] border border-stone-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+                <h3 className="text-lg font-black text-amber-400 font-mono mb-1">⚖️ トレード</h3>
+                <p className="text-sm text-stone-400 mb-4">獲得: <span className="text-white font-bold">{tradeModalTarget.name}</span> ({fmt(tradeModalTarget.salary)})</p>
+                <p className="text-xs text-stone-500 mb-3 font-mono">放出する選手を選択してください（75%〜125%ルール適用）</p>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {roster.filter(p => p.contractType !== 'twoway').map(p => {
+                    const minIn = Math.floor(tradeModalTarget.salary * 0.75);
+                    const maxIn = Math.floor(tradeModalTarget.salary * 1.25 + 100000);
+                    const inRange = p.salary >= minIn && p.salary <= maxIn;
+                    return (
+                      <button key={p.id} onClick={() => handleTrade(p)} disabled={!inRange}
+                        className={'w-full flex justify-between items-center px-4 py-3 rounded-lg border transition-all text-left ' + (inRange ? 'bg-stone-900 border-stone-700 hover:border-amber-500 hover:bg-stone-850' : 'bg-stone-950 border-stone-900 opacity-40 cursor-not-allowed')}>
+                        <div>
+                          <span className="text-white font-bold text-sm">{p.name}</span>
+                          <span className="text-stone-500 text-xs ml-2">R{p.rating}</span>
+                        </div>
+                        <span className={inRange ? 'text-amber-400 font-mono font-black' : 'text-red-500 font-mono font-black'}>{fmt(p.salary)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => setTradeModalTarget(null)} className="w-full mt-4 bg-stone-800 hover:bg-stone-700 text-stone-300 text-sm font-bold py-2.5 rounded-lg transition-all">キャンセル</button>
+              </div>
             </div>
           )}
 
           <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
             {currentView === 'game' ? (
               <>
+                {/* ═══ 左パネル (42%) ═══ */}
                 <div className="w-full lg:w-[42%] space-y-4 flex flex-col justify-between">
                   <section className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex flex-col flex-1 min-h-[420px]">
+                    {/* タブバー（変更なし） */}
                     <div className="flex bg-stone-950/80 border-b border-stone-850 p-1.5 rounded-t-xl font-mono text-sm font-black">
                       <button onClick={() => { playClickSound(); setInfoTab('mission'); }} className={'flex-1 py-2 rounded-lg transition-all ' + (infoTab === 'mission' ? 'bg-stone-900 text-cyan-400 border border-stone-800' : 'text-stone-400 hover:text-stone-200')}>🎯 MISSION</button>
                       <button onClick={() => { playClickSound(); setInfoTab('rule'); }} className={'flex-1 py-2 rounded-lg transition-all ' + (infoTab === 'rule' ? 'bg-stone-900 text-blue-400 border border-stone-800' : 'text-stone-400 hover:text-stone-200')}>📖 RULE</button>
@@ -308,11 +480,21 @@ export default function App() {
                       )}
                     </div>
 
+                    {/* ★ メトリクス（拡張） */}
                     <div className="flex flex-col gap-2 text-base p-4 border-t border-stone-900 font-mono bg-stone-950/40 rounded-b-xl">
                       <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                         <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
                         <span className={cbaMetrics.totalCapHit <= currentStage?.conditions.maxSalary ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{fmt(cbaMetrics.totalCapHit)} <span className="text-lg text-stone-500 font-sans">/ {fmt(currentStage?.conditions.maxSalary)}</span></span>
                       </div>
+
+                      {/* ★ デッドキャップ表示 */}
+                      {deadCap.length > 0 && (
+                        <div className="bg-red-950/30 px-4 py-2.5 rounded-xl border border-red-900/50 flex justify-between items-center">
+                          <span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span>
+                          <span className="text-red-400 font-black text-2xl">{fmt(cbaMetrics.deadCapHit || deadCap.reduce((s, d) => s + d.salary, 0))}</span>
+                        </div>
+                      )}
+
                       <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                         <span className="text-stone-400 font-sans font-black text-sm">💸 Real Payroll:</span>
                         <span className="text-amber-400 font-black text-3xl">{fmt(cbaMetrics.actualPayroll)}</span>
@@ -321,14 +503,36 @@ export default function App() {
                         <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
                         <span className={cbaMetrics.totalRating >= currentStage?.conditions.minTotalRating ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{cbaMetrics.totalRating} <span className="text-lg text-stone-500 font-sans">/ {currentStage?.conditions.minTotalRating}+</span></span>
                       </div>
+
+                      {/* ★ ドラフトピック表示 */}
+                      {currentStage?.conditions.minDraftPicks > 0 && (
+                        <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
+                          <span className="text-stone-400 font-sans font-black text-sm">🎫 Draft Picks:</span>
+                          <span className={draftPicks >= currentStage.conditions.minDraftPicks ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{draftPicks} <span className="text-lg text-stone-500 font-sans">/ {currentStage.conditions.minDraftPicks}+</span></span>
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 gap-3 text-center text-sm font-sans font-bold pt-0.5">
                         <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Regular: <span className="text-cyan-400 font-mono font-black text-2xl">{cbaMetrics.regularContractCount}</span></div>
                         <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Two-Way: <span className="text-purple-400 font-mono font-black text-2xl">{cbaMetrics.twoWayCount}</span></div>
                       </div>
+
+                      {/* ★ MLEチェックボックス */}
+                      {features.mle && !mleUsedThisSeason && cbaMetrics.mleRemaining > 0 && (
+                        <label className="flex items-center gap-3 bg-blue-950/40 px-4 py-2.5 rounded-xl border border-blue-900/50 cursor-pointer hover:bg-blue-950/60 transition-all">
+                          <input type="checkbox" checked={useMle} onChange={() => setUseMle(!useMle)} className="w-4 h-4 accent-blue-500" />
+                          <span className="text-blue-300 font-sans font-black text-sm">MLE使用（残額: {fmt(cbaMetrics.mleRemaining)}）</span>
+                        </label>
+                      )}
+                      {mleUsedThisSeason && (
+                        <div className="bg-stone-900 px-4 py-2 rounded-xl border border-stone-800 text-stone-500 font-sans font-bold text-xs text-center">MLE: 今シーズン使用済み</div>
+                      )}
+
                       <div className="pt-2"><SalaryMeter totalSalary={cbaMetrics.totalCapHit} /></div>
                     </div>
                   </section>
 
+                  {/* クリアパネル（変更なし） */}
                   {isCleared && (
                     <div className="bg-gradient-to-r from-emerald-950 to-stone-900 border-2 border-emerald-500 rounded-xl p-5 shadow-2xl space-y-3 shrink-0">
                       <div className="flex justify-between items-center border-b border-emerald-900 pb-2">
@@ -352,10 +556,144 @@ export default function App() {
                   )}
                 </div>
 
-                <div className="w-full lg:w-[58%] space-y-4 flex flex-col justify-between">
-                  <div className="flex flex-col sm:flex-row gap-4 flex-1">
-                    <RosterTable title="CURRENT ROSTER" players={roster} onActionClick={handleReleasePlayer} actionLabel="解雇" totalSalary={cbaMetrics.totalCapHit} />
-                    <RosterTable title="FREE AGENT MARKET" players={freeAgents} onActionClick={handleSignPlayer} actionLabel="契約" />
+                {/* ═══ 右パネル (58%) - ロスターテーブル ★ 改造 ═══ */}
+                <div className="w-full lg:w-[58%] space-y-4 flex flex-col">
+                  <div className="flex flex-col gap-4 flex-1">
+
+                    {/* ─── CURRENT ROSTER ─── */}
+                    <div className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex-1 flex flex-col overflow-hidden">
+                      <div className="px-5 py-3 border-b border-stone-850 flex justify-between items-center bg-stone-950/50">
+                        <h3 className="font-mono text-sm font-black text-cyan-400 tracking-wider">📋 CURRENT ROSTER</h3>
+                        <span className="text-stone-500 font-mono text-xs">{roster.length}人</span>
+                      </div>
+                      <div className="overflow-y-auto flex-1">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-stone-500 text-xs font-mono border-b border-stone-900">
+                              <th className="text-left px-5 py-2">NAME</th>
+                              <th className="text-center px-2 py-2">EXP</th>
+                              <th className="text-center px-2 py-2">OVR</th>
+                              <th className="text-right px-2 py-2">SALARY</th>
+                              <th className="text-center px-2 py-2">-</th>
+                              <th className="text-center px-5 py-2">ACTION</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {roster.map(player => (
+                              <tr key={player.id} className="border-b border-stone-900/50 hover:bg-stone-900/30 transition-colors">
+                                <td className="px-5 py-2.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-white font-bold text-sm truncate max-w-[120px]">{player.name}</span>
+                                    {getBadges(player).map((b, i) => (
+                                      <span key={i} title={b.title} className={'text-[9px] font-mono font-black px-1.5 py-0.5 rounded ' + b.color}>{b.text}</span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="text-center text-stone-400 font-mono text-xs">{player.experience}yr</td>
+                                <td className="text-center font-mono font-black text-base text-white">{player.rating}</td>
+                                <td className="text-right font-mono font-black text-amber-400 text-sm">{fmt(player.salary)}</td>
+                                <td className="text-center text-stone-600 text-[10px] font-mono">{player.contractYears}yr</td>
+                                <td className="px-3 py-2.5">
+                                  <div className="flex gap-1 justify-end flex-wrap">
+                                    {/* Player Option ボタン */}
+                                    {player.optionType === "player" && (
+                                      <>
+                                        <button onClick={() => handlePlayerOption(player, true)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all" title="行使して残留">PO:行使</button>
+                                        <button onClick={() => handlePlayerOption(player, false)} className="px-2 py-1 bg-red-800 hover:bg-red-700 text-red-200 text-[10px] font-mono font-black rounded transition-all" title="拒否してFAへ">PO:拒否</button>
+                                      </>
+                                    )}
+                                    {/* Team Option ボタン */}
+                                    {player.optionType === "team" && (
+                                      <>
+                                        <button onClick={() => handleTeamOption(player, true)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all" title="行使して延長">TO:行使</button>
+                                        <button onClick={() => handleTeamOption(player, false)} className="px-2 py-1 bg-red-800 hover:bg-red-700 text-red-200 text-[10px] font-mono font-black rounded transition-all" title="拒否して放出">TO:拒否</button>
+                                      </>
+                                    )}
+                                    {/* S&T ボタン */}
+                                    {features.signAndTrade && player.birdRights === "Full" && (
+                                      <button onClick={() => handleSignAndTrade(player)} className="px-2 py-1 bg-purple-800 hover:bg-purple-700 text-purple-200 text-[10px] font-mono font-black rounded transition-all" title="サイン・アンド・トレード">S&T</button>
+                                    )}
+                                    {/* バイアウトボタン */}
+                                    {features.buyout && (
+                                      <button onClick={() => handleBuyout(player)} className="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-blue-200 text-[10px] font-mono font-black rounded transition-all" title={`バイアウト（${CBACoreEngine.getBuyoutRate(player.rating)*100}%に軽減）`}>B/O</button>
+                                    )}
+                                    {/* ストレッチボタン */}
+                                    {features.stretch && (
+                                      <button onClick={() => handleStretch(player)} className="px-2 py-1 bg-teal-800 hover:bg-teal-700 text-teal-200 text-[10px] font-mono font-black rounded transition-all" title="ストレッチ条項">ST</button>
+                                    )}
+                                    {/* ウェイブボタン */}
+                                    {features.waiver !== false && (
+                                      <button onClick={() => handleWaiver(player)} className="px-2 py-1 bg-red-900 hover:bg-red-800 text-red-300 text-[10px] font-mono font-black rounded transition-all" title="ウェイブ（放出）">解雇</button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                            {roster.length === 0 && (
+                              <tr><td colSpan={6} className="text-center py-8 text-stone-600 font-mono text-sm">選手がいません</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* ─── FREE AGENT MARKET ─── */}
+                    <div className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex-1 flex flex-col overflow-hidden">
+                      <div className="px-5 py-3 border-b border-stone-850 flex justify-between items-center bg-stone-950/50">
+                        <h3 className="font-mono text-sm font-black text-emerald-400 tracking-wider">🏪 FREE AGENT MARKET</h3>
+                        <span className="text-stone-500 font-mono text-xs">{freeAgents.length}人</span>
+                      </div>
+                      <div className="overflow-y-auto flex-1">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-stone-500 text-xs font-mono border-b border-stone-900">
+                              <th className="text-left px-5 py-2">NAME</th>
+                              <th className="text-center px-2 py-2">EXP</th>
+                              <th className="text-center px-2 py-2">OVR</th>
+                              <th className="text-right px-2 py-2">SALARY</th>
+                              <th className="text-center px-2 py-2">-</th>
+                              <th className="text-center px-5 py-2">ACTION</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {freeAgents.map(player => (
+                              <tr key={player.id} className="border-b border-stone-900/50 hover:bg-stone-900/30 transition-colors">
+                                <td className="px-5 py-2.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-white font-bold text-sm truncate max-w-[120px]">{player.name}</span>
+                                    {getBadges(player).map((b, i) => (
+                                      <span key={i} title={b.title} className={'text-[9px] font-mono font-black px-1.5 py-0.5 rounded ' + b.color}>{b.text}</span>
+                                    ))}
+                                  </div>
+                                </td>
+                                <td className="text-center text-stone-400 font-mono text-xs">{player.experience}yr</td>
+                                <td className="text-center font-mono font-black text-base text-white">{player.rating}</td>
+                                <td className="text-right font-mono font-black text-emerald-400 text-sm">{fmt(player.salary)}</td>
+                                <td className="text-center text-stone-600 text-[10px] font-mono">{player.contractYears}yr</td>
+                                <td className="px-3 py-2.5">
+                                  <div className="flex gap-1 justify-end flex-wrap">
+                                    {/* トレードボタン */}
+                                    {features.trade && (
+                                      <button onClick={() => { playClickSound(); setTradeModalTarget(player); }} className="px-2 py-1 bg-amber-800 hover:bg-amber-700 text-amber-200 text-[10px] font-mono font-black rounded transition-all" title="トレードで獲得">TRE</button>
+                                    )}
+                                    {/* MLE契約ボタン */}
+                                    {features.mle && !mleUsedThisSeason && cbaMetrics.mleRemaining > 0 && player.salary <= cbaMetrics.mleRemaining && (
+                                      <button onClick={() => { setUseMle(true); handleSignFA(player); }} className="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-blue-200 text-[10px] font-mono font-black rounded transition-all" title="MLEで契約">MLE</button>
+                                    )}
+                                    {/* 通常契約ボタン */}
+                                    <button onClick={() => handleSignFA(player)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all">契約</button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                            {freeAgents.length === 0 && (
+                              <tr><td colSpan={6} className="text-center py-8 text-stone-600 font-mono text-sm">FA市場に選手がいません</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
                   </div>
                 </div>
               </>
