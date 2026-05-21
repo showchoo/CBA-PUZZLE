@@ -1,9 +1,91 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SalaryMeter from './components/SalaryMeter';
 import LeaderboardPage from './components/LeaderboardPage';
 import DynastyView from './components/DynastyView';
 import { CBACoreEngine } from './engine/cbaEngine';
 import stagesData from './data/stages.json';
+
+// ═══════════════════════════════════════════════
+// Toast コンポーネント
+// ═══════════════════════════════════════════════
+function ToastContainer({ toasts, onRemove }) {
+  return (
+    <div className="fixed top-4 right-4 z-[100] space-y-3 pointer-events-none" style={{ maxWidth: '400px' }}>
+      {toasts.map((toast) => (
+        <div key={toast.id}
+          className="pointer-events-auto animate-toast-in"
+          style={{
+            animation: toast.exiting ? 'toastOut 0.4s ease forwards' : 'toastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+          }}
+          onAnimationEnd={() => { if (toast.exiting) onRemove(toast.id); }}
+        >
+          <div className={
+            'border rounded-xl px-5 py-3.5 shadow-2xl backdrop-blur-sm ' +
+            (toast.type === 'success' ? 'bg-emerald-950/90 border-emerald-500/60' :
+             toast.type === 'epic' ? 'bg-amber-950/90 border-amber-400/60' :
+             toast.type === 'trade' ? 'bg-purple-950/90 border-purple-500/60' :
+             toast.type === 'warning' ? 'bg-red-950/90 border-red-500/60' :
+             toast.type === 'info' ? 'bg-blue-950/90 border-blue-500/60' :
+             'bg-stone-900/90 border-stone-600/60')
+          }>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{toast.icon}</span>
+              <div>
+                <div className={
+                  'text-sm font-mono font-black tracking-wide ' +
+                  (toast.type === 'success' ? 'text-emerald-400' :
+                   toast.type === 'epic' ? 'text-amber-400' :
+                   toast.type === 'trade' ? 'text-purple-400' :
+                   toast.type === 'warning' ? 'text-red-400' :
+                   toast.type === 'info' ? 'text-blue-400' :
+                   'text-stone-300')
+                }>{toast.title}</div>
+                {toast.message && <div className="text-xs text-stone-300 font-bold mt-0.5">{toast.message}</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════
+// 紙吹雪コンポーネント
+// ═══════════════════════════════════════════════
+function ConfettiOverlay({ active }) {
+  if (!active) return null;
+  const colors = ['#e8c547', '#22d3ee', '#f97316', '#a78bfa', '#34d399', '#fb7185'];
+  const pieces = Array.from({ length: 60 }, (_, i) => ({
+    id: i,
+    color: colors[i % colors.length],
+    left: Math.random() * 100,
+    delay: Math.random() * 2,
+    duration: 2 + Math.random() * 2,
+    size: 4 + Math.random() * 8,
+    rotation: Math.random() * 360,
+    shape: Math.random() > 0.5 ? 'circle' : 'rect',
+  }));
+
+  return (
+    <div className="fixed inset-0 z-[90] pointer-events-none overflow-hidden">
+      {pieces.map((p) => (
+        <div key={p.id} style={{
+          position: 'absolute',
+          left: `${p.left}%`,
+          top: '-20px',
+          width: p.shape === 'circle' ? `${p.size}px` : `${p.size * 1.5}px`,
+          height: `${p.size}px`,
+          backgroundColor: p.color,
+          borderRadius: p.shape === 'circle' ? '50%' : '2px',
+          transform: `rotate(${p.rotation}deg)`,
+          animation: `confettiFall ${p.duration}s ease-in ${p.delay}s forwards`,
+          opacity: 0.9,
+        }} />
+      ))}
+    </div>
+  );
+}
 
 export default function App() {
   const [currentView, setCurrentView] = useState('title');
@@ -26,19 +108,49 @@ export default function App() {
 
   const [gmName, setGmName] = useState('');
   const [isBgmOn, setIsBgmOn] = useState(false);
-
-  // 新規state
   const [deadCap, setDeadCap] = useState([]);
   const [draftPicks, setDraftPicks] = useState(0);
   const [taxHistory, setTaxHistory] = useState([]);
   const [mleUsedThisSeason, setMleUsedThisSeason] = useState(false);
   const [useMle, setUseMle] = useState(false);
   const [tradeModalTarget, setTradeModalTarget] = useState(null);
+  const [toasts, setToasts] = useState([]);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [screenShake, setScreenShake] = useState(false);
 
   const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
 
   // ═══════════════════════════════════════
-  // オーディオ
+  // Toast システム
+  // ═══════════════════════════════════════
+  const toastCounter = useRef(0);
+  const addToast = useCallback((type, icon, title, message, duration = 3000) => {
+    const id = ++toastCounter.current;
+    setToasts(prev => [...prev, { id, type, icon, title, message, exiting: false }]);
+    setTimeout(() => {
+      setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
+    }, duration);
+  }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // ═══════════════════════════════════════
+  // エフェクトトリガー
+  // ═══════════════════════════════════════
+  const triggerConfetti = useCallback(() => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 5000);
+  }, []);
+
+  const triggerShake = useCallback(() => {
+    setScreenShake(true);
+    setTimeout(() => setScreenShake(false), 600);
+  }, []);
+
+  // ═══════════════════════════════════════
+  // オーディオシステム
   // ═══════════════════════════════════════
   const ctxRef = useRef(null);
   const bgmStartedRef = useRef(false);
@@ -53,14 +165,20 @@ export default function App() {
     return ctxRef.current;
   };
 
-  const playClickSound = () => {
+  // ★ 汎用サウンドエフェクト
+  const playTone = (freq, duration = 0.15, type = 'sine', vol = 0.08, delay = 0) => {
     try {
-      const ctx = getCtx(); const now = ctx.currentTime;
+      const ctx = getCtx(); const now = ctx.currentTime + delay;
       const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type = 'sine'; o.frequency.setValueAtTime(1200, now);
-      g.gain.setValueAtTime(0.08, now); g.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-      o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + 0.05);
+      o.type = type; o.frequency.setValueAtTime(freq, now);
+      g.gain.setValueAtTime(vol, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + duration + 0.01);
     } catch (e) {}
+  };
+
+  const playClickSound = () => {
+    playTone(1200, 0.04, 'sine', 0.06);
   };
 
   const playStartSound = () => {
@@ -76,6 +194,90 @@ export default function App() {
         o.start(now + i * 0.08); o.stop(now + i * 0.08 + 0.7);
       });
     } catch (e) {}
+  };
+
+  // ★ 成功音（契約、補強）
+  const playSuccessSound = () => {
+    playTone(523.25, 0.15, 'sine', 0.07);
+    playTone(659.25, 0.15, 'sine', 0.07, 0.1);
+    playTone(783.99, 0.25, 'sine', 0.09, 0.2);
+  };
+
+  // ★ エピック音（クリア、大成功）
+  const playEpicSound = () => {
+    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+      playTone(f, 0.4, 'sine', 0.06, i * 0.12);
+      playTone(f * 1.5, 0.3, 'triangle', 0.03, i * 0.12 + 0.05);
+    });
+    // キラキラ追加
+    [1318.51, 1567.98, 2093.00].forEach((f, i) => {
+      playTone(f, 0.8, 'sine', 0.02, 0.5 + i * 0.15);
+    });
+  };
+
+  // ★ トレード音（金属的インパクト）
+  const playTradeSound = () => {
+    playTone(200, 0.3, 'sawtooth', 0.06);
+    playTone(150, 0.4, 'sine', 0.08, 0.05);
+    playTone(800, 0.08, 'square', 0.04, 0.1);
+    playTone(600, 0.15, 'sine', 0.06, 0.15);
+    playTone(900, 0.2, 'sine', 0.08, 0.25);
+  };
+
+  // ★ バイアウト/ストレッチ音（和音 + 余韻）
+  const playBuyoutSound = () => {
+    playTone(329.63, 0.6, 'sine', 0.05);
+    playTone(415.30, 0.6, 'sine', 0.05, 0.02);
+    playTone(493.88, 0.8, 'sine', 0.07, 0.04);
+    // 余韻
+    playTone(987.77, 1.2, 'sine', 0.02, 0.4);
+  };
+
+  // ★ 警告音（低音ブザー）
+  const playWarningSound = () => {
+    playTone(110, 0.5, 'sawtooth', 0.06);
+    playTone(116.54, 0.5, 'sawtooth', 0.05, 0.01);
+  };
+
+  // ★ エラー音（不協和音）
+  const playErrorSound = () => {
+    playTone(200, 0.2, 'square', 0.06);
+    playTone(190, 0.2, 'square', 0.06, 0.15);
+  };
+
+  // ★ オプション決定音（シャキッ）
+  const playOptionSound = () => {
+    playTone(1000, 0.06, 'square', 0.05);
+    playTone(1400, 0.1, 'sine', 0.07, 0.06);
+  };
+
+  // ★ 解雇/放出音（下降）
+  const playReleaseSound = () => {
+    playTone(600, 0.15, 'sine', 0.05);
+    playTone(400, 0.15, 'sine', 0.04, 0.1);
+    playTone(250, 0.3, 'sine', 0.03, 0.2);
+  };
+
+  // ★ MLE使用音
+  const playMLESound = () => {
+    playTone(698.46, 0.15, 'sine', 0.06);
+    playTone(880.00, 0.15, 'sine', 0.06, 0.1);
+    playTone(1046.50, 0.3, 'triangle', 0.08, 0.2);
+  };
+
+  // ★ S&T音（3和音 + 高音）
+  const playSTSound = () => {
+    playTone(440, 0.2, 'sine', 0.06);
+    playTone(554.37, 0.2, 'sine', 0.06, 0.1);
+    playTone(659.25, 0.3, 'sine', 0.08, 0.2);
+    playTone(1318.51, 0.6, 'sine', 0.04, 0.4);
+  };
+
+  // ★ ドラフトピック獲得音（未来感）
+  const playDraftPickSound = () => {
+    [880, 1108.73, 1318.51, 1760].forEach((f, i) => {
+      playTone(f, 0.2, 'sine', 0.04, i * 0.08);
+    });
   };
 
   const startBGM = () => {
@@ -145,12 +347,15 @@ export default function App() {
       setMleUsedThisSeason(false);
       setTaxHistory(currentStage.taxHistoryInitial || []);
       setTradeModalTarget(null);
+      setShowConfetti(false);
     }
   }, [currentStageIdx]);
 
   // ═══════════════════════════════════════
   // メトリクス評価
   // ═══════════════════════════════════════
+  const wasClearedRef = useRef(false);
+
   useEffect(() => {
     if (!currentStage || currentView !== 'game') return;
 
@@ -177,18 +382,22 @@ export default function App() {
       && metrics.regularContractCount >= (currentStage.conditions.minPlayers || 0)
       && (currentStage.conditions.minDraftPicks ? metrics.draftPicks >= currentStage.conditions.minDraftPicks : true);
 
-    if (ok) {
+    if (ok && !wasClearedRef.current) {
+      wasClearedRef.current = true;
       setIsCleared(true);
-    } else {
+      playEpicSound();
+      triggerConfetti();
+      addToast('epic', '🏆', 'MISSION ACCOMPLISHED!', '全CBA規約をクリア！見事なマネージメントです', 5000);
+    } else if (!ok) {
+      wasClearedRef.current = false;
       setIsCleared(false);
     }
   }, [roster, currentStage, currentView, deadCap, draftPicks, mleUsedThisSeason, infoTab, activeWarnings.length]);
 
   // ═══════════════════════════════════════
-  // ハンドラー群
+  // ハンドラー群（★ エフェクト追加）
   // ═══════════════════════════════════════
 
-  // ウェイブ（デッドキャップ対応）
   const handleWaiver = (player) => {
     playClickSound();
     const features = currentStage.features || {};
@@ -202,72 +411,91 @@ export default function App() {
       }));
       setDeadCap(prev => [...prev, ...entries]);
       setRoster(roster.filter(p => p.id !== player.id));
+      playReleaseSound();
+      addToast('warning', '💀', `ウェイブ: ${player.name}`,
+        `デッドキャップ ${fmt(player.salary)}/年 × ${player.contractYears}年 発生`, 4000);
     } else {
       setRoster(roster.filter(p => p.id !== player.id));
       setFreeAgents([...freeAgents, player]);
+      playReleaseSound();
+      addToast('info', '📤', `${player.name} を放出`, 'FA市場に移動しました', 2500);
     }
   };
 
-  // バイアウト
   const handleBuyout = (player) => {
     playClickSound();
     const result = CBACoreEngine.executeBuyout(player);
     setDeadCap(prev => [...prev, ...result.deadCapEntries]);
     setRoster(roster.filter(p => p.id !== player.id));
-    alert(result.message);
+    playBuyoutSound();
+    const totalSaved = player.salary * player.contractYears - result.deadCapEntries.reduce((s, d) => s + d.salary, 0);
+    addToast('success', '🤝', `バイアウト成功: ${player.name}`,
+      `契約${(result.rate * 100).toFixed(0)}%に軽減 | ${fmt(totalSaved)}節約`, 4500);
   };
 
-  // ストレッチ
   const handleStretch = (player) => {
     playClickSound();
     const result = CBACoreEngine.executeStretch(player);
     setDeadCap(prev => [...prev, ...result.deadCapEntries]);
     setRoster(roster.filter(p => p.id !== player.id));
-    alert(result.message);
+    playBuyoutSound();
+    const annual = result.deadCapEntries[0]?.salary || 0;
+    addToast('success', '⏳', `ストレッチ条項: ${player.name}`,
+      `${result.stretchYears}年分割 | ${fmt(annual)}/年`, 4500);
   };
 
-  // Player Option
   const handlePlayerOption = (player, exercise) => {
     playClickSound();
+    playOptionSound();
     if (exercise) {
-      alert(`${player.name}のPlayer Optionを行使。契約延長します。`);
+      addToast('info', '📋', `PO行使: ${player.name}`,
+        `${fmt(player.salary)}で契約延長`, 3000);
     } else {
       setRoster(roster.filter(p => p.id !== player.id));
       setFreeAgents([...freeAgents, { ...player, faStatus: "UFA", optionType: null }]);
+      addToast('warning', '🏃', `PO拒否: ${player.name}`,
+        'FA市場へ移動。再契約を検討してください', 3500);
     }
   };
 
-  // Team Option
   const handleTeamOption = (player, exercise) => {
     playClickSound();
+    playOptionSound();
     if (exercise) {
-      alert(`${player.name}のTeam Optionを行使。契約延長します。`);
+      addToast('success', '📋', `TO行使: ${player.name}`,
+        `${fmt(player.salary)}で契約延長`, 3000);
     } else {
       setRoster(roster.filter(p => p.id !== player.id));
+      addToast('info', '✂️', `TO拒否: ${player.name}`,
+        '契約を終了。キャップに余裕が生まれました', 3000);
     }
   };
 
-  // FA契約（MLE対応）
   const handleSignFA = (player) => {
     playClickSound();
     if (useMle) {
       const check = CBACoreEngine.canUseMLE(player.salary, cbaMetrics.mleRemaining, cbaMetrics.apronStatus);
-      if (!check.allowed) { alert(check.message); return; }
+      if (!check.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'MLE使用不可', check.message, 4000); return; }
       setMleUsedThisSeason(true);
       setUseMle(false);
+      playMLESound();
+      addToast('info', '📋', `MLE契約: ${player.name}`,
+        `例外枠で${fmt(player.salary)}契約`, 3500);
     } else {
       const m = CBACoreEngine.evaluate(roster, null, player, {
         deadCap, features: currentStage.features || {},
         draftPicks, taxHistory, mleUsedThisSeason,
         minPlayers: currentStage.conditions.minPlayers || 14,
       });
-      if (!m.tradeCheck.allowed) { alert(m.tradeCheck.message); return; }
+      if (!m.tradeCheck.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', '契約不可', m.tradeCheck.message, 4000); return; }
+      playSuccessSound();
+      addToast('success', '✍️', `契約: ${player.name}`,
+        `R${player.rating} | ${fmt(player.salary)}/年`, 3000);
     }
     setFreeAgents(freeAgents.filter(p => p.id !== player.id));
     setRoster([...roster, player]);
   };
 
-  // トレード
   const handleTrade = (rosterPlayer) => {
     playClickSound();
     const faPlayer = tradeModalTarget;
@@ -276,29 +504,42 @@ export default function App() {
       draftPicks, taxHistory, mleUsedThisSeason,
       minPlayers: currentStage.conditions.minPlayers || 14,
     });
-    if (!m.tradeCheck.allowed) { alert(m.tradeCheck.message); return; }
+    if (!m.tradeCheck.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'トレード不可', m.tradeCheck.message, 4000); return; }
     setRoster(roster.map(p => p.id === rosterPlayer.id ? { ...faPlayer, contractYears: faPlayer.contractYears || 2 } : p));
     setFreeAgents(freeAgents.filter(p => p.id !== faPlayer.id));
     setTradeModalTarget(null);
+    playTradeSound();
+    triggerConfetti();
+    addToast('trade', '🤝', 'トレード成立!',
+      `${rosterPlayer.name} → ${faPlayer.name} (R${faPlayer.rating})`, 4500);
   };
 
-  // S&T
   const handleSignAndTrade = (player) => {
     playClickSound();
     const v = CBACoreEngine.validateSignAndTrade(player, 3);
-    if (!v.allowed) { alert(v.message); return; }
+    if (!v.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'S&T不可', v.message, 4000); return; }
     setRoster(roster.filter(p => p.id !== player.id));
     setDraftPicks(prev => prev + 1);
-    alert(`S&T成功！ ${player.name}を放出し、ドラフトピック+1`);
+    playSTSound();
+    triggerConfetti();
+    addToast('epic', '🔄', `S&T成功: ${player.name}`,
+      `ドラフトピック+1獲得！将来の戦力に期待`, 5000);
   };
 
   const handleNextStage = () => {
     playClickSound();
-    if (currentStageIdx < stagesData.length - 1) setCurrentStageIdx(currentStageIdx + 1);
-    else alert("全ステージクリア！");
+    wasClearedRef.current = false;
+    if (currentStageIdx < stagesData.length - 1) {
+      setCurrentStageIdx(currentStageIdx + 1);
+      playStartSound();
+      addToast('info', '➡️', `STAGE ${String(currentStageIdx + 2).padStart(2, '0')}`, stagesData[currentStageIdx + 1]?.title || '', 3000);
+    } else {
+      playEpicSound();
+      triggerConfetti();
+      addToast('epic', '👑', 'ALL STAGES CLEAR!', '全ステージクリア！CBAマスターです！', 6000);
+    }
   };
 
-  // バッジヘルパー
   const getBadges = (player) => {
     const badges = [];
     if (player.birdRights === "Full") badges.push({ text: "🐦", title: "Full Bird Rights", color: "bg-blue-900 text-blue-300" });
@@ -316,7 +557,44 @@ export default function App() {
   // JSX
   // ═══════════════════════════════════════
   return (
-    <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
+    <div className={
+      'min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center ' +
+      (screenShake ? 'animate-shake' : '')
+    }>
+      {/* グローバルCSS */}
+      <style>{`
+        @keyframes toastIn {
+          from { transform: translateX(120%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes toastOut {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(120%); opacity: 0; }
+        }
+        @keyframes confettiFall {
+          0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+          20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        @keyframes pulseGlow {
+          0%, 100% { box-shadow: 0 0 5px rgba(34, 211, 238, 0.3); }
+          50% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.6); }
+        }
+        @keyframes epicGlow {
+          0%, 100% { box-shadow: 0 0 10px rgba(232, 197, 71, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(232, 197, 71, 0.8); }
+        }
+        .animate-shake { animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
+        .animate-pulse-glow { animation: pulseGlow 2s ease infinite; }
+        .animate-epic-glow { animation: epicGlow 1.5s ease infinite; }
+      `}</style>
+
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      <ConfettiOverlay active={showConfetti} />
 
       {/* ═══ タイトル画面 ═══ */}
       {currentView === 'title' && (
@@ -348,7 +626,7 @@ export default function App() {
         <DynastyView onBack={() => { playClickSound(); setCurrentView('title'); }} gmName={gmName} playClickSound={playClickSound} isBgmOn={isBgmOn} toggleBGM={toggleBGM} />
       )}
 
-      {/* ═══ ランキング画面（Dynasty Mode専用）═══ */}
+      {/* ═══ ランキング画面 ═══ */}
       {currentView === 'leaderboard' && (
         <div className="w-full flex flex-col flex-1 justify-start">
           <header className="w-full max-w-7xl mx-auto mb-2 border-b border-stone-800 pb-3 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
@@ -384,7 +662,6 @@ export default function App() {
             </div>
           </header>
 
-          {/* ステージ選択ボタン（13ステージ対応） */}
           <div className="w-full max-w-7xl mx-auto mb-3 shrink-0 flex flex-wrap justify-center gap-2">
             {stagesData.map((stage, idx) => (
               <button key={stage.id} onClick={() => { playClickSound(); setCurrentStageIdx(idx); }}
@@ -394,7 +671,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* トレードモーダル */}
           {tradeModalTarget && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setTradeModalTarget(null)}>
               <div className="bg-[#141210] border border-stone-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -424,10 +700,8 @@ export default function App() {
           )}
 
           <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
-            {/* ═══ 左パネル (42%) ═══ */}
             <div className="w-full lg:w-[42%] space-y-4 flex flex-col justify-between">
               <section className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex flex-col flex-1 min-h-[420px]">
-                {/* タブバー */}
                 <div className="flex bg-stone-950/80 border-b border-stone-850 p-1.5 rounded-t-xl font-mono text-sm font-black">
                   <button onClick={() => { playClickSound(); setInfoTab('mission'); }} className={'flex-1 py-2 rounded-lg transition-all ' + (infoTab === 'mission' ? 'bg-stone-900 text-cyan-400 border border-stone-800' : 'text-stone-400 hover:text-stone-200')}>🎯 MISSION</button>
                   <button onClick={() => { playClickSound(); setInfoTab('rule'); }} className={'flex-1 py-2 rounded-lg transition-all ' + (infoTab === 'rule' ? 'bg-stone-900 text-blue-400 border border-stone-800' : 'text-stone-400 hover:text-stone-200')}>📖 RULE</button>
@@ -468,21 +742,17 @@ export default function App() {
                   )}
                 </div>
 
-                {/* メトリクス */}
                 <div className="flex flex-col gap-2 text-base p-4 border-t border-stone-900 font-mono bg-stone-950/40 rounded-b-xl">
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
                     <span className={cbaMetrics.totalCapHit <= currentStage?.conditions.maxSalary ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{fmt(cbaMetrics.totalCapHit)} <span className="text-lg text-stone-500 font-sans">/ {fmt(currentStage?.conditions.maxSalary)}</span></span>
                   </div>
-
-                  {/* デッドキャップ表示 */}
                   {deadCap.length > 0 && (
                     <div className="bg-red-950/30 px-4 py-2.5 rounded-xl border border-red-900/50 flex justify-between items-center">
                       <span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span>
                       <span className="text-red-400 font-black text-2xl">{fmt(cbaMetrics.deadCapHit || deadCap.reduce((s, d) => s + d.salary, 0))}</span>
                     </div>
                   )}
-
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">💸 Real Payroll:</span>
                     <span className="text-amber-400 font-black text-3xl">{fmt(cbaMetrics.actualPayroll)}</span>
@@ -491,21 +761,16 @@ export default function App() {
                     <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
                     <span className={cbaMetrics.totalRating >= currentStage?.conditions.minTotalRating ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{cbaMetrics.totalRating} <span className="text-lg text-stone-500 font-sans">/ {currentStage?.conditions.minTotalRating}+</span></span>
                   </div>
-
-                  {/* ドラフトピック表示 */}
                   {currentStage?.conditions.minDraftPicks > 0 && (
                     <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                       <span className="text-stone-400 font-sans font-black text-sm">🎫 Draft Picks:</span>
                       <span className={draftPicks >= currentStage.conditions.minDraftPicks ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>{draftPicks} <span className="text-lg text-stone-500 font-sans">/ {currentStage.conditions.minDraftPicks}+</span></span>
                     </div>
                   )}
-
                   <div className="grid grid-cols-2 gap-3 text-center text-sm font-sans font-bold pt-0.5">
                     <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Regular: <span className="text-cyan-400 font-mono font-black text-2xl">{cbaMetrics.regularContractCount}</span></div>
                     <div className="bg-stone-900 py-2 rounded-lg border border-stone-800">Two-Way: <span className="text-purple-400 font-mono font-black text-2xl">{cbaMetrics.twoWayCount}</span></div>
                   </div>
-
-                  {/* MLEチェックボックス */}
                   {features.mle && !mleUsedThisSeason && cbaMetrics.mleRemaining > 0 && (
                     <label className="flex items-center gap-3 bg-blue-950/40 px-4 py-2.5 rounded-xl border border-blue-900/50 cursor-pointer hover:bg-blue-950/60 transition-all">
                       <input type="checkbox" checked={useMle} onChange={() => setUseMle(!useMle)} className="w-4 h-4 accent-blue-500" />
@@ -515,14 +780,12 @@ export default function App() {
                   {mleUsedThisSeason && (
                     <div className="bg-stone-900 px-4 py-2 rounded-xl border border-stone-800 text-stone-500 font-sans font-bold text-xs text-center">MLE: 今シーズン使用済み</div>
                   )}
-
                   <div className="pt-2"><SalaryMeter totalSalary={cbaMetrics.totalCapHit} /></div>
                 </div>
               </section>
 
-              {/* クリアパネル */}
               {isCleared && (
-                <div className="bg-gradient-to-r from-emerald-950 to-stone-900 border-2 border-emerald-500 rounded-xl p-5 shadow-2xl space-y-3 shrink-0">
+                <div className="bg-gradient-to-r from-emerald-950 to-stone-900 border-2 border-emerald-500 rounded-xl p-5 shadow-2xl space-y-3 shrink-0 animate-epic-glow">
                   <div className="flex justify-between items-center border-b border-emerald-900 pb-2">
                     <h3 className="text-base font-black text-emerald-400 font-mono uppercase">✓ MISSION ACCOMPLISHED</h3>
                     <span className="text-lg font-black text-yellow-400 font-mono">CLEAR</span>
@@ -532,11 +795,8 @@ export default function App() {
               )}
             </div>
 
-            {/* ═══ 右パネル (58%) - ロスターテーブル ═══ */}
             <div className="w-full lg:w-[58%] space-y-4 flex flex-col">
               <div className="flex flex-col gap-4 flex-1">
-
-                {/* ─── CURRENT ROSTER ─── */}
                 <div className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex-1 flex flex-col overflow-hidden">
                   <div className="px-5 py-3 border-b border-stone-850 flex justify-between items-center bg-stone-950/50">
                     <h3 className="font-mono text-sm font-black text-cyan-400 tracking-wider">📋 CURRENT ROSTER</h3>
@@ -571,35 +831,29 @@ export default function App() {
                             <td className="text-center text-stone-600 text-[10px] font-mono">{player.contractYears}yr</td>
                             <td className="px-3 py-2.5">
                               <div className="flex gap-1 justify-end flex-wrap">
-                                {/* Player Option */}
                                 {player.optionType === "player" && (
                                   <>
-                                    <button onClick={() => handlePlayerOption(player, true)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all" title="行使して残留">PO:行使</button>
-                                    <button onClick={() => handlePlayerOption(player, false)} className="px-2 py-1 bg-red-800 hover:bg-red-700 text-red-200 text-[10px] font-mono font-black rounded transition-all" title="拒否してFAへ">PO:拒否</button>
+                                    <button onClick={() => handlePlayerOption(player, true)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all">PO:行使</button>
+                                    <button onClick={() => handlePlayerOption(player, false)} className="px-2 py-1 bg-red-800 hover:bg-red-700 text-red-200 text-[10px] font-mono font-black rounded transition-all">PO:拒否</button>
                                   </>
                                 )}
-                                {/* Team Option */}
                                 {player.optionType === "team" && (
                                   <>
-                                    <button onClick={() => handleTeamOption(player, true)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all" title="行使して延長">TO:行使</button>
-                                    <button onClick={() => handleTeamOption(player, false)} className="px-2 py-1 bg-red-800 hover:bg-red-700 text-red-200 text-[10px] font-mono font-black rounded transition-all" title="拒否して放出">TO:拒否</button>
+                                    <button onClick={() => handleTeamOption(player, true)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all">TO:行使</button>
+                                    <button onClick={() => handleTeamOption(player, false)} className="px-2 py-1 bg-red-800 hover:bg-red-700 text-red-200 text-[10px] font-mono font-black rounded transition-all">TO:拒否</button>
                                   </>
                                 )}
-                                {/* S&T */}
                                 {features.signAndTrade && player.birdRights === "Full" && (
-                                  <button onClick={() => handleSignAndTrade(player)} className="px-2 py-1 bg-purple-800 hover:bg-purple-700 text-purple-200 text-[10px] font-mono font-black rounded transition-all" title="サイン・アンド・トレード">S&T</button>
+                                  <button onClick={() => handleSignAndTrade(player)} className="px-2 py-1 bg-purple-800 hover:bg-purple-700 text-purple-200 text-[10px] font-mono font-black rounded transition-all">S&T</button>
                                 )}
-                                {/* バイアウト */}
                                 {features.buyout && (
-                                  <button onClick={() => handleBuyout(player)} className="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-blue-200 text-[10px] font-mono font-black rounded transition-all" title={`バイアウト（${CBACoreEngine.getBuyoutRate(player.rating)*100}%に軽減）`}>B/O</button>
+                                  <button onClick={() => handleBuyout(player)} className="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-blue-200 text-[10px] font-mono font-black rounded transition-all">B/O</button>
                                 )}
-                                {/* ストレッチ */}
                                 {features.stretch && (
-                                  <button onClick={() => handleStretch(player)} className="px-2 py-1 bg-teal-800 hover:bg-teal-700 text-teal-200 text-[10px] font-mono font-black rounded transition-all" title="ストレッチ条項">ST</button>
+                                  <button onClick={() => handleStretch(player)} className="px-2 py-1 bg-teal-800 hover:bg-teal-700 text-teal-200 text-[10px] font-mono font-black rounded transition-all">ST</button>
                                 )}
-                                {/* ウェイブ */}
                                 {features.waiver !== false && (
-                                  <button onClick={() => handleWaiver(player)} className="px-2 py-1 bg-red-900 hover:bg-red-800 text-red-300 text-[10px] font-mono font-black rounded transition-all" title="ウェイブ（放出）">解雇</button>
+                                  <button onClick={() => handleWaiver(player)} className="px-2 py-1 bg-red-900 hover:bg-red-800 text-red-300 text-[10px] font-mono font-black rounded transition-all">解雇</button>
                                 )}
                               </div>
                             </td>
@@ -613,7 +867,6 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* ─── FREE AGENT MARKET ─── */}
                 <div className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex-1 flex flex-col overflow-hidden">
                   <div className="px-5 py-3 border-b border-stone-850 flex justify-between items-center bg-stone-950/50">
                     <h3 className="font-mono text-sm font-black text-emerald-400 tracking-wider">🏪 FREE AGENT MARKET</h3>
@@ -648,15 +901,12 @@ export default function App() {
                             <td className="text-center text-stone-600 text-[10px] font-mono">{player.contractYears}yr</td>
                             <td className="px-3 py-2.5">
                               <div className="flex gap-1 justify-end flex-wrap">
-                                {/* トレード */}
                                 {features.trade && (
-                                  <button onClick={() => { playClickSound(); setTradeModalTarget(player); }} className="px-2 py-1 bg-amber-800 hover:bg-amber-700 text-amber-200 text-[10px] font-mono font-black rounded transition-all" title="トレードで獲得">TRE</button>
+                                  <button onClick={() => { playClickSound(); setTradeModalTarget(player); }} className="px-2 py-1 bg-amber-800 hover:bg-amber-700 text-amber-200 text-[10px] font-mono font-black rounded transition-all">TRE</button>
                                 )}
-                                {/* MLE契約 */}
                                 {features.mle && !mleUsedThisSeason && cbaMetrics.mleRemaining > 0 && player.salary <= cbaMetrics.mleRemaining && (
-                                  <button onClick={() => { setUseMle(true); handleSignFA(player); }} className="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-blue-200 text-[10px] font-mono font-black rounded transition-all" title="MLEで契約">MLE</button>
+                                  <button onClick={() => { setUseMle(true); handleSignFA(player); }} className="px-2 py-1 bg-blue-800 hover:bg-blue-700 text-blue-200 text-[10px] font-mono font-black rounded transition-all">MLE</button>
                                 )}
-                                {/* 通常契約 */}
                                 <button onClick={() => handleSignFA(player)} className="px-2 py-1 bg-emerald-800 hover:bg-emerald-700 text-emerald-200 text-[10px] font-mono font-black rounded transition-all">契約</button>
                               </div>
                             </td>
@@ -669,7 +919,6 @@ export default function App() {
                     </table>
                   </div>
                 </div>
-
               </div>
             </div>
           </main>
