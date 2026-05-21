@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SalaryMeter from './components/SalaryMeter';
+import LeaderboardPage from './components/LeaderboardPage';
 import DynastyView from './components/DynastyView';
 import { CBACoreEngine } from './engine/cbaEngine';
 import stagesData from './data/stages.json';
@@ -26,7 +27,7 @@ export default function App() {
   const [gmName, setGmName] = useState('');
   const [isBgmOn, setIsBgmOn] = useState(false);
 
-  // ★ 新規state
+  // 新規state
   const [deadCap, setDeadCap] = useState([]);
   const [draftPicks, setDraftPicks] = useState(0);
   const [taxHistory, setTaxHistory] = useState([]);
@@ -34,7 +35,7 @@ export default function App() {
   const [useMle, setUseMle] = useState(false);
   const [tradeModalTarget, setTradeModalTarget] = useState(null);
 
-  const fmt = (v) => v >= 1000000 ? `$$$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
+  const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
 
   // ═══════════════════════════════════════
   // オーディオ
@@ -193,7 +194,7 @@ export default function App() {
     const features = currentStage.features || {};
     if (features.deadCap) {
       const entries = Array.from({ length: player.contractYears || 1 }, (_, i) => ({
-        id: `dc_{player.id}_${i}`,
+        id: `dc_${player.id}_${i}`,
         label: `ウェイブ: ${player.name}`,
         salary: player.salary,
         yearsRemaining: (player.contractYears || 1) - i,
@@ -336,6 +337,7 @@ export default function App() {
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
             <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('game'); }} className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-cyan-950/50 hover:scale-[1.02] active:scale-[0.98]">STAGES 💼</button>
             <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('dynasty'); }} className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-amber-950/50 hover:scale-[1.02] active:scale-[0.98]">DYNASTY 👑</button>
+            <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="w-full sm:w-auto bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 text-sm font-black px-6 py-3.5 rounded-xl transition-all tracking-wider">RANK 🏆</button>
           </div>
           <div className="text-[10px] text-stone-600 pt-4 font-mono uppercase tracking-widest">Developed by Higashimura & Gemini Pro Engine</div>
         </div>
@@ -346,7 +348,28 @@ export default function App() {
         <DynastyView onBack={() => { playClickSound(); setCurrentView('title'); }} gmName={gmName} playClickSound={playClickSound} isBgmOn={isBgmOn} toggleBGM={toggleBGM} />
       )}
 
-      {/* ═══ メインゲーム画面 ═══ */}
+      {/* ═══ ランキング画面（Dynasty Mode専用）═══ */}
+      {currentView === 'leaderboard' && (
+        <div className="w-full flex flex-col flex-1 justify-start">
+          <header className="w-full max-w-7xl mx-auto mb-2 border-b border-stone-800 pb-3 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
+            <div className="cursor-pointer" onClick={() => { playClickSound(); setCurrentView('title'); }}>
+              <h1 className="text-3xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 font-mono">CRUNCH THE CAP</h1>
+              <p className="text-sm text-stone-400 mt-0.5 font-mono tracking-wider">NBA Labor Agreement Hacking Simulation</p>
+            </div>
+            <div className="flex bg-stone-950 p-1.5 rounded-xl border border-stone-850 font-mono text-sm font-black">
+              <button onClick={() => { playClickSound(); setCurrentView('title'); }} className="px-4 py-2.5 text-stone-500 hover:text-stone-300 rounded-lg transition-all">🏠</button>
+              <button onClick={() => { playClickSound(); setCurrentView('game'); }} className="px-5 py-2.5 rounded-lg transition-all text-stone-400 hover:text-white">🎮</button>
+              <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="px-5 py-2.5 rounded-lg transition-all bg-amber-500 text-stone-950 shadow-lg">🏆</button>
+              <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2.5 rounded-lg transition-all ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
+            </div>
+          </header>
+          <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
+            <div className="w-full"><LeaderboardPage currentStageId={currentStage?.id || 1} /></div>
+          </main>
+        </div>
+      )}
+
+      {/* ═══ ステージゲーム画面 ═══ */}
       {currentView === 'game' && (
         <div className="w-full flex flex-col flex-1 justify-start">
           <header className="w-full max-w-7xl mx-auto mb-2 border-b border-stone-800 pb-3 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
