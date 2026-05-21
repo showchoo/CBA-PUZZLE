@@ -603,7 +603,7 @@ export default function App() {
           <div className="space-y-3">
             <div className="inline-block bg-cyan-950/60 border border-cyan-800/80 text-cyan-400 text-xs font-black px-4 py-1.5 rounded-full tracking-widest uppercase">🚀 SYSTEM ONLINE // VER 2026.5</div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-stone-200 to-stone-500 uppercase pt-2">CRUNCH THE CAP</h1>
-            <p className="text-sm font-bold tracking-widest text-cyan-500 uppercase">NBA Labor Agreement Hacking Simulation</p>
+            <p className="text-sm font-bold tracking-widest text-cyan-500 uppercase">Pro Basketball Salary Cap Simulation</p>
           </div>
           <div className="border-t border-b border-stone-900 py-4 text-left font-sans text-stone-400 text-sm leading-relaxed max-w-md mx-auto font-medium space-y-2">
             <p>「勝つためにスターを並べろ。ただし、1ドルでも規約を超えればチームを剥奪する。」</p>
