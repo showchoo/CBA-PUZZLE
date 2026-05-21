@@ -374,38 +374,38 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   if (phase === 'draft') {
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <div className="w-full max-w-2xl space-y-4 bg-[#110f0e] border border-stone-800 rounded-3xl p-8">
-          <div className="text-center space-y-2">
-            <span className="text-sm font-mono font-black text-cyan-400 uppercase tracking-widest">🏀 DRAFT</span>
-            <h2 className="text-2xl font-black text-white">新人選手ドラフト</h2>
-            <p className="text-sm text-stone-400">残りピック: <span className="text-cyan-400 font-black text-lg">{picksLeft}</span></p>
+        <div className="w-full max-w-3xl space-y-6 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
+          <div className="text-center space-y-3">
+            <span className="text-xl font-mono font-black text-cyan-400 uppercase tracking-widest">🏀 DRAFT</span>
+            <h2 className="text-5xl font-black text-white">新人選手ドラフト</h2>
+            <p className="text-xl text-stone-400">残りピック: <span className="text-cyan-400 font-black text-2xl">{picksLeft}</span></p>
           </div>
           {picksLeft > 0 ? (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
+            <div className="space-y-3 max-h-96 overflow-y-auto">
               {draftProspects.map((p, i) => (
-                <div key={p.id} className="bg-stone-950 border border-stone-800 rounded-xl p-3 flex items-center justify-between hover:border-cyan-800 transition-colors">
+                <div key={p.id} className="bg-stone-950 border border-stone-800 rounded-xl p-4 flex items-center justify-between hover:border-cyan-800 transition-colors">
                   <div>
-                    <span className="text-xs text-stone-500 font-mono mr-2">#{i + 1}</span>
-                    <span className="text-white font-bold text-sm">{p.name}</span>
-                    <div className="flex items-center gap-2 mt-0.5 text-xs">
+                    <span className="text-lg text-stone-500 font-mono mr-2">#{i + 1}</span>
+                    <span className="text-white font-bold text-xl">{p.name}</span>
+                    <div className="flex items-center gap-3 mt-1 text-lg">
                       <span className="text-amber-400 font-mono font-black">Rating {p.rating}</span>
                       <span className="text-stone-500">Age {p.age}</span>
                       <span className="text-cyan-400 font-mono">${(p.salary / 1000000).toFixed(1)}M / {p.contractYears}yr</span>
                     </div>
                   </div>
-                  <button onClick={() => handleDraft(p)} className="bg-cyan-950 border border-cyan-700 text-cyan-400 hover:bg-cyan-900 font-mono font-black px-4 py-1.5 rounded-lg text-xs transition-all">DRAFT</button>
+                  <button onClick={() => handleDraft(p)} className="bg-cyan-950 border border-cyan-700 text-cyan-400 hover:bg-cyan-900 font-mono font-black px-6 py-2 rounded-lg text-lg transition-all">DRAFT</button>
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center space-y-4 py-8">
-              <div className="text-emerald-400 font-mono font-black text-lg">✓ ドラフト完了</div>
-              <div className="text-sm text-stone-400">現在のロスター: {roster.length}人 / Total Rating: {totalOvr}</div>
-              <button onClick={handleDraftComplete} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all">新シーズン開始 🏀</button>
+              <div className="text-emerald-400 font-mono font-black text-2xl">✓ ドラフト完了</div>
+              <div className="text-xl text-stone-400">現在のロスター: {roster.length}人 / Total Rating: {totalOvr}</div>
+              <button onClick={handleDraftComplete} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">新シーズン開始 🏀</button>
             </div>
           )}
           {picksLeft > 0 && (
-            <button onClick={handleDraftComplete} className="w-full bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-2.5 rounded-xl text-xs transition-all">ドラフトをスキップ</button>
+            <button onClick={handleDraftComplete} className="w-full bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-3 rounded-xl text-lg transition-all">ドラフトをスキップ</button>
           )}
         </div>
       </div>
