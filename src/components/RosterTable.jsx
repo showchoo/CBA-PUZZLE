@@ -44,7 +44,7 @@ function TipButton({ children, onClick, className, tip }) {
   );
 }
 
-export default function RosterTable({ title, players, onActionClick, actionLabel, totalSalary, dynastyMode, onWaiver, onBuyout }) {
+export default function RosterTable({ title, players, onActionClick, actionLabel, totalSalary, dynastyMode, onWaiver, onBuyout, onStretch }) {
   return (
     <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl shadow-xl flex flex-col min-h-0">
       <div className="px-4 py-3 border-b border-stone-900 flex justify-between items-center shrink-0">
@@ -109,22 +109,47 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                 )}
                 <td className="text-center py-1.5 px-2">
                   {dynastyMode ? (
-                    <div className="flex flex-row gap-1 justify-center flex-nowrap">
+                    <div className="flex flex-row gap-0.5 justify-center flex-nowrap">
                       <TipButton
                         onClick={() => onWaiver && onWaiver(player)}
-                        className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-1.5 py-0.5 rounded transition-colors font-mono whitespace-nowrap"
+                        className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-1 py-0.5 rounded transition-colors font-mono whitespace-nowrap"
                         tip="ウェイブ（Waiver）：NBAで選手を放出するプロセス。残り契約の100%がデッドキャップになる。"
                       >
-                        ウェイブ
+                        W
                       </TipButton>
                       {player.contractYears > 1 && (
                         <TipButton
                           onClick={() => onBuyout && onBuyout(player)}
-                          className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-1.5 py-0.5 rounded transition-colors font-mono whitespace-nowrap"
+                          className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-1 py-0.5 rounded transition-colors font-mono whitespace-nowrap"
                           tip="バイアウト（Buyout）：選手と交渉して契約を減額。デッドキャップ50〜70%に軽減。Ratingが低い選手ほど同意しやすい。"
                         >
                           B/O
                         </TipButton>
+                      )}
+                      {player.contractYears > 1 && (
+                        <TipButton
+                          onClick={() => onStretch && onStretch(player)}
+                          className="text-[10px] bg-emerald-950/60 border border-emerald-800 text-emerald-400 hover:text-emerald-300 hover:border-emerald-600 px-1 py-0.5 rounded transition-colors font-mono whitespace-nowrap"
+                          tip="ストレッチ（Stretch）：残り契約を（年数×2+1）年で均等分割。今年のキャップは空くが、長期のデッドキャップになる。"
+                        >
+                          ST
+                        </TipButton>
+                      )}
+                      {player.hasOption && (
+                        <Badge
+                          tooltip={player.optionType === 'player' ? 'プレイヤーオプション：選手が契約最終年に「延長 or FA」を選択できる' : 'チームオプション：チームが契約最終年に「延長 or 切断」を選択できる'}
+                          className={'text-[10px] px-1 py-0.5 rounded font-mono whitespace-nowrap ' + (player.optionType === 'player' ? 'bg-blue-950/60 border border-blue-800 text-blue-400' : 'bg-cyan-950/60 border border-cyan-800 text-cyan-400')}
+                        >
+                          {player.optionType === 'player' ? 'PO' : 'TO'}
+                        </Badge>
+                      )}
+                      {player.supermaxEligible && (
+                        <Badge
+                          tooltip="スーパーマックス対象選手：Rating 90以上かつチーム4年以上在籍。キャップの35%の大型契約が可能。"
+                          className="text-[10px] bg-amber-950/60 border border-amber-700 text-amber-400 px-1 py-0.5 rounded font-mono whitespace-nowrap"
+                        >
+                          SMAX
+                        </Badge>
                       )}
                     </div>
                   ) : (
