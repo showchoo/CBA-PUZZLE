@@ -12,18 +12,30 @@ import {
 function HoverTip({ children, text }) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [align, setAlign] = useState('center');
   const handleEnter = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    setPos({ x: rect.left + rect.width / 2, y: rect.top });
+    const x = rect.left + rect.width / 2;
+    const tooltipWidth = 288;
+    const halfW = tooltipWidth / 2;
+    if (x - halfW < 8) {
+      setAlign('left');
+    } else {
+      setAlign('center');
+    }
+    setPos({ x, y: rect.top });
     setShow(true);
   };
+  const style = align === 'left'
+    ? { left: 8, top: pos.y, transform: 'translateY(-110%)' }
+    : { left: pos.x, top: pos.y, transform: 'translate(-50%, -110%)' };
   return (
     <span className="relative inline-block cursor-help" onMouseEnter={handleEnter} onMouseLeave={() => setShow(false)}>
       {children}
       {show && (
-        <div className="fixed z-[9999] px-3 py-2.5 bg-stone-950 border border-stone-500 rounded-xl text-sm text-white leading-relaxed shadow-2xl shadow-black/60 w-72 pointer-events-none" style={{ left: pos.x, top: pos.y, transform: 'translate(-50%, -110%)' }}>
+        <div className="fixed z-[9999] px-3 py-2.5 bg-stone-950 border border-stone-500 rounded-xl text-sm text-white leading-relaxed shadow-2xl shadow-black/60 w-72 pointer-events-none" style={style}>
           {text}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-500"></div>
+          <div className={"absolute top-full border-l-[6px] border-r-[6px] border-t-[6px] border-transparent border-t-stone-500 " + (align === 'left' ? 'left-4' : 'left-1/2 -translate-x-1/2')}></div>
         </div>
       )}
     </span>
