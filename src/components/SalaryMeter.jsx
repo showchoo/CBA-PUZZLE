@@ -16,7 +16,7 @@ export default function SalaryMeter({ totalSalary, capLevel = 140000000, taxLeve
         </span>
       </div>
 
-      <div className="relative w-full h-8 bg-stone-950 rounded-md border border-stone-800 overflow-visible mb-20">
+      <div className="relative w-full h-8 bg-stone-950 rounded-md border border-stone-800 overflow-visible mb-28">
         <div className="h-full bg-gradient-to-r from-cyan-600 to-blue-500 transition-all duration-500 relative" style={{ width: `${currentPercent}%` }}>
           <div className="absolute right-0 top-0 bottom-0 w-1 bg-cyan-300 shadow-[0_0_8px_#22d3ee]"></div>
         </div>
@@ -52,7 +52,7 @@ export default function SalaryMeter({ totalSalary, capLevel = 140000000, taxLeve
           </div>
         </div>
 
-        {/* 2nd APRON: 上側2段目 */}
+        {/* 2nd APRON: 上側 */}
         <div className="absolute top-0 bottom-0 w-0.5 bg-red-500/60" style={{ left: `${getPercent(secondApron)}%` }}>
           <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap text-center">
             <span className="block text-red-500 text-lg font-black">2nd APRON</span>
