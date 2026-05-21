@@ -83,7 +83,7 @@ export function genFA(count = 8) {
   });
 }
 
-// ドラフト: 順位に応じたOVR・契約年数・給与
+// ドラフト: 順位に応じたRating・契約年数・給与
 export function genDraft(count = 10) {
   return Array.from({ length: count }, (_, i) => {
     let rating, cy, sal;
@@ -102,9 +102,9 @@ export function genDraft(count = 10) {
 
 // FA獲得時の契約年数に応じた判定
 export function canSignFA(player, years) {
-  // スター級（OVR 85+）は1年契約を拒否
+  // スター級（Rating 85+）は1年契約を拒否
   if (player.rating >= 85 && years === 1) {
-    return { allowed: false, reason: `${player.name}（OVR ${player.rating}）は1年契約を拒否しました。スター級選手は最低2年の契約を求めます。` };
+    return { allowed: false, reason: `${player.name}（Rating ${player.rating}）は1年契約を拒否しました。スター級選手は最低2年の契約を求めます。` };
   }
   return { allowed: true };
 }
@@ -150,10 +150,10 @@ export function advanceDeadCap(details) {
 }
 
 export function checkSurvival(roster, season) {
-  const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
-  const minOvr = 380 + (season - 1) * 8;
+  const totalRating = roster.reduce((s, p) => s + p.rating, 0);
+  const minRating = 380 + (season - 1) * 8;
   if (roster.length < 8) return { alive: false, reason: `ロースターが少なすぎます（${roster.length}人 / 最低8人必要）` };
-  if (totalOvr < minOvr) return { alive: false, reason: `戦力が低下しました（Total OVR: ${totalOvr} / 最低: ${minOvr}）` };
+  if (totalRating < minRating) return { alive: false, reason: `戦力が低下しました（Total Rating: ${totalRating} / 最低: ${minRating}）` };
   return { alive: true };
 }
 
