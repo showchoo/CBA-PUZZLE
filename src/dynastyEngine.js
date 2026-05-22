@@ -12,6 +12,8 @@ export const BONUS_RATING80_GM_SCORE = 40;
 export const BONUS_SEASON_50 = 150;
 export const BONUS_SEASON_100 = 300;
 
+const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C'];
+
 // ═══ 怪我テーブル ═══
 const INJURY_TABLE = {
   minor: {
@@ -81,6 +83,7 @@ function randomName() {
 function generatePlayer(overrideRating) {
   const rating = overrideRating ?? (40 + Math.floor(Math.random() * 60));
   const age = 19 + Math.floor(Math.random() * 17);
+  const position = POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
   const isRookie = age <= 23;
   const baseSalary = isRookie
     ? 500000 + Math.floor(Math.random() * 2500000)
@@ -92,6 +95,7 @@ function generatePlayer(overrideRating) {
   return {
     id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     name: randomName(),
+    position,
     rating,
     age,
     salary: roundedSalary,
@@ -411,4 +415,14 @@ export function calcSeasonRecord(totalOvr, minRequired) {
   else if (winRate >= 30) { result = 'レギュラー終了'; gmBonus = 50; }
   else                    { result = '💀 不振'; gmBonus = 0; }
   return { wins, losses, winRate, result, gmBonus };
+}
+
+// ═══ ロスターバランス計算 ═══
+export function calcRosterBalance(roster) {
+  const filled = {};
+  POSITIONS.forEach(pos => { filled[pos] = 0; });
+  roster.forEach(p => { if (filled[p.position] !== undefined) filled[p.position]++; });
+  const missing = POSITIONS.filter(pos => filled[pos] === 0);
+  const penaltyPct = missing.length * 15;
+  return { filled, missing, penaltyPct };
 }
