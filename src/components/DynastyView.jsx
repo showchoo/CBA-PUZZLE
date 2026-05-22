@@ -458,14 +458,21 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleToDraft() { playClickSound(); if (optionPlayers.length > 0) { setPhase('optionDecision'); return; } startDraft(); }
   function startDraft() { setDraftProspects(genDraft(10)); setPicksLeft(PICKS_PER_DRAFT); setPhase('draft'); }
 
+  // ★修正: ドラフト時にピックを消費
   function handleDraft(prospect) {
     playClickSound(); playSuccessSound();
     addToast('success', '🏀', `ドラフト: ${prospect.name}`, `R${prospect.rating} | $$$${(prospect.salary / 1000000).toFixed(1)}M`, 3000);
     setRoster(r => [...r, { ...prospect, faStatus: 'None', hasOption: false, optionType: null, supermaxEligible: false, source: 'draft' }]);
     setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
     setPicksLeft(p => p - 1);
+    setDraftPicks(picks => {
+      const idx = picks.findIndex(pk => pk.year === 1);
+      if (idx >= 0) return picks.filter((_, i) => i !== idx);
+      return picks.filter((_, i) => i > 0);
+    });
   }
 
+  // ★修正: 新シーズン開始時にピックの年を送り、新ピックを追加
   function handleDraftComplete() {
     playClickSound();
     const newSeason = season + 1;
@@ -475,6 +482,15 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (bonus > 0) addToast('epic', '🏆', `シーズンボーナス +${bonus} GM SCORE!`, `Total Rating ${effectiveOvr}（生存ライン+${effectiveOvr - minOvr}）`, 4000);
     playEpicSound(); triggerConfetti(); setGmAnimating(true);
     addToast('epic', '➡️', `SEASON ${newSeason}`, '新シーズン開始！', 3500);
+    setDraftPicks(picks => {
+      const updated = picks.map(pk => ({ ...pk, year: pk.year - 1 })).filter(pk => pk.year >= 1);
+      const maxYear = updated.length > 0 ? Math.max(...updated.map(pk => pk.year)) : 0;
+      updated.push({ id: 'pick_new_' + Date.now(), year: maxYear + 1, round: 1, own: true, from: null });
+      if (Math.random() > 0.5) {
+        updated.push({ id: 'pick_new2_' + Date.now(), year: maxYear + 1, round: 2, own: true, from: null });
+      }
+      return updated;
+    });
     setFreeAgents(genFA(8)); setSeason(newSeason); setPhase('manage');
     setTimeout(() => setGmAnimating(false), 3000);
   }
@@ -699,7 +715,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
 
                   {injuredList.length > 0 && (
-                    <div className={'px-4 py-2 rounded-xl border bg-orange-950/20 border-orange-900/50'}>
+                    <div className="px-4 py-2 rounded-xl border bg-orange-950/20 border-orange-900/50">
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-orange-400 font-sans font-black text-sm">🏥 Injured List:</span>
                         <span className="text-orange-400 font-black text-sm">{injuredList.length}人</span>
@@ -732,7 +748,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   </div>
 
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850">
-                    <HoverTip text="ドラフトピック：新人選手を指名する権利。Y=年、R=巡目。トレードやサイン・アンド・トレードで獲得できる。連続する2年の1巡目ピックを同時に放出することはできない（Stepien Rule）。">
+                    <HoverTip text="ドラフトピック：新人選手を指名する権利。Y=年、R=巡目。トレードで獲得できる。連続する2年の1巡目ピックを同時に放出することはできない（Stepien Rule）。">
                       <span className="text-stone-400 font-sans font-black text-sm">🏀 Draft Picks:</span>
                     </HoverTip>
                     <div className="flex flex-wrap gap-1 mt-1">
