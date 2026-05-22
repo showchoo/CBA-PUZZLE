@@ -223,8 +223,8 @@ function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRos
             <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">トレードルール</h3>
             <div className="text-stone-500 text-xs space-y-1">
               <p>• 給与マッチング: 獲得額は送出額の75%〜125%+$100K</p>
-              <p>• ステピアンルール: 連続する2年の1巡目ピックを同時に放出不可</p>
-              <p>• ピック価値バランス: 獲得ピック合計値が送出の2倍+25を超えると拒否</p>
+              <p>• ステピアンルール: 連続する2年の1巡目ピックが両方空いてはならない（獲得ピックも考慮）</p>
+              <p>• ピック価値バランス: ①合計値が送出×1.5+15ptを超えると拒否 ②枚数は送出+2枚まで ③1巡目枚数は送出+1枚まで</p>
               <p>• ピックのみのトレードは給与マッチング不要</p>
               <p>• トレード獲得選手は成長率優遇（-0〜-2）</p>
               <p>• シーズンあたり最大{TRADE_LIMIT}回まで</p>
@@ -542,7 +542,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     const inP = tradeTarget.players;
     const inK = tradeTarget.picks;
 
-    // ピック価値バランス検証
+    // ピック価値バランス検証（3ルール版）
     if (inK.length > 0) {
       const pv = validatePickBalance(outK, inK);
       if (!pv.valid) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'ピック価値不均衡', pv.reason, 4000); return; }
@@ -552,10 +552,13 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       const v = validateTrade(outP.map(p => p.salary), inP.map(p => p.salary));
       if (!v.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'トレード不可', v.reason, 4000); return; }
     }
+
+    // ステピアンルール検証（獲得ピック対応版）
     if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
       const sv = validateStepienRule(draftPicks, outK, inK);
       if (!sv.valid) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'ステピアンルール', sv.reason, 4000); return; }
     }
+
     if (hardCapped) {
       const outSal = outP.reduce((s, p) => s + p.salary, 0);
       const inSal = inP.reduce((s, p) => s + p.salary, 0);
@@ -814,8 +817,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (outP.length > 0 || inP.length > 0) {
       salaryValid = validateTrade(outP.map(p => p.salary), inP.map(p => p.salary));
     }
+
+    // ステピアンルール検証（獲得ピック対応版）
     let stepienValid = { valid: true };
-      if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
+    if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
       stepienValid = validateStepienRule(draftPicks, outK, inK);
     }
 
@@ -825,6 +830,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       const inSal = inP.reduce((s, p) => s + p.salary, 0);
       hardCapValid = validateHardCap(totalCapHit - outSal + inSal, true);
     }
+
+    // ピック価値バランス検証（3ルール版）
     const pickBalanceValid = inK.length > 0 ? validatePickBalance(outK, inK) : { valid: true };
     const tradeAllowed = hasOut && hasIn && (!salaryValid || salaryValid.allowed) && stepienValid.valid && hardCapValid.valid && pickBalanceValid.valid;
 
@@ -842,8 +849,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400 space-y-0.5">
             <p>• <HoverTip text="給与マッチング：トレードでは送出側と獲得側の給与差を一定範囲内に制限。獲得額は送出額の75%〜125%+$100K。"><span className="text-stone-300 cursor-help">給与マッチング</span></HoverTip>: 獲得額は送出額の75%〜125%+$100K（両側に選手がいる場合のみ）</p>
-            <p>• <HoverTip text="ステピアンルール：連続する2年の1巡目ドラフトピックの同時放出を禁止。"><span className="text-stone-300 cursor-help">ステピアンルール</span></HoverTip>: 連続する2年の1巡目ピックを同時に放出不可</p>
-            <p>• <HoverTip text="ピック価値：1巡目は高価値（来年75/2年後55/3年後40）、2巡目は低価値（来年20/2年後15/3年後10）。獲得ピックの合計価値が送出の2倍+25を超えるとAIが拒否。"><span className="text-stone-300 cursor-help">ピック価値バランス</span></HoverTip>: 獲得ピック合計値が送出の2倍+25を超えると拒否</p>
+            <p>• <HoverTip text="ステピアンルール：連続する2年の1巡目ピックが両方空いてはならない。獲得ピックもカウントに含まれる。"><span className="text-stone-300 cursor-help">ステピアンルール</span></HoverTip>: 連続する2年の1巡目ピックが両方空いてはならない（獲得ピックも考慮）</p>
+            <p>• <HoverTip text="ピック価値：1巡目は高価値（来年75/2年後55/3年後40）、2巡目は低価値（来年20/2年後15/3年後10）。①獲得ピック合計が送出の1.5倍+15ptを超えると拒否、②枚数は送出+2枚まで、③1巡目の枚数は送出+1枚まで。"><span className="text-stone-300 cursor-help">ピック価値バランス</span></HoverTip>: ①合計値が送出×1.5+15ptを超えると拒否 ②枚数は送出+2枚まで ③1巡目枚数は送出+1枚まで</p>
             {hardCapped && <p className="text-red-400">• 🔒 <HoverTip text="ハードキャップ：MLEやサイン＆トレード使用で発動。第1エプロン（$178.1M）を超える如何なる手段でも補強不可。"><span className="text-red-300 cursor-help">ハードキャップ中</span></HoverTip>: トレード後のCap Hitが第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}Mを超えてはならない</p>}
             <p>• ピックのみのトレード（選手を含まない）は給与マッチング不要</p>
             <p>• シーズンあたり最大{TRADE_LIMIT}回まで</p>
@@ -915,24 +922,28 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                       </div>
                     </div>
                   )}
+
+                  {/* ステピアンルール（獲得ピック含む条件で表示） */}
                   {(outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) && (
                     <div>
-                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ステピアンルール：連続する2年の1巡目ドラフトピックの同時放出を禁止。"><span className="cursor-help">ステピアンルール</span></HoverTip></div>
+                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ステピアンルール：連続する2年の1巡目ピックが両方空いてはならない。獲得ピックもカウントに含まれる。"><span className="cursor-help">ステピアンルール</span></HoverTip></div>
                       <div className={stepienValid.valid ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
                         {stepienValid.valid ? '✓ 適合' : `✗ ${stepienValid.reason}`}
                       </div>
                     </div>
                   )}
+
+                  {/* ピック価値バランス（3ルール版） */}
                   {(outK.length > 0 || inK.length > 0) && (() => {
                     const outVal = outK.reduce((s, p) => s + getPickValue(p), 0);
                     const inVal = inK.reduce((s, p) => s + getPickValue(p), 0);
                     const pv = validatePickBalance(outK, inK);
                     return (
                       <div>
-                        <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ピック価値：1巡目は高価値（来年75/2年後55/3年後40）、2巡目は低価値（来年20/2年後15/3年後10）。獲得ピックの合計価値が送出の2倍+25を超えるとAIが拒否。"><span className="cursor-help">ピック価値バランス</span></HoverTip></div>
+                        <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ピック価値：1巡目は高価値（来年75/2年後55/3年後40）、2巡目は低価値（来年20/2年後15/3年後10）。①獲得ピック合計が送出の1.5倍+15ptを超えると拒否、②枚数は送出+2枚まで、③1巡目の枚数は送出+1枚まで。"><span className="cursor-help">ピック価値バランス</span></HoverTip></div>
                         <div className="text-xs text-stone-400">
-                          送出: <span className="text-red-400 font-mono">{outVal}</span>pt → 獲得: <span className="text-cyan-400 font-mono">{inVal}</span>pt
-                          <span className="text-stone-600 ml-1">(上限{outVal * 2 + 25})</span>
+                          送出: <span className="text-red-400 font-mono">{outVal}</span>pt ({outK.length}枚) → 獲得: <span className="text-cyan-400 font-mono">{inVal}</span>pt ({inK.length}枚)
+                          <span className="text-stone-600 ml-1">(上限{Math.floor(outVal * 1.5 + 15)}pt / {outK.length + 2}枚)</span>
                         </div>
                         <div className={pv.valid ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
                           {pv.valid ? '✓ バランスOK' : `✗ ${pv.reason}`}
@@ -940,6 +951,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                       </div>
                     );
                   })()}
+
                   {hardCapped && (
                     <div>
                       <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ハードキャップ：第1エプロン（$178.1M）を超える如何なる手段でも補強不可。"><span className="cursor-help">ハードキャップ</span></HoverTip></div>
