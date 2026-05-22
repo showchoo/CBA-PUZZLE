@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
+const fmt = (v) => `$${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
 
 function Badge({ children, tooltip, className }) {
   const [show, setShow] = useState(false);
