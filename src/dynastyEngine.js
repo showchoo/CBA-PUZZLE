@@ -126,6 +126,30 @@ export function genRoster() {
   for (let i = 0; i < 12; i++) {
     players.push(generatePlayer());
   }
+
+  const currentTotal = players.reduce((s, p) => s + p.salary, 0);
+  if (currentTotal === 0) return players;
+
+  const targetTotal = DYN_CAP + Math.floor(Math.random() * 36000000);
+
+  for (let pass = 0; pass < 20; pass++) {
+    const total = players.reduce((s, p) => s + p.salary, 0);
+    if (total >= DYN_CAP - 5000000 && total <= DYN_APRON2) break;
+    const ratio = targetTotal / total;
+    for (const p of players) {
+      const weighted = p.salary * ratio * (0.92 + Math.random() * 0.16);
+      p.salary = Math.max(1000000, Math.round(weighted / 100000) * 100000);
+    }
+  }
+
+  const finalTotal = players.reduce((s, p) => s + p.salary, 0);
+  if (finalTotal > DYN_APRON2) {
+    const ratio = (DYN_TAX - 5000000) / finalTotal;
+    for (const p of players) {
+      p.salary = Math.max(1000000, Math.round((p.salary * ratio) / 100000) * 100000);
+    }
+  }
+
   return players;
 }
 
