@@ -395,3 +395,20 @@ export function calcGMScore(season, totalOvr, totalCapHit, roster) {
   const rating80Bonus = roster.filter(p => p.rating >= 80).length * BONUS_RATING80_GM_SCORE;
   return base + ratingBonus + capBonus + starBonus + rosterBonus + birdBonus + rating80Bonus;
 }
+
+// ═══ シーズン勝敗計算 ═══
+export function calcSeasonRecord(totalOvr, minRequired) {
+  const diff = Math.max(0, totalOvr - minRequired);
+  const baseRate = Math.min(60, 20 + Math.floor(diff / 3));
+  const randomOffset = Math.floor(Math.random() * 11) - 5;
+  const winRate = Math.max(5, Math.min(65, baseRate + randomOffset));
+  const wins = Math.round(82 * winRate / 100);
+  const losses = 82 - wins;
+  let result, gmBonus;
+  if (winRate >= 60)      { result = '🏆 優勝'; gmBonus = 500; }
+  else if (winRate >= 50) { result = '🥈 準優勝'; gmBonus = 300; }
+  else if (winRate >= 40) { result = '🏀 プレーオフ進出'; gmBonus = 150; }
+  else if (winRate >= 30) { result = 'レギュラー終了'; gmBonus = 50; }
+  else                    { result = '💀 不振'; gmBonus = 0; }
+  return { wins, losses, winRate, result, gmBonus };
+}
