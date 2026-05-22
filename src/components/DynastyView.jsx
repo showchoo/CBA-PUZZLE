@@ -72,6 +72,19 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const totalCapHit = calcCapHit(roster, deadCap);
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
   const minOvr = 380 + (season - 1) * 8;
+
+  // ★変更: GM SCORE 計算関数
+  function calcGMScore() {
+    const base = Math.max(0, season - 1) * 100;
+    const ratingBonus = Math.floor(totalOvr / 10);
+    const capRemaining = Math.max(0, DYN_CAP - totalCapHit);
+    const capBonus = Math.min(100, Math.floor((capRemaining / 1000000) * 5));
+    const starBonus = roster.some(p => p.rating >= 90) ? 50 : 0;
+    const rosterBonus = roster.length >= 12 ? 30 : 0;
+    const birdBonus = Math.min(60, roster.filter(p => p.birdRights === 'Full').length * 20);
+    return base + ratingBonus + capBonus + starBonus + rosterBonus + birdBonus;
+  }
+
   const mleAmount = getMLEAmount(totalCapHit);
   const repeaterSeasons = taxHistory.filter(Boolean).length;
   const overTax = Math.max(0, totalCapHit - DYN_TAX);
@@ -135,7 +148,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleWaiver(player) {
     playClickSound();
     const remaining = player.salary * player.contractYears;
-    if (!window.confirm(`${player.name}をウェイブしますか？\n\n残り契約: $${(remaining / 1000000).toFixed(1)}M（{player.contractYears}年）\nデッドキャップ: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\n\n※全放出がウェイブを経由します。デッドキャップは100%です。`)) return;
+    if (!window.confirm(`{player.name}をウェイブしますか？\n\n残り契約: $$$${(remaining / 1000000).toFixed(1)}M（${player.contractYears}年）\nデッドキャップ: $${(player.salary / 1000000).toFixed(1)}M/年 × {player.contractYears}年\n\n※全放出がウェイブを経由します。デッドキャップは100%です。`)) return;
     if (player.salary > 0 && player.contractYears > 0) {
       const nd = [...deadCapDetails, { name: player.name, amount: player.salary, yearsLeft: player.contractYears, type: 'Waive' }];
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
@@ -150,7 +163,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (roll < agreeChance) {
       const pct = 50 + Math.floor(Math.random() * 21);
       const deadAmount = Math.floor(player.salary * pct / 100);
-      alert(`${player.name}はバイアウトに同意しました！\n\nデッドキャップ: $${(deadAmount / 1000000).toFixed(1)}M/年（{pct}%）× ${player.contractYears}年`);
+      alert(`${player.name}はバイアウトに同意しました！\n\nデッドキャップ: $$$${(deadAmount / 1000000).toFixed(1)}M/年（${pct}%）× ${player.contractYears}年`);
       if (player.salary > 0 && player.contractYears > 0) {
         const nd = [...deadCapDetails, { name: player.name + ' (B/O)', amount: deadAmount, yearsLeft: player.contractYears, type: 'Buyout' }];
         setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
@@ -164,7 +177,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleStretch(player) {
     playClickSound();
     const st = calcStretch(player);
-    if (!window.confirm(`${player.name}をストレッチしますか？\n\n通常: $$$${(player.salary / 1000000).toFixed(1)}M/年 × ${player.contractYears}年\nストレッチ: $${(st.annualAmount / 1000000).toFixed(1)}M/年 × {st.stretchYears}年\n\n※今年のキャップは空くが、長期のデッドキャップになる。`)) return;
+    if (!window.confirm(`${player.name}をストレッチしますか？\n\n通常: $${(player.salary / 1000000).toFixed(1)}M/年 × {player.contractYears}年\nストレッチ: $$$${(st.annualAmount / 1000000).toFixed(1)}M/年 × ${st.stretchYears}年\n\n※今年のキャップは空くが、長期のデッドキャップになる。`)) return;
     if (player.salary > 0 && player.contractYears > 0) {
       const nd = [...deadCapDetails, { name: player.name + ' (ST)', amount: st.annualAmount, yearsLeft: st.stretchYears, type: 'Stretch' }];
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
@@ -244,7 +257,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       [tradeTarget.salary]
     );
     if (!validation.allowed) {
-      alert(`トレード不可！\n\n送出: $$$${(validation.outgoing / 1000000).toFixed(1)}M\n範囲: $${(validation.minIncoming / 1000000).toFixed(1)}M 〜 $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M\n\n理由: {validation.reason}`);
+      alert(`トレード不可！\n\n送出: $${(validation.outgoing / 1000000).toFixed(1)}M\n範囲: $${(validation.minIncoming / 1000000).toFixed(1)}M 〜 $${(validation.maxIncoming / 1000000).toFixed(1)}M\n獲得予定: $${(validation.incoming / 1000000).toFixed(1)}M\n\n理由: ${validation.reason}`);
       return;
     }
     setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradeTarget]);
@@ -312,7 +325,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       </div>
       <div className="flex items-center gap-3">
         <span className="text-xs font-mono text-stone-500">GM SCORE</span>
-        <span className="text-2xl font-mono font-black text-amber-400">{Math.max(0, season - 1) * 100}</span>
+        <span className="text-2xl font-mono font-black text-amber-400">{calcGMScore()}</span>
         <span className="text-xs font-mono text-stone-600">pts</span>
         <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2 rounded-lg transition-all text-sm ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
       </div>
@@ -568,7 +581,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                         <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
                       </HoverTip>
                       <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
-                        {mleUsed ? '使用済み' : `$$$${(mleAmount / 1000000).toFixed(1)}M`}
+                        {mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}
                       </span>
                     </div>
                   )}
@@ -775,7 +788,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   // ═══ GAME OVER PHASE ═══
   if (phase === 'gameOver') {
-    const score = Math.max(0, season - 1) * 100;
+    const score = calcGMScore();
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
         <div className="w-full max-w-2xl space-y-6 bg-[#110f0e] border border-red-900 rounded-3xl p-8 text-center">
