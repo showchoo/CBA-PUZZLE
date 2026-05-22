@@ -1,226 +1,290 @@
-// ═══════════════════════════════════════
-// DYNASTY ENGINE - FULL CBA IMPLEMENTATION
-// ═══════════════════════════════════════
-
-export const DYN_CAP = 140000000;
-export const DYN_TAX = 170000000;
-export const DYN_APRON1 = 178000000;
-export const DYN_APRON2 = 189000000;
+// ═══ 定数 ═══
+export const DYN_CAP = 136000000;
+export const DYN_TAX = 165000000;
+export const DYN_APRON1 = 178100000;
+export const DYN_APRON2 = 188900000;
 export const PICKS_PER_DRAFT = 2;
-export const MLE_FULL = 12400000;
-export const MLE_MINI = 5000000;
-export const SUPERMAX_PCT = 0.35;
 
-function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+// ★追加: FA制限・ボーナス定数
+export const FA_BASE_LIMIT = 2;
+export const FA_APRON1_LIMIT = 1;
+export const BONUS_STAR_GROWTH_MULT = 1.3;
+export const BONUS_RATING80_GM_SCORE = 40;
+export const BONUS_SEASON_50 = 150;
+export const BONUS_SEASON_100 = 300;
 
-const DESC = ["高給","若手有望","中堅","ベテラン","控え","コスパ抜群","怪我明け","伸びしろ大","即戦力","ルーキー","エース級","MVP候補","守備職人","3&D","スラッシャー","ビッグマン","司令塔","フランチャイズ","シックスマン","ハッスル系","シューター","鉄壁","オールラウンド","クラッチ","エナジザー","スペースメーカー","ロールプレイヤー","ジャンクション"];
-const POS = ["ガード","フォワード","センター","ウイング","ビッグ","ポイント","シューター","タレント"];
-
-let _id = 1000;
-function genName() { return pick(DESC) + pick(POS) + (rand(0, 2) > 0 ? '' : String.fromCharCode(65 + rand(0, 4))); }
-function genId() { return 'dyn_' + (_id++); }
-
-function genSalary(rating, exp) {
-  let base;
-  if (rating >= 92) base = rand(45, 65);
-  else if (rating >= 87) base = rand(30, 48);
-  else if (rating >= 82) base = rand(20, 35);
-  else if (rating >= 77) base = rand(12, 25);
-  else if (rating >= 72) base = rand(6, 15);
-  else if (rating >= 67) base = rand(3, 8);
-  else base = rand(1, 4);
-  if (exp >= 10) base = Math.floor(base * 1.15);
-  return base * 1000000;
+// ═══ ユーティリティ ═══
+function randomName() {
+  const first = ['James', 'Marcus', 'Kevin', 'DeAndre', 'Jaylen', 'Trae', 'Anthony', 'Darius', 'Zion', 'Luka', 'Ja', 'Shai', 'Kyrie', 'Victor', 'Chet', 'Lauri', 'Tyler', 'Jalen', 'Brandon', 'Donovan', 'Jayson', 'Kawhi', 'Paul', 'Rudy', 'Nikola', 'Joel', 'Giannis', 'Damian', 'Stephen', 'LeBron', 'Anthony', 'Devin', 'Bam', 'Jimmy', 'Pascal', 'Scottie', 'Alperen', 'Keyonte', 'Dyson', 'Alex', 'Cam', 'Jabari', 'Tari', 'Keegan', 'Amen', 'Ausar', 'Brandon', 'Jarrett', 'Evan', 'Tyrese', 'Desmond', 'Cade', 'Franz', 'Paolo', 'Walker', 'Dereck', 'Jalen', 'Mark', 'Tyson', 'Tre', 'Dejounte', 'Miles', 'Anfernee', 'Herb', 'Trey', 'Aaron', 'Michael', 'Isaiah', 'Donte', 'Julius', 'Mikal', 'Collin', 'Jarred', 'Deni', 'Corey', 'Obi', 'Quentin', 'Ayo', 'Jalen', 'Andrew', 'Moses', 'Keldon', 'Devin', 'Alec', 'Pat', 'Buddy', 'Harrison', 'Kyle', 'PJ', 'Bones', 'Christian', 'Nassir', 'Coby', 'Patrick', 'Daniel', 'Jordan', 'Grant', 'Austin', 'Max', 'Rui', 'Josh', 'Caleb', 'Drew', 'Kris', 'Jett', 'Matas', 'Zaccharie', 'Donovan', 'Reed', 'Dalton'];
+  const last = ['Johnson', 'Williams', 'Brown', 'Davis', 'Wilson', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Thompson', 'Young', 'Walker', 'Robinson', 'Clark', 'Allen', 'Wright', 'Mitchell', 'Carter', 'Green', 'Edwards', 'Collins', 'Stewart', 'Morris', 'Rogers', 'Reed', 'Cook', 'Morgan', 'Bell', 'Murphy', 'Bailey', 'Rivera', 'Cooper', 'Richardson', 'Howard', 'Ward', 'Peterson', 'Gray', 'James', 'Watson', 'Brooks', 'Sanders', 'Price', 'Bennett', 'Wood', 'Barnes', 'Ross', 'Henderson', 'Coleman', 'Jenkins', 'Perry', 'Powell', 'Long', 'Patterson', 'Hughes', 'Flores', 'Washington', 'Butler', 'Simmons', 'Foster', 'Gonzalez', 'Bryant', 'Russell', 'Griffin', 'Diaz', 'Hayes', 'Myers', 'Ford', 'Hamilton', 'Graham', 'Sullivan', 'Wallace', 'Woods', 'Cole', 'West', 'Jordan', 'Owens', 'Reynolds', 'Fisher', 'Ellis', 'Harrison', 'Gibson', 'McDonald', 'Cruz', 'Marshall', 'Freeman', 'Wells', 'Webb', 'Simpson', 'Stevens', 'Tucker', 'Porter', 'Hunter', 'Hicks', 'Crawford', 'Henry', 'Boyd', 'Mason', 'Morales', 'Kennedy', 'Warren', 'Dixon', 'Ramos', 'Reyes', 'Burns', 'Gordon', 'Shaw', 'Holmes', 'Rice', 'Robertson', 'Hunt', 'Black', 'Daniels', 'Palmer', 'Mills', 'Nichols', 'Grant', 'Knight', 'Ferguson', 'Rose', 'Stone', 'Hawkins', 'Dunn', 'Perkins', 'Hudson', 'Spencer', 'Gardens', 'Stephens', 'Payne', 'Pierce', 'Berry', 'Matthews', 'Arnold', 'Wagner', 'Willis', 'Ray', 'Watkins', 'Olson', 'Carroll', 'Duncan', 'Snyder', 'Hart', 'Cunningham', 'Haliburton', 'Maxey', 'Bane', 'Mobley', 'Barnes', 'Sengun', 'George', 'Miller', 'Wallace', 'Thompson', 'Henderson', 'Wembanyama', 'Holmgren', 'Ivey', 'Murray', 'Mathurin', 'Smith', 'Duren', 'Davis', 'Griffin', 'Howard', 'Sochan', 'Daniels', 'Agbaji', 'Eason', 'Dieng', 'Duren', 'Jones', 'Nembhard'];
+  return first[Math.floor(Math.random() * first.length)] + ' ' + last[Math.floor(Math.random() * last.length)];
 }
 
-function genContractYears() { return pick([1, 2, 2, 3, 3, 3, 3, 4, 4, 5]); }
-
-export function genPlayer(tier) {
-  let rating, age, exp, cType;
-  switch (tier) {
-    case 'star': rating = rand(88, 97); age = rand(24, 31); exp = rand(5, 12); break;
-    case 'starter': rating = rand(78, 87); age = rand(22, 29); exp = rand(3, 8); break;
-    case 'role': rating = rand(72, 79); age = rand(22, 30); exp = rand(2, 7); break;
-    case 'bench': rating = rand(65, 73); age = rand(21, 28); exp = rand(1, 5); break;
-    case 'rookie': rating = rand(65, 77); age = rand(19, 22); exp = 0; cType = 'rookie'; break;
-    case 'twoway': rating = rand(62, 72); age = rand(19, 24); exp = rand(0, 2); cType = 'twoway'; break;
-    default: rating = rand(70, 80); age = rand(23, 28); exp = rand(2, 5);
-  }
-  const cy = cType === 'twoway' ? rand(1, 2) : cType === 'rookie' ? rand(2, 4) : genContractYears();
-  const sal = cType === 'twoway' ? 0 : genSalary(rating, exp);
-  const by = rand(0, Math.max(0, exp));
-  const hasOption = cy >= 3 && Math.random() < 0.3;
-  const optionType = hasOption ? (Math.random() < 0.6 ? 'player' : 'team') : null;
-  const supermax = rating >= 90 && by >= 4;
+function generatePlayer(overrideRating) {
+  const rating = overrideRating ?? (40 + Math.floor(Math.random() * 60));
+  const age = 19 + Math.floor(Math.random() * 17);
+  const isRookie = age <= 23;
+  const baseSalary = isRookie
+    ? 1000000 + Math.floor(Math.random() * 4000000)
+    : 1000000 + Math.floor((rating / 100) * 44000000) + Math.floor(Math.random() * 5000000);
+  const roundedSalary = Math.round(baseSalary / 100000) * 100000;
+  const years = isRookie ? (2 + Math.floor(Math.random() * 3)) : (1 + Math.floor(Math.random() * 5));
+  const hasOption = Math.random() < 0.15;
+  const optionType = hasOption ? (Math.random() > 0.5 ? 'player' : 'team') : null;
   return {
-    id: genId(), name: genName(), rating, age, experience: exp,
-    salary: sal, contractYears: cy, contractType: cType || 'regular',
-    birdRights: by >= 3 ? 'Full' : by >= 2 ? 'Early' : 'None',
-    faStatus: 'None', teamYears: by,
-    hasOption: hasOption, optionType: optionType, supermaxEligible: supermax
+    id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+    name: randomName(),
+    rating,
+    age,
+    salary: roundedSalary,
+    contractYears: years,
+    faStatus: 'None',
+    birdRights: Math.random() > 0.6 ? (Math.random() > 0.5 ? 'Full' : 'Early') : 'None',
+    hasOption,
+    optionType,
+    supermaxEligible: rating >= 90,
+    source: 'roster', // ★追加: デフォルト
   };
 }
 
+// ═══ ロスター生成 ═══
 export function genRoster() {
-  return [
-    genPlayer('star'), genPlayer('starter'), genPlayer('starter'),
-    genPlayer('role'), genPlayer('role'), genPlayer('role'),
-    genPlayer('bench'), genPlayer('bench'), genPlayer('twoway'), genPlayer('twoway')
-  ];
-}
-
-export function genFA(count = 8) {
-  const tiers = ['starter', 'starter', 'role', 'role', 'role', 'bench', 'bench', 'bench'];
-  return Array.from({ length: count }, (_, i) => {
-    const p = genPlayer(tiers[i] || 'bench');
-    p.faStatus = 'UFA';
-    return p;
-  });
-}
-
-export function genDraft(count = 10) {
-  return Array.from({ length: count }, (_, i) => {
-    let rating, cy, sal;
-    if (i === 0) { rating = rand(72, 80); cy = 4; sal = 4000000; }
-    else if (i === 1) { rating = rand(69, 76); cy = 3; sal = 3500000; }
-    else if (i === 2) { rating = rand(67, 74); cy = 3; sal = 3000000; }
-    else if (i <= 5) { rating = rand(65, 72); cy = 2; sal = 2500000; }
-    else { rating = rand(62, 69); cy = 2; sal = 2000000; }
-    return {
-      id: genId(), name: genName(), rating, age: rand(19, 22), experience: 0,
-      salary: sal, contractYears: cy, contractType: 'rookie',
-      birdRights: 'None', faStatus: 'UFA', hasOption: false, optionType: null, supermaxEligible: false
-    };
-  });
-}
-
-export function genDraftPicks() {
-  return [
-    { id: 'pick_' + genId(), year: 1, round: 1, own: true },
-    { id: 'pick_' + genId(), year: 1, round: 2, own: true },
-  ];
-}
-
-export function canSignFA(player, years) {
-  if (player.rating >= 85 && years === 1) {
-    return { allowed: false, reason: `${player.name}（Rating ${player.rating}）は1年契約を拒否しました。スター級選手は最低2年の契約を求めます。` };
+  const players = [];
+  for (let i = 0; i < 12; i++) {
+    players.push(generatePlayer());
   }
+  return players;
+}
+
+// ═══ FA生成 ═══
+export function genFA(count) {
+  const players = [];
+  for (let i = 0; i < count; i++) {
+    const p = generatePlayer();
+    p.faStatus = 'UFA';
+    p.source = 'fa'; // ★追加: FA由来
+    players.push(p);
+  }
+  return players;
+}
+
+// ═══ ドラフト生成 ═══
+export function genDraft(count) {
+  const players = [];
+  for (let i = 0; i < count; i++) {
+    const p = generatePlayer();
+    p.age = 19 + Math.floor(Math.random() * 3);
+    p.salary = 1500000 + Math.floor(Math.random() * 2500000);
+    p.salary = Math.round(p.salary / 100000) * 100000;
+    p.contractYears = 3 + Math.floor(Math.random() * 2);
+    p.source = 'draft'; // ★追加: ドラフト由来
+    players.push(p);
+  }
+  return players.sort((a, b) => b.rating - a.rating);
+}
+
+// ═══ ドラフトピック生成 ═══
+export function genDraftPicks() {
+  const picks = [];
+  for (let i = 1; i <= 3; i++) {
+    picks.push({ id: 'pick_' + i, year: i, round: 1, own: true, from: null });
+  }
+  picks.push({ id: 'pick_4', year: 2, round: 2, own: true, from: null });
+  return picks;
+}
+
+// ═══ キャップ計算 ═══
+export function calcCapHit(roster, deadCap) {
+  return roster.reduce((sum, p) => sum + p.salary, 0) + (deadCap || 0);
+}
+
+// ═══ デッドキャップ進捗 ═══
+export function advanceDeadCap(details) {
+  const updated = details
+    .map(d => ({ ...d, yearsLeft: d.yearsLeft - 1 }))
+    .filter(d => d.yearsLeft > 0);
+  return { details: updated, total: updated.reduce((s, d) => s + d.amount, 0) };
+}
+
+// ═══ シーズン進行 ═══
+export function advanceSeason(roster) {
+  const summaries = [];
+  const surviving = [];
+  const expired = [];
+  const optionPlayers = [];
+
+  for (const player of roster) {
+    const oldRating = player.rating;
+    let change;
+
+    // ★修正: ソース・Ratingに応じた成長率
+    const source = player.source || 'roster';
+    const isHighRating = player.rating >= 85;
+
+    if (source === 'fa') {
+      // FA: 通常成長率（-2〜-4）
+      change = -(2 + Math.floor(Math.random() * 3));
+    } else if (source === 'trade') {
+      // トレード: 成長率優遇（-0〜-2）
+      change = -Math.floor(Math.random() * 3);
+    } else {
+      // ロスター/ドラフト: 通常成長率
+      if (Math.random() < 0.15) {
+        change = 1 + Math.floor(Math.random() * 3);
+      } else if (Math.random() < 0.1) {
+        change = -(3 + Math.floor(Math.random() * 3));
+      } else {
+        change = -1 - Math.floor(Math.random() * 2);
+      }
+    }
+
+    // ★修正: Rating 85+のスターは衰退を軽減
+    if (isHighRating && change < 0) {
+      change = Math.ceil(change * 0.7);
+      if (change === 0) change = -1;
+    }
+
+    const newRating = Math.max(20, Math.min(99, oldRating + change));
+
+    if (player.age >= 38 && Math.random() < 0.3 + (player.age - 38) * 0.15) {
+      summaries.push({ name: player.name, oldRating, newRating: 0, change: 'RETIRE' });
+      continue;
+    }
+
+    if (player.hasOption) {
+      optionPlayers.push({ ...player, rating: newRating, age: player.age + 1 });
+    } else {
+      const newYears = player.contractYears - 1;
+      if (newYears <= 0) {
+        player.faStatus = player.birdRights && player.birdRights !== 'None' ? 'RFA' : 'UFA';
+        expired.push({ ...player, rating: newRating, age: player.age + 1, contractYears: 0 });
+        summaries.push({ name: player.name, oldRating, newRating, change });
+      } else {
+        surviving.push({ ...player, rating: newRating, age: player.age + 1, contractYears: newYears });
+        summaries.push({ name: player.name, oldRating, newRating, change });
+      }
+    }
+  }
+
+  return { summaries, surviving, expired, optionPlayers };
+}
+
+// ═══ FA契約制限チェック ═══
+export function canSignFA(player, years, totalCapHit = 0, faSignedThisSeason = 0) {
+  // ★修正: キャップ超過による契約年数制限
+  if (totalCapHit > DYN_APRON1 && years > 3) {
+    return { allowed: false, reason: '第1エプロン超過中は最大3年契約のみ' };
+  }
+
+  // ★修正: 1年契約拒否ルール
+  if (player.rating >= 85 && years === 1) {
+    return { allowed: false, reason: 'スター級選手（85+）は1年契約を拒否します' };
+  }
+
+  // ★修正: FA人数制限
+  const limit = getFALimit(totalCapHit);
+  if (faSignedThisSeason >= limit) {
+    return { allowed: false, reason: `FA契約上限（${limit}人）に達しました` };
+  }
+
   return { allowed: true };
 }
 
+// ★追加: FA人数上限を返す
+export function getFALimit(totalCapHit) {
+  if (totalCapHit > DYN_APRON2) return 0;
+  if (totalCapHit > DYN_APRON1) return FA_APRON1_LIMIT;
+  return FA_BASE_LIMIT;
+}
+
+// ═══ 契約年数に応じた年俸調整 ═══
 export function adjustSalaryForYears(baseSalary, years) {
-  const multipliers = { 1: 0.95, 2: 1.0, 3: 1.05, 4: 1.10, 5: 1.15 };
-  return Math.floor(baseSalary * (multipliers[years] || 1.0));
+  const multipliers = { 1: 0.85, 2: 1.0, 3: 1.1, 4: 1.15, 5: 1.2 };
+  return Math.round((baseSalary * (multipliers[years] || 1.0)) / 100000) * 100000;
 }
 
-export function getMLEAmount(capHit) {
-  if (capHit >= DYN_APRON2) return 0;
-  if (capHit >= DYN_APRON1) return MLE_MINI;
-  return MLE_FULL;
+// ═══ MLE計算 ═══
+export function getMLEAmount(totalCapHit) {
+  if (totalCapHit <= DYN_CAP) return 12400000;
+  if (totalCapHit <= DYN_APRON1) return 5000000;
+  return 0;
 }
 
-export function isSupermaxEligible(player) {
-  return player.rating >= 90 && player.teamYears >= 4 && player.birdRights === 'Full';
-}
-
-export function calcSupermaxSalary(capHit) {
-  return Math.floor(capHit * SUPERMAX_PCT);
-}
-
-export function calcStretch(player) {
-  const totalRemaining = player.salary * player.contractYears;
-  const stretchYears = player.contractYears * 2 + 1;
-  const annualAmount = Math.floor(totalRemaining / stretchYears);
-  return { annualAmount, stretchYears, total: totalRemaining };
-}
-
-export function calcRepeaterTax(overAmount, repeaterSeasons) {
-  if (overAmount <= 0) return 0;
-  const isRepeater = repeaterSeasons >= 3;
-  const brackets = [
-    { min: 0, max: 5000000, normal: 1.5, repeat: 2.5 },
-    { min: 5000000, max: 10000000, normal: 1.75, repeat: 2.75 },
-    { min: 10000000, max: 15000000, normal: 2.5, repeat: 3.5 },
-    { min: 15000000, max: 20000000, normal: 3.25, repeat: 4.25 },
-    { min: 20000000, max: Infinity, normal: 3.75, repeat: 4.75 },
-  ];
-  let tax = 0, remaining = overAmount;
-  for (const b of brackets) {
-    if (remaining <= 0) break;
-    const taxable = Math.min(remaining, (b.max === Infinity ? 999999999 : b.max) - b.min);
-    tax += Math.floor(taxable * (isRepeater ? b.repeat : b.normal));
-    remaining -= taxable;
+// ═══ Repeater Tax ═══
+export function calcRepeaterTax(overTax, repeaterSeasons) {
+  if (repeaterSeasons < 2) return 0;
+  const baseRate = 2.5;
+  const ratePer5M = repeaterSeasons >= 4 ? 1.0 : 0.5;
+  const steps = Math.floor(overTax / 5000000);
+  let totalTax = 0;
+  for (let i = 0; i <= steps; i++) {
+    const bracketSize = Math.min(5000000, overTax - i * 5000000);
+    if (bracketSize <= 0) break;
+    totalTax += bracketSize * (baseRate + i * ratePer5M);
   }
-  return tax;
+  return Math.round(totalTax);
 }
 
-export function validateTrade(outgoingSalaries, incomingSalaries) {
-  const out = outgoingSalaries.reduce((s, v) => s + v, 0);
-  const inc = incomingSalaries.reduce((s, v) => s + v, 0);
-  const maxInc = out * 1.25 + 100000;
-  const minInc = out * 0.75;
-  return {
-    allowed: inc <= maxInc && inc >= minInc,
-    outgoing: out,
-    incoming: inc,
-    maxIncoming: maxInc,
-    minIncoming: minInc,
-    reason: inc > maxInc ? '125%ルール（上限）違反' : inc < minInc ? '75%ルール（下限）違反' : null
-  };
+// ═══ ストレッチ ═══
+export function calcStretch(player) {
+  const stretchYears = player.contractYears * 2 + 1;
+  const totalOwed = player.salary * player.contractYears;
+  const annualAmount = Math.round(totalOwed / stretchYears / 100000) * 100000;
+  return { annualAmount, stretchYears };
 }
 
+// ═══ トレードバリデーション ═══
+export function validateTrade(outgoing, incoming) {
+  const totalOut = outgoing.reduce((s, v) => s + v, 0);
+  const totalIn = incoming.reduce((s, v) => s + v, 0);
+  const minIn = Math.round(totalOut * 0.75 - 100000);
+  const maxIn = Math.round(totalOut * 1.25 + 100000);
+  const allowed = totalIn >= minIn && totalIn <= maxIn;
+  let reason = '';
+  if (totalIn < minIn) reason = '獲得額が送出額の75%-$100Kを下回ります';
+  if (totalIn > maxIn) reason = '獲得額が送出額の125%+$100Kを上回ります';
+  return { allowed, outgoing: totalOut, incoming: totalIn, minIncoming: minIn, maxIncoming: maxIn, reason };
+}
+
+// ═══ スーパーマックス ═══
+export function isSupermaxEligible(player) {
+  return player.rating >= 90 && player.contractYears >= 4;
+}
+
+// ═══ ギルバート・アリーナス条項 ═══
 export function isGilbertArenasRestricted(player) {
-  return player.experience <= 2 && player.faStatus === 'RFA';
+  return player.contractYears <= 2 && player.rating >= 75;
 }
 
-export function advanceSeason(roster) {
-  const expired = [];
-  const surviving = [];
-  const optionPlayers = [];
-  const summaries = [];
-
-  roster.forEach(p => {
-    const oldRating = p.rating;
-    p.age += 1;
-    p.experience += 1;
-    const change = -rand(1, 3);
-    p.rating = Math.max(40, p.rating + change);
-    p.contractYears -= 1;
-    summaries.push({ name: p.name, oldRating, newRating: p.rating, change });
-
-    if (p.contractYears <= 0) {
-      p.faStatus = p.birdRights !== 'None' ? 'RFA' : 'UFA';
-      expired.push({ ...p });
-    } else if (p.contractYears === 1 && p.hasOption) {
-      optionPlayers.push({ ...p });
-      surviving.push(p);
-    } else {
-      if (p.teamYears !== undefined) { p.teamYears += 1; p.birdRights = p.teamYears >= 3 ? 'Full' : 'Early'; }
-      surviving.push(p);
-    }
-  });
-  return { surviving, expired, summaries, optionPlayers };
-}
-
-export function advanceDeadCap(details) {
-  const remaining = [];
-  let total = 0;
-  details.forEach(d => {
-    d.yearsLeft -= 1;
-    if (d.yearsLeft > 0) { remaining.push(d); total += d.amount; }
-  });
-  return { details: remaining, total };
-}
-
+// ═══ 生存判定 ═══
 export function checkSurvival(roster, season) {
-  const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
-  const minOvr = 380 + (season - 1) * 8;
-  if (roster.length < 8) return { alive: false, reason: `ロースターが少なすぎます（${roster.length}人 / 最低8人必要）` };
-  if (totalOvr < minOvr) return { alive: false, reason: `戦力が低下しました（Total Rating: ${totalOvr} / 最低: ${minOvr}）` };
-  return { alive: true };
+  const totalRating = roster.reduce((s, p) => s + p.rating, 0);
+  const minRequired = 380 + (season - 1) * 8;
+  const alive = totalRating >= minRequired;
+  const reason = alive ? '' : `Total Rating ${totalRating} < ${minRequired} 必要（シーズン${season}）`;
+  return { alive, reason, totalRating, minRequired };
 }
 
-export function calcCapHit(roster, deadCap = 0) {
-  return roster.reduce((s, p) => s + p.salary, 0) + deadCap;
+// ★追加: シーズンボーナス計算
+export function calcSeasonBonus(roster, season) {
+  const totalRating = roster.reduce((s, p) => s + p.rating, 0);
+  const minRequired = 380 + (season - 1) * 8;
+  const diff = totalRating - minRequired;
+  if (diff >= 100) return BONUS_SEASON_100;
+  if (diff >= 50) return BONUS_SEASON_50;
+  return 0;
+}
+
+// ★追加: GM SCORE計算
+export function calcGMScore(season, totalOvr, totalCapHit, roster) {
+  const base = Math.max(0, season - 1) * 100;
+  const ratingBonus = Math.floor(totalOvr / 10);
+  const capRemaining = Math.max(0, DYN_CAP - totalCapHit);
+  const capBonus = Math.min(100, Math.floor((capRemaining / 1000000) * 5));
+  const starBonus = roster.some(p => p.rating >= 90) ? 50 : 0;
+  const rosterBonus = roster.length >= 12 ? 30 : 0;
+  const birdBonus = Math.min(60, roster.filter(p => p.birdRights === 'Full').length * 20);
+  // ★修正: Rating 80+ボーナス
+  const rating80Bonus = roster.filter(p => p.rating >= 80).length * BONUS_RATING80_GM_SCORE;
+  return base + ratingBonus + capBonus + starBonus + rosterBonus + birdBonus + rating80Bonus;
 }
