@@ -55,7 +55,6 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
         {players.map((player) => (
           <div key={player.id} className="border-b border-stone-900/40 hover:bg-stone-950/60 transition-colors px-3 py-2.5">
             <div className="flex items-start justify-between gap-2">
-              {/* 左側: 選手情報 */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-black text-white text-base truncate">{player.name}</span>
@@ -95,7 +94,6 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                       <span className="text-sm text-stone-500 font-mono">Age {player.age}</span>
                       <span className="text-stone-700">·</span>
                       <span className="text-lg font-mono font-black text-amber-400">R{player.rating}</span>
-                      {/* ★追加: Pot表示 */}
                       {player.pot && player.pot > player.rating && player.age <= 27 && (
                         <span className="text-xs font-mono text-emerald-400">(Pot {player.pot})</span>
                       )}
@@ -115,35 +113,15 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                   )}
                 </div>
               </div>
-
-              {/* 右側: アクションボタン */}
               <div className="flex items-center gap-0.5 shrink-0 pt-1">
                 {dynastyMode ? (
                   <>
-                    <TipButton
-                      onClick={() => onWaiver && onWaiver(player)}
-                      className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-1.5 py-0.5 rounded transition-colors font-mono"
-                      tip="ウェイブ（Waiver）：選手を放出するプロセス。残り契約の100%がデッドキャップになる。"
-                    >
-                      W
-                    </TipButton>
+                    <TipButton onClick={() => onWaiver && onWaiver(player)} className="text-[10px] bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 hover:border-amber-600 px-1.5 py-0.5 rounded transition-colors font-mono" tip="ウェイブ：残り契約100%がデッドキャップ。">W</TipButton>
                     {player.contractYears > 1 && (
-                      <TipButton
-                        onClick={() => onBuyout && onBuyout(player)}
-                        className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-1.5 py-0.5 rounded transition-colors font-mono"
-                        tip="バイアウト（Buyout）：選手と交渉して契約を減額。デッドキャップ50〜70%に軽減。Ratingが低い選手ほど同意しやすい。"
-                      >
-                        B/O
-                      </TipButton>
+                      <TipButton onClick={() => onBuyout && onBuyout(player)} className="text-[10px] bg-purple-950/60 border border-purple-800 text-purple-400 hover:text-purple-300 hover:border-purple-600 px-1.5 py-0.5 rounded transition-colors font-mono" tip="バイアウト：契約50〜70%に軽減。Rating低いほど同意しやすい。">B/O</TipButton>
                     )}
                     {player.contractYears > 1 && (
-                      <TipButton
-                        onClick={() => onStretch && onStretch(player)}
-                        className="text-[10px] bg-emerald-950/60 border border-emerald-800 text-emerald-400 hover:text-emerald-300 hover:border-emerald-600 px-1.5 py-0.5 rounded transition-colors font-mono"
-                        tip="ストレッチ（Stretch）：残り契約を（年数×2+1）年で均等分割。今年のキャップは空くが、長期のデッドキャップになる。"
-                      >
-                        ST
-                      </TipButton>
+                      <TipButton onClick={() => onStretch && onStretch(player)} className="text-[10px] bg-emerald-950/60 border border-emerald-800 text-emerald-400 hover:text-emerald-300 hover:border-emerald-600 px-1.5 py-0.5 rounded transition-colors font-mono" tip="ストレッチ：残り契約を(年数×2+1)年で分割。今年のキャップは空くが長期デッドキャップ。">ST</TipButton>
                     )}
                   </>
                 ) : (
@@ -153,9 +131,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
             </div>
           </div>
         ))}
-        {players.length === 0 && (
-          <div className="text-center py-8 text-stone-600 font-mono text-sm">選手がいません</div>
-        )}
+        {players.length === 0 && <div className="text-center py-8 text-stone-600 font-mono text-sm">選手がいません</div>}
       </div>
     </div>
   );
