@@ -14,20 +14,17 @@ import {
   FA_BASE_LIMIT, FA_APRON1_LIMIT,
   BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100
 } from '../dynastyEngine';
-// ★ 配信モード
 import {
   VotingOverlay, DramaticSeasonReveal, DramaticDraftReveal,
   StreamStatsWidget, SeasonShareCard, ViewerChallengePanel,
   StreamSettingsPanel, generateViewerChallenges
 } from './StreamMode';
-// ★ イベントエンジン
 import {
   generateEvents, applyEventEffects, getEventCategoryInfo, getEffectPreviewText
 } from '../eventEngine';
 
 /* ═══ 定数 ═══ */
 const TRADE_LIMIT = 3;
-
 
 /* ═══ Toast ═══ */
 function ToastContainer({ toasts }) {
@@ -93,31 +90,58 @@ function ConfettiOverlay({ active }) {
   );
 }
 
-/* ═══ AnimatedScore ═══ */
+/* ═══ AnimatedScore ★ 修正済み ═══ */
 function AnimatedScore({ target, playClickSound, animate = true }) {
   const [display, setDisplay] = useState(0);
+  const [flash, setFlash] = useState(false);
   const prevRef = useRef(0);
   const timerRef = useRef(null);
+
   useEffect(() => {
     const start = prevRef.current;
     const end = target;
     prevRef.current = end;
-    if (!animate || Math.abs(end - start) < 10) { setDisplay(end); return; }
+
+    if (!animate || Math.abs(end - start) < 10) {
+      setDisplay(end);
+      return;
+    }
+
     const diff = end - start;
     const steps = Math.min(Math.abs(diff), 40);
     const stepSize = diff / steps;
     let current = 0;
+
     if (timerRef.current) clearInterval(timerRef.current);
+
+    setFlash(true);
+    setTimeout(() => setFlash(false), 600);
+
     timerRef.current = setInterval(() => {
       current++;
       setDisplay(Math.round(start + stepSize * current));
       try { playClickSound(); } catch (e) {}
-      if (current >= steps) { clearInterval(timerRef.current); setDisplay(end); }
+      if (current >= steps) {
+        clearInterval(timerRef.current);
+        setDisplay(end);
+      }
     }, 50);
+
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [target, animate]);
+
   useEffect(() => { setDisplay(target); prevRef.current = target; }, []);
-  return <>{display}</>;
+
+  return (
+    <span style={{
+      transition: 'text-shadow 0.3s ease, transform 0.3s ease',
+      textShadow: flash ? '0 0 20px rgba(234,179,8,0.8), 0 0 40px rgba(234,179,8,0.4)' : 'none',
+      transform: flash ? 'scale(1.15)' : 'scale(1)',
+      display: 'inline-block',
+    }}>
+      {display}
+    </span>
+  );
 }
 
 /* ═══ HoverTip ═══ */
@@ -296,7 +320,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const toastCounter = useRef(0);
-  const [gmAnimating, setGmAnimating] = useState(false);
+  const [gmAnimating, setGmAnimating] = useState(true); // ★ trueで初期化
   const [faSignedThisSeason, setFaSignedThisSeason] = useState(0);
   const [showBonusPanel, setShowBonusPanel] = useState(false);
   const [injuredList, setInjuredList] = useState([]);
@@ -310,13 +334,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [rfaPlayers, setRfaPlayers] = useState([]);
   const [rfaOffers, setRfaOffers] = useState([]);
 
-  // ★ イベントシステム
   const [activeEvents, setActiveEvents] = useState([]);
   const [currentEventIndex, setCurrentEventIndex] = useState(0);
   const [eventMode, setEventMode] = useState(false);
   const [pendingEventCallback, setPendingEventCallback] = useState(null);
 
-  // ★ 配信モード
   const [streamSettings, setStreamSettings] = useState({
     votingEnabled: false,
     dramaticMode: false,
@@ -356,6 +378,23 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   const nextSeasonMinOvr = 380 + season * 8;
   const survivalMargin = effectiveOvr - nextSeasonMinOvr;
+
+  /* ★ GM SCORE変化検知 — 10pt以上の変化があった時だけアニメーション再発火 */
+  const prevGmScoreRef = useRef(-1);
+  useEffect(() => {
+    const current = gmScoreCalc();
+    if (prevGmScoreRef.current === -1) {
+      prevGmScoreRef.current = current;
+      return;
+    }
+    if (Math.abs(current - prevGmScoreRef.current) >= 10) {
+      setGmAnimating(false);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setGmAnimating(true));
+      });
+    }
+    prevGmScoreRef.current = current;
+  }, [totalRecordBonus, totalMandateBonus, effectiveOvr, totalCapHit, season]);
 
   /* ── toast helpers ── */
   const addToast = useCallback((type, icon, title, message, duration = 3000) => {
@@ -407,7 +446,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setDraftPicks(genDraftPicks());
     setTaxHistory([]); setMleUsed(false);
     setSeason(1); setPhase('reroll'); setTradeMode(false);
-    setGmAnimating(false); setFaSignedThisSeason(0);
+    setGmAnimating(true); // ★ trueを維持
+    setFaSignedThisSeason(0);
     setInjuredList([]);
     setSeasonRecord(null);
     setTotalRecordBonus(0);
@@ -422,7 +462,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setQoCandidates([]);
     setRfaPlayers([]);
     setRfaOffers([]);
-    // ★ 配信・イベント リセット
     setActiveEvents([]);
     setEventMode(false);
     setViewerChallenges(generateViewerChallenges());
@@ -432,7 +471,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setVotingState(null);
   }
 
-  /* ★ Voting Helper */
   function startVoting(options, title, subtitle, callback) {
     if (!streamSettings.votingEnabled) {
       callback(0);
@@ -442,7 +480,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setVotingState({ options: numbered, title, subtitle, callback });
   }
 
-  /* ★ Events */
   function getGameState() {
     return { roster, season, capHit: totalCapHit, effectiveOvr, minOvr, injuredList, deadCap, draftPicks };
   }
@@ -482,7 +519,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     pendingEventCallback?.();
   }
 
-  /* ★ Challenge check */
   function checkChallengeResults() {
     if (!streamSettings.challengesEnabled || viewerChallenges.length === 0) return;
     const state = { capHit: totalCapHit, roster, effectiveOvr, minOvr, injuredList };
@@ -534,7 +570,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       addToast('success', '✍️', `契約: ${player.name}`, `R${player.rating} | $${(adjustedSalary / 1000000).toFixed(1)}M/年`, 3000);
     }
     setSigningPlayer(null);
-    // ★ 契約後にイベント
     setTimeout(() => triggerEvents(null, 1), 1000);
   }
 
@@ -557,8 +592,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   function handleBuyout(player) {
     playClickSound();
     const agreeChance = Math.max(5, 100 - player.rating);
-    const roll = Math.random() * 100;
-    if (roll < agreeChance) {
+    const rollVal = Math.random() * 100;
+    if (rollVal < agreeChance) {
       const pct = 50 + Math.floor(Math.random() * 21);
       const deadAmount = Math.floor(player.salary * pct / 100);
       if (player.salary > 0 && player.contractYears > 0) {
@@ -609,7 +644,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setOptionPlayers(op => op.filter(x => x.id !== player.id));
   }
 
-  /* ── QO / RFA ── */
   function handleQODecision(player, extend) {
     playClickSound();
     if (extend) {
@@ -676,7 +710,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     startDraft();
   }
 
-  /* ── Trade ── */
   function handleOpenTrade() {
     playClickSound();
     if (tradesUsedThisSeason >= TRADE_LIMIT) {
@@ -796,12 +829,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (inP.length > 0) inNames.push(inP.map(p => p.name).join(', '));
     if (inK.length > 0) inNames.push(inK.map(p => `Y${p.year}R${p.round}${p.from ? `(${p.from})` : ''}`).join(', '));
     addToast('trade', '🤝', 'トレード成立!', `${outNames.join(' + ')} → ${inNames.join(' + ')}`, 5000);
-
-    // ★ トレード後にイベント
     setTimeout(() => triggerEvents(null, 1), 1500);
   }
 
-  /* ── Season ── */
   function handleNextSeason() {
     playClickSound();
     const record = calcSeasonRecord(effectiveOvr, minOvr);
@@ -848,10 +878,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       addToast('warning', '🏥', `${inj.playerName}: ${inj.name}`, `${sevLabel[inj.severity]} | -${inj.ratingLoss} Rating | ${inj.seasonsLeft}シーズン欠場`, 5000);
     });
 
-    // ★ チャレンジ結果チェック
     checkChallengeResults();
 
-    // ★ ドラマチックモード or 通常モード
     if (streamSettings.dramaticMode) {
       setDramaticSeasonResult({ record, mResult });
     } else {
@@ -865,7 +893,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         else if (mResult.bonus < 0) addToast('warning', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name} → GM SCORE ${mResult.bonus}`, 4000);
         else addToast('info', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name}（ペナルティなし）`, 3000);
       }
-      // ★ イベントを挟んでからシーズン終了フェーズへ
       triggerEvents(() => setPhase('seasonEnd'), 2);
     }
   }
@@ -884,15 +911,12 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPhase('draft');
   }
 
-  // ★ ドラフト（投票・ドラマチック対応）
   function handleDraft(prospect) {
     playClickSound();
-
     if (streamSettings.dramaticMode) {
       setDramaticDraft(prospect);
       return;
     }
-
     if (streamSettings.votingEnabled && draftProspects.length >= 3) {
       const top5 = draftProspects.slice(0, Math.min(5, draftProspects.length));
       startVoting(
@@ -902,13 +926,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         })),
         'ドラフト指名',
         '誰を指名する？',
-        (winnerIndex) => {
-          executeDraft(top5[winnerIndex]);
-        }
+        (winnerIndex) => { executeDraft(top5[winnerIndex]); }
       );
       return;
     }
-
     executeDraft(prospect);
   }
 
@@ -933,7 +954,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (!survival.alive) { playErrorSound(); setCollapseReason(survival.reason); setPhase('gameOver'); return; }
     const bonus = calcSeasonBonus(effectiveRoster, season);
     if (bonus > 0) addToast('epic', '🏆', `シーズンボーナス +{bonus} GM SCORE!`, `Total Rating ${effectiveOvr}（生存ライン+${effectiveOvr - minOvr}）`, 4000);
-    playEpicSound(); triggerConfetti(); setGmAnimating(true);
+    playEpicSound(); triggerConfetti();
     addToast('epic', '➡️', `SEASON ${newSeason}`, '新シーズン開始！', 3500);
     setDraftPicks(picks => {
       const updated = picks.map(pk => ({ ...pk, year: pk.year - 1 })).filter(pk => pk.year >= 1);
@@ -950,10 +971,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setRfaPlayers([]);
     setRfaOffers([]);
     setFreeAgents(genFA(8)); setSeason(newSeason);
-
-    // ★ 新シーズン開始時にイベント
     triggerEvents(() => setPhase('manage'), 3);
-    setTimeout(() => setGmAnimating(false), 3000);
   }
 
   /* ═══════════════════════════════════════ */
@@ -970,7 +988,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {/* ★ 配信モードボタン */}
         <button onClick={() => { playClickSound(); setShowStreamSettings(true); }}
           className={`px-2 py-1.5 text-xs font-mono rounded-lg transition-all border ${
             streamSettings.votingEnabled || streamSettings.dramaticMode
@@ -1145,11 +1162,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     const event = activeEvents[currentEventIndex];
     const info = getEventCategoryInfo(event.category);
     const progress = `${currentEventIndex + 1} / ${activeEvents.length}`;
-
-    const borderColor = {
-      cyan: 'border-cyan-600', emerald: 'border-emerald-600', amber: 'border-amber-600',
-      purple: 'border-purple-600', orange: 'border-orange-600', stone: 'border-stone-600',
-    }[info.color] || 'border-stone-600';
 
     const titleColor = {
       cyan: 'text-cyan-400', emerald: 'text-emerald-400', amber: 'text-amber-400',
@@ -1340,7 +1352,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     const pv = validatePickBalance(outK, inK);
                     return (
                       <div>
-                        <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ピック価値：1巡目は高価値（来年75/2年後55/3年後40）、2巡目は低価値（来年20/2年後15/3年後10）。①獲得ピック合計が送出の1.5倍+15ptを超えると拒否、②枚数は送出+2枚まで、③1巡目の枚数は送出+1枚まで。"><span className="cursor-help">ピック価値バランス</span></HoverTip></div>
+                        <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ピック価値：①獲得ピック合計が送出の1.5倍+15ptを超えると拒否、②枚数は送出+2枚まで、③1巡目の枚数は送出+1枚まで。"><span className="cursor-help">ピック価値バランス</span></HoverTip></div>
                         <div className="text-xs text-stone-400">
                           送出: <span className="text-red-400 font-mono">{outVal}</span>pt ({outK.length}枚) → 獲得: <span className="text-cyan-400 font-mono">{inVal}</span>pt ({inK.length}枚)
                           <span className="text-stone-600 ml-1">(上限{Math.floor(outVal * 1.5 + 15)}pt / {outK.length + 2}枚)</span>
@@ -1475,7 +1487,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
         {showBonusPanel && <BonusPanel onClose={() => setShowBonusPanel(false)} effectiveOvr={effectiveOvr} totalOvr={totalOvr} totalCapHit={totalCapHit} effectiveRoster={effectiveRoster} season={season} faSignedThisSeason={faSignedThisSeason} injuredList={injuredList} hardCapped={hardCapped} />}
         <SignModal />
-        {/* ★ 配信オーバーレイ */}
         {streamSettings.statsOverlay && (
           <StreamStatsWidget season={season} record={seasonRecord} effectiveOvr={effectiveOvr} minOvr={minOvr} capHit={totalCapHit} gmScore={gmScoreCalc()} injuredCount={injuredList.length} rosterCount={roster.length} />
         )}
