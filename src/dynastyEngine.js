@@ -14,6 +14,13 @@ export const BONUS_SEASON_100 = 300;
 
 const POSITIONS = ['PG', 'SG', 'SF', 'PF', 'C'];
 
+// ═══ 架空チーム名 ═══
+const TRADE_TEAMS = [
+  'Metro Vipers', 'Bay City Sharks', 'Capital Eagles', 'Desert Foxes',
+  'Lake City Wolves', 'Pacific Titans', 'Mountain Hawks', 'Coastal Dragons',
+  'Prairie Knights', 'Harbor Stingrays',
+];
+
 // ═══ 怪我テーブル ═══
 const INJURY_TABLE = {
   minor: {
@@ -477,13 +484,7 @@ export function generateMandate() {
   return MANDATE_POOL[Math.floor(Math.random() * MANDATE_POOL.length)];
 }
 
-// ═══ トレード市場ピック生成（架空チーム名） ═══
-const TRADE_TEAMS = [
-  'Metro Vipers', 'Bay City Sharks', 'Capital Eagles', 'Desert Foxes',
-  'Lake City Wolves', 'Pacific Titans', 'Mountain Hawks', 'Coastal Dragons',
-  'Prairie Knights', 'Harbor Stingrays',
-];
-
+// ═══ トレード市場ピック生成 ═══
 export function genTradeMarketPicks() {
   const picks = [];
   const count = 2 + Math.floor(Math.random() * 3);
@@ -519,12 +520,10 @@ export function genTradeMarketPlayers(count) {
 export function validateStepienRule(currentPicks, outgoingPicks, incomingPicks = []) {
   const outgoingIds = new Set(outgoingPicks.filter(p => p.round === 1).map(p => p.id));
 
-  // 現有ピックから放出分を除外
   const remainingYears = currentPicks
     .filter(p => p.round === 1 && !outgoingIds.has(p.id))
     .map(p => p.year);
 
-  // 獲得する1巡目ピックの年を追加
   const incomingYears = incomingPicks
     .filter(p => p.round === 1)
     .map(p => p.year);
@@ -589,13 +588,9 @@ export function validatePickBalance(outPicks, inPicks) {
   const outValue = outPicks.reduce((s, p) => s + getPickValue(p), 0);
   const inValue = inPicks.reduce((s, p) => s + getPickValue(p), 0);
 
-  // ルール1: 価値バランス（送出の1.5倍 + 15pt が上限）
   const maxInValue = outValue * 1.5 + 15;
-
-  // ルール2: 枚数制限（獲得は送出 + 2枚まで）
   const maxPickCount = outPicks.length + 2;
 
-  // ルール3: 1巡目の枚数増加禁止（送出した1巡目以上にはならない）
   const outFirsts = outPicks.filter(p => p.round === 1).length;
   const inFirsts = inPicks.filter(p => p.round === 1).length;
 
@@ -615,4 +610,44 @@ export function validatePickBalance(outPicks, inPicks) {
     return { valid: false, reason: reasons.join(' / '), outValue, inValue };
   }
   return { valid: true, outValue, inValue };
+}
+
+// ═══ Qualifying Offer計算 ═══
+export function calcQualifyingOffer(player) {
+  if (player.birdRights === 'Full') {
+    return Math.round(player.salary / 100000) * 100000;
+  } else if (player.birdRights === 'Early') {
+    return Math.round((player.salary * 0.75) / 100000) * 100000;
+  }
+  return 0;
+}
+
+// ═══ バード権による最大契約年数 ═══
+export function getBirdMaxYears(birdRights) {
+  if (birdRights === 'Full') return 5;
+  return 4;
+}
+
+// ═══ RFA AIマーケットオファー生成 ═══
+export function generateRFAMarketOffers(rfaPlayers) {
+  const offers = [];
+  for (const player of rfaPlayers) {
+    const numOffers = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < numOffers; i++) {
+      const team = TRADE_TEAMS[Math.floor(Math.random() * TRADE_TEAMS.length)];
+      const salaryMult = 0.7 + Math.random() * 0.5;
+      const salary = Math.max(1000000, Math.round((player.salary * salaryMult) / 100000) * 100000);
+      const years = 1 + Math.floor(Math.random() * 4);
+      offers.push({
+        id: 'rfa_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        playerId: player.id,
+        playerName: player.name,
+        playerRating: player.rating,
+        team,
+        salary,
+        years,
+      });
+    }
+  }
+  return offers.sort((a, b) => (b.salary * b.years) - (a.salary * a.years));
 }
