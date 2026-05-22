@@ -9,7 +9,7 @@ import {
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT
 } from '../dynastyEngine';
 
-// ★追加: Toast コンポーネント
+// Toast コンポーネント
 function ToastContainer({ toasts }) {
   return (
     <div className="fixed top-4 right-4 z-[100] space-y-3 pointer-events-none" style={{ maxWidth: '400px' }}>
@@ -51,7 +51,7 @@ function ToastContainer({ toasts }) {
   );
 }
 
-// ★追加: 紙吹雪コンポーネント
+// 紙吹雪コンポーネント
 function ConfettiOverlay({ active }) {
   if (!active) return null;
   const colors = ['#e8c547', '#22d3ee', '#f97316', '#a78bfa', '#34d399', '#fb7185'];
@@ -85,7 +85,7 @@ function ConfettiOverlay({ active }) {
   );
 }
 
-// ★追加: GM SCORE カウンターコンポーネント
+// ★修正: GM SCORE カウンターコンポーネント
 function AnimatedScore({ target, playClickSound }) {
   const [display, setDisplay] = useState(0);
   const prevRef = useRef(0);
@@ -94,8 +94,13 @@ function AnimatedScore({ target, playClickSound }) {
   useEffect(() => {
     const start = prevRef.current;
     const end = target;
-    if (start === end) return;
     prevRef.current = end;
+
+    // 10pt未満の変化は即時表示（アニメーションしない）
+    if (Math.abs(end - start) < 10) {
+      setDisplay(end);
+      return;
+    }
 
     const diff = end - start;
     const steps = Math.min(Math.abs(diff), 40);
@@ -186,7 +191,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   const [signTradePlayer, setSignTradePlayer] = useState(null);
 
-  // ★追加: 視覚効果用 state
   const [toasts, setToasts] = useState([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
@@ -213,7 +217,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const repeaterTax = calcRepeaterTax(overTax, repeaterSeasons);
   const isOnTax = totalCapHit > DYN_TAX;
 
-  // ★追加: Toast 関数
   const addToast = useCallback((type, icon, title, message, duration = 3000) => {
     const id = ++toastCounter.current;
     setToasts(prev => [...prev, { id, type, icon, title, message, exiting: false }]);
@@ -225,7 +228,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     }, duration + 500);
   }, []);
 
-  // ★追加: エフェクトトリガー
   const triggerConfetti = useCallback(() => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 5000);
@@ -236,7 +238,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTimeout(() => setScreenShake(false), 600);
   }, []);
 
-  // ★追加: サウンドエフェクト（Web Audio API）
   const ctxRef = useRef(null);
   const getAudioCtx = () => {
     if (!ctxRef.current || ctxRef.current.state === 'closed') {
