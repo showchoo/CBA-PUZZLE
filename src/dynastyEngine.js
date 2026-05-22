@@ -516,22 +516,37 @@ export function genTradeMarketPlayers(count) {
 }
 
 // ═══ ステピアンルール検証 ═══
-export function validateStepienRule(currentPicks, outgoingPicks) {
+export function validateStepienRule(currentPicks, outgoingPicks, incomingPicks = []) {
   const outgoingIds = new Set(outgoingPicks.filter(p => p.round === 1).map(p => p.id));
+
+  // 現有ピックから放出分を除外
   const remainingYears = currentPicks
     .filter(p => p.round === 1 && !outgoingIds.has(p.id))
     .map(p => p.year);
 
-  const years = [1, 2, 3];
-  const hasPick = years.map(y => remainingYears.includes(y));
+  // 獲得する1巡目ピックの年を追加
+  const incomingYears = incomingPicks
+    .filter(p => p.round === 1)
+    .map(p => p.year);
 
+  const allYears = new Set([...remainingYears, ...incomingYears]);
+
+  const years = [1, 2, 3];
+  const hasPick = years.map(y => allYears.has(y));
+
+  const missing = [];
   for (let i = 0; i < years.length - 1; i++) {
     if (!hasPick[i] && !hasPick[i + 1]) {
-      return {
-        valid: false,
-        reason: `Y${years[i]}とY${years[i + 1]}の1巡目ピックを同時に放出できません`,
-      };
+      missing.push(`Y${years[i]}/Y${years[i + 1]}`);
     }
+  }
+
+  if (missing.length > 0) {
+    const detail = years.map(y => `Y${y}:${allYears.has(y) ? '✓' : '✗'}`).join(' ');
+    return {
+      valid: false,
+      reason: `${missing.join('・')} の1巡目ピックが両方ありません（${detail}）`,
+    };
   }
   return { valid: true };
 }
