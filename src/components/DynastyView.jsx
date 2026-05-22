@@ -456,9 +456,16 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   }
 
   function handleToDraft() { playClickSound(); if (optionPlayers.length > 0) { setPhase('optionDecision'); return; } startDraft(); }
-  function startDraft() { setDraftProspects(genDraft(10)); setPicksLeft(PICKS_PER_DRAFT); setPhase('draft'); }
 
-  // ★修正: ドラフト時にピックを消費
+  // ★修正: Y1ピック数に応じて指名可能人数を決定（0なら指名不可）
+  function startDraft() {
+    const year1Picks = draftPicks.filter(pk => pk.year === 1).length;
+    setDraftProspects(genDraft(10));
+    setPicksLeft(year1Picks);
+    setPhase('draft');
+  }
+
+  // ★修正: Y1ピックがない場合は将来のピックを消費しない
   function handleDraft(prospect) {
     playClickSound(); playSuccessSound();
     addToast('success', '🏀', `ドラフト: ${prospect.name}`, `R${prospect.rating} | $$$${(prospect.salary / 1000000).toFixed(1)}M`, 3000);
@@ -468,11 +475,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setDraftPicks(picks => {
       const idx = picks.findIndex(pk => pk.year === 1);
       if (idx >= 0) return picks.filter((_, i) => i !== idx);
-      return picks.filter((_, i) => i > 0);
+      return picks;
     });
   }
 
-  // ★修正: 新シーズン開始時にピックの年を送り、新ピックを追加
   function handleDraftComplete() {
     playClickSound();
     const newSeason = season + 1;
