@@ -95,6 +95,10 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                       <span className="text-sm text-stone-500 font-mono">Age {player.age}</span>
                       <span className="text-stone-700">·</span>
                       <span className="text-lg font-mono font-black text-amber-400">R{player.rating}</span>
+                      {/* ★追加: Pot表示 */}
+                      {player.pot && player.pot > player.rating && player.age <= 27 && (
+                        <span className="text-xs font-mono text-emerald-400">(Pot {player.pot})</span>
+                      )}
                       <span className="text-stone-700">·</span>
                       <span className="text-base font-mono font-bold text-stone-300">{fmt(player.salary)}</span>
                       <span className="text-stone-700">·</span>
