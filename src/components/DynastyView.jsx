@@ -552,8 +552,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       const v = validateTrade(outP.map(p => p.salary), inP.map(p => p.salary));
       if (!v.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'トレード不可', v.reason, 4000); return; }
     }
-    if (outK.filter(p => p.round === 1).length > 0) {
-      const sv = validateStepienRule(draftPicks, outK);
+    if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
+      const sv = validateStepienRule(draftPicks, outK, inK);
       if (!sv.valid) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'ステピアンルール', sv.reason, 4000); return; }
     }
     if (hardCapped) {
@@ -815,9 +815,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       salaryValid = validateTrade(outP.map(p => p.salary), inP.map(p => p.salary));
     }
     let stepienValid = { valid: true };
-    if (outK.filter(p => p.round === 1).length > 0) {
-      stepienValid = validateStepienRule(draftPicks, outK);
+      if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
+      stepienValid = validateStepienRule(draftPicks, outK, inK);
     }
+
     let hardCapValid = { valid: true };
     if (hardCapped && (outP.length > 0 || inP.length > 0)) {
       const outSal = outP.reduce((s, p) => s + p.salary, 0);
@@ -914,7 +915,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                       </div>
                     </div>
                   )}
-                  {outK.filter(p => p.round === 1).length > 0 && (
+                  {(outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) && (
                     <div>
                       <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ステピアンルール：連続する2年の1巡目ドラフトピックの同時放出を禁止。"><span className="cursor-help">ステピアンルール</span></HoverTip></div>
                       <div className={stepienValid.valid ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
