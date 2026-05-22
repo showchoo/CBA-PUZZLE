@@ -120,7 +120,7 @@ function generatePlayer(overrideRating) {
   };
 }
 
-// ═══ ロスター生成 ═══
+// ═══ ロスター生成（キャップ内に収める） ═══
 export function genRoster() {
   const players = [];
   for (let i = 0; i < 12; i++) {
@@ -477,7 +477,7 @@ export function generateMandate() {
   return MANDATE_POOL[Math.floor(Math.random() * MANDATE_POOL.length)];
 }
 
-// ═══ トレード市場ピック生成 ═══
+// ═══ トレード市場ピック生成（架空チーム名） ═══
 const TRADE_TEAMS = [
   'Metro Vipers', 'Bay City Sharks', 'Capital Eagles', 'Desert Foxes',
   'Lake City Wolves', 'Pacific Titans', 'Mountain Hawks', 'Coastal Dragons',
@@ -515,7 +515,7 @@ export function genTradeMarketPlayers(count) {
   return players.sort((a, b) => b.rating - a.rating);
 }
 
-// ═══ ステピアンルール検証 ═══
+// ═══ ステピアンルール検証（獲得ピック対応版） ═══
 export function validateStepienRule(currentPicks, outgoingPicks, incomingPicks = []) {
   const outgoingIds = new Set(outgoingPicks.filter(p => p.round === 1).map(p => p.id));
 
@@ -582,19 +582,37 @@ export function getPickValue(pick) {
   }
 }
 
-// ═══ ピック価値バランス検証 ═══
+// ═══ ピック価値バランス検証（3ルール版） ═══
 export function validatePickBalance(outPicks, inPicks) {
   if (inPicks.length === 0) return { valid: true };
+
   const outValue = outPicks.reduce((s, p) => s + getPickValue(p), 0);
   const inValue = inPicks.reduce((s, p) => s + getPickValue(p), 0);
-  const maxInValue = outValue * 2 + 25;
+
+  // ルール1: 価値バランス（送出の1.5倍 + 15pt が上限）
+  const maxInValue = outValue * 1.5 + 15;
+
+  // ルール2: 枚数制限（獲得は送出 + 2枚まで）
+  const maxPickCount = outPicks.length + 2;
+
+  // ルール3: 1巡目の枚数増加禁止（送出した1巡目以上にはならない）
+  const outFirsts = outPicks.filter(p => p.round === 1).length;
+  const inFirsts = inPicks.filter(p => p.round === 1).length;
+
+  const reasons = [];
+
   if (inValue > maxInValue) {
-    return {
-      valid: false,
-      reason: `ピック価値不均衡（送出:${outValue} → 獲得:${inValue}、上限:${maxInValue}）`,
-      outValue,
-      inValue,
-    };
+    reasons.push(`価値不均衡（送出:${outValue}pt → 獲得:${inValue}pt、上限:${Math.floor(maxInValue)}pt）`);
+  }
+  if (inPicks.length > maxPickCount) {
+    reasons.push(`枚数過多（送出:${outPicks.length}枚 → 獲得:${inPicks.length}枚、上限:${maxPickCount}枚）`);
+  }
+  if (inFirsts > outFirsts + 1) {
+    reasons.push(`1巡目増加過多（送出:${outFirsts}枚 → 獲得:${inFirsts}枚）`);
+  }
+
+  if (reasons.length > 0) {
+    return { valid: false, reason: reasons.join(' / '), outValue, inValue };
   }
   return { valid: true, outValue, inValue };
 }
