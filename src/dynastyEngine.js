@@ -118,7 +118,8 @@ export function genRoster() {
 export function genFA(count) {
   const players = [];
   for (let i = 0; i < count; i++) {
-    const p = generatePlayer();
+    const rating = 40 + Math.floor(Math.random() * 41);
+    const p = generatePlayer(rating);
     p.faStatus = 'UFA';
     p.source = 'fa';
     players.push(p);
