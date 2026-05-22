@@ -9,19 +9,20 @@ export class CBACoreEngine {
   static APRON_2    = 182500000;
   static MLE_FULL   = 12400000;
   static MLE_MINI   = 5000000;
-  static SMAX_RATE  = 0.35; // キャップの35%
+  static SMAX_RATE  = 0.35;
 
   // ═══════════════════════════════════════════════
-  // メイン評価関数（既存互換 + 拡張）
+  // メイン評価関数
   // ═══════════════════════════════════════════════
   static evaluate(roster, outgoingPlayer = null, incomingPlayer = null, options = {}) {
     const {
-      deadCap = [],         // [{salary, yearsRemaining}] デッドキャップ配列
-      features = {},        // ステージのfeaturesオブジェクト
-      draftPicks = 0,       // 現在のドラフトピック数
-      taxHistory = [],      // [true, false, ...] 過去のTax超過履歴
+      deadCap = [],
+      features = {},
+      draftPicks = 0,
+      taxHistory = [],
       mleUsedThisSeason = false,
-      birdRightsOverride = null, // Bird Rights による再契約用
+      minPlayers = 14,
+      birdRightsOverride = null,
     } = options;
 
     let totalCapHit = 0;
@@ -43,7 +44,6 @@ export class CBACoreEngine {
       } else {
         regularContractCount++;
 
-        // ベテランミニマム割引
         if (player.contractType === "minimum" && player.experience >= 10) {
           totalCapHit += 2010000;
           actualPayroll += player.salary;
@@ -66,12 +66,12 @@ export class CBACoreEngine {
       });
     }
 
-    // ─── 3. 14人縛りチェック ───
-    if (regularContractCount < (features.minPlayers || 14)) {
+    // ─── 3. 最低人数チェック ───
+    if (regularContractCount < minPlayers) {
       violations.push({
         id: "ROSTER_MINIMUM_VIO",
-        label: "🚨 リーグ規約違反 // 通常契約14人未満",
-        text: `通常契約の選手が現在${regularContractCount}人です。CBA規約により最低${features.minPlayers || 14}人の通常契約が必要です（育成枠の2ウェイ選手は戦力換算されません）。`
+        label: `🚨 リーグ規約違反 // 通常契約${minPlayers}人未満`,
+        text: `通常契約の選手が現在${regularContractCount}人です。最低${minPlayers}人の通常契約が必要です（育成枠の2ウェイ選手は戦力換算されません）。`
       });
     } else {
       roster.forEach(player => {
@@ -97,11 +97,11 @@ export class CBACoreEngine {
     let mleRemaining = 0;
     if (features.mle && !mleUsedThisSeason) {
       if (apronStatus === "SECOND") {
-        mleRemaining = 0; // 2nd Apron超えでMLE没収
+        mleRemaining = 0;
       } else if (apronStatus === "FIRST") {
-        mleRemaining = CBACoreEngine.MLE_MINI; // ミニMLE
+        mleRemaining = CBACoreEngine.MLE_MINI;
       } else {
-        mleRemaining = CBACoreEngine.MLE_FULL; // フルMLE
+        mleRemaining = CBACoreEngine.MLE_FULL;
       }
     }
 
@@ -119,7 +119,7 @@ export class CBACoreEngine {
       }
     }
 
-    // ─── 8. トレードチェック（既存 + 75%ルール追加）───
+    // ─── 8. トレードチェック ───
     let isTradeAllowed = true;
     let tradeErrorMessage = "";
 
@@ -142,7 +142,6 @@ export class CBACoreEngine {
           tradeErrorMessage = `【第1エプロン規制】獲得する年俸（$${(inSalary/1e6).toFixed(1)}M）を出す年俸（$${(outSalary/1e6).toFixed(1)}M）以下に抑える必要があります。`;
         }
       } else {
-        // 通常時: 75%〜125%ルール
         const maxIncoming = outSalary * 1.25 + 100000;
         const minIncoming = outSalary * 0.75;
 
@@ -156,7 +155,6 @@ export class CBACoreEngine {
         }
       }
 
-      // Bird Rights制限
       if (status !== "UNDER_CAP" && incomingPlayer.birdRights === "None"
           && incomingPlayer.contractType !== "minimum"
           && incomingPlayer.contractType !== "twoway") {
@@ -169,6 +167,7 @@ export class CBACoreEngine {
       totalCapHit,
       actualPayroll,
       totalOvr,
+      totalRating: totalOvr,
       regularContractCount,
       twoWayCount,
       hasStar,
@@ -190,25 +189,24 @@ export class CBACoreEngine {
   // ═══════════════════════════════════════════════
   // バイアウト成功率計算
   // ═══════════════════════════════════════════════
-  // Ratingが低いほど同意しやすい
   static getBuyoutRate(rating) {
-    if (rating <= 55) return 0.50; // 50%に軽減（最も有利）
+    if (rating <= 55) return 0.50;
     if (rating <= 65) return 0.55;
     if (rating <= 75) return 0.60;
     if (rating <= 85) return 0.65;
-    return 0.70; // 70%（高Rating選手は不利）
+    return 0.70;
   }
 
   static getBuyoutSuccessChance(rating) {
-    if (rating <= 55) return 95;  // 95%の確率で交渉成功
+    if (rating <= 55) return 95;
     if (rating <= 65) return 80;
     if (rating <= 75) return 60;
     if (rating <= 85) return 35;
-    return 15; // Rating 85+は交渉が困難
+    return 15;
   }
 
   // ═══════════════════════════════════════════════
-  // バイアウト実行（デッドキャップ配列を返す）
+  // バイアウト実行
   // ═══════════════════════════════════════════════
   static executeBuyout(player) {
     const rate = CBACoreEngine.getBuyoutRate(player.rating);
@@ -295,23 +293,18 @@ export class CBACoreEngine {
   // ═══════════════════════════════════════════════
   // Player Option 判定
   // ═══════════════════════════════════════════════
-  // 高Rating選手は拒否してFAへ、低Rating選手は行使して残留
   static willPlayerExerciseOption(player) {
     if (player.optionType !== "player") return null;
-    // Rating 80以上 → 拒否（FA市場で高額契約を狙う）
-    // Rating 80未満 → 行使（残留を選択）
     return player.rating < 80;
   }
 
   // ═══════════════════════════════════════════════
-  // Team Option 判定（チームが選択）
+  // Team Option 判定
   // ═══════════════════════════════════════════════
   static getTeamOptionAdvice(player) {
     if (player.optionType !== "team") return null;
-    // 低Rating高給 → 切るべき
-    // 高Rating安価 → 残すべき
     const efficiency = player.rating / (player.salary / 1000000);
-    if (efficiency < 3) return "release"; // 切る推奨
-    return "keep"; // 残す推奨
+    if (efficiency < 3) return "release";
+    return "keep";
   }
 }
