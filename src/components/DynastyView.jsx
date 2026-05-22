@@ -742,9 +742,21 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               <span className="text-stone-400">Age {signingPlayer.age}</span>
             </div>
           </div>
-          {supermax && <div className="bg-amber-950/40 border border-amber-700 rounded-lg p-2 text-xs text-amber-300 font-mono text-center">⭐ スーパーマックス対象選手</div>}
-          {gilbert && <div className="bg-purple-950/40 border border-purple-700 rounded-lg p-2 text-xs text-purple-300 font-mono text-center">🔒 ギルバート・アリーナス条項適用</div>}
-          {hardCapped && <div className="bg-red-950/40 border border-red-700 rounded-lg p-2 text-xs text-red-300 font-mono text-center">🔒 ハードキャップ中: 第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}M上限</div>}
+          {supermax && (
+            <HoverTip text="スーパーマックス：Rating 90以上かつ同一チーム4年以上の選手が対象。通常のマックス（キャップ30%）より高い35%の契約が可能。フランチャイズスターの囲い込み用。">
+              <div className="bg-amber-950/40 border border-amber-700 rounded-lg p-2 text-xs text-amber-300 font-mono text-center cursor-help">⭐ スーパーマックス対象選手</div>
+            </HoverTip>
+          )}
+          {gilbert && (
+            <HoverTip text="ギルバート・アリーナス条項：ルーキー契約（2年以下）でRating 75以上の選手に適用。他チームのオファーはMLE額までに制限。元チームがマッチしやすくなる保護ルール。">
+              <div className="bg-purple-950/40 border border-purple-700 rounded-lg p-2 text-xs text-purple-300 font-mono text-center cursor-help">🔒 ギルバート・アリーナス条項適用</div>
+            </HoverTip>
+          )}
+          {hardCapped && (
+            <HoverTip text="ハードキャップ中：MLEまたはサイン＆トレード使用で発動。第1エプロン（$178.1M）を超える如何なる手段でも補強不可。FA、トレード、例外枠すべてに適用。">
+              <div className="bg-red-950/40 border border-red-700 rounded-lg p-2 text-xs text-red-300 font-mono text-center cursor-help">🔒 ハードキャップ中: 第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}M上限</div>
+            </HoverTip>
+          )}
           <div className="bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs font-mono text-stone-400 text-center">
             今シーズンのFA契約: <span className="text-white font-black">{faSignedThisSeason}</span> / {faLimit}人
             {faLimit === 0 && <span className="text-red-400 ml-2">⚠️ FA契約不可</span>}
@@ -827,9 +839,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           </div>
 
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400 space-y-0.5">
-            <p>• 給与マッチング: 獲得額は送出額の75%〜125%+$100K（両側に選手がいる場合のみ）</p>
-            <p>• ステピアンルール: 連続する2年の1巡目ピックを同時に放出不可</p>
-            {hardCapped && <p className="text-red-400">• 🔒 ハードキャップ中: トレード後のCap Hitが第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}Mを超えてはならない</p>}
+            <p>• <HoverTip text="給与マッチング：トレードでは送出側と獲得側の給与差を一定範囲内に制限。獲得額は送出額の75%〜125%+$100K。富裕チームの一方的補強を防ぐルール。"><span className="text-stone-300 cursor-help">給与マッチング</span></HoverTip>: 獲得額は送出額の75%〜125%+$100K（両側に選手がいる場合のみ）</p>
+            <p>• <HoverTip text="ステピアンルール：連続する2年の1巡目ドラフトピックの同時放出を禁止。チームが将来の資産を枯渇させるのを防ぐ保護ルール。名前の由来は元オーナーのTed Stepien。"><span className="text-stone-300 cursor-help">ステピアンルール</span></HoverTip>: 連続する2年の1巡目ピックを同時に放出不可</p>
+            {hardCapped && <p className="text-red-400">• 🔒 <HoverTip text="ハードキャップ：MLEやサイン＆トレード使用で発動。第1エプロン（$178.1M）を超える如何なる手段でも補強不可。"><span className="text-red-300 cursor-help">ハードキャップ中</span></HoverTip>: トレード後のCap Hitが第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}Mを超えてはならない</p>}
             <p>• ピックのみのトレード（選手を含まない）は給与マッチング不要</p>
           </div>
 
@@ -891,7 +903,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                 <div className="space-y-2 text-sm">
                   {salaryValid && (
                     <div>
-                      <div className="text-stone-500 text-xs font-mono mb-0.5">給与マッチング</div>
+                      <div className="text-stone-500 text-xs font-mono mb-0.5">
+                        <HoverTip text="給与マッチング：トレードでは送出側と獲得側の給与差を一定範囲内に制限。獲得額は送出額の75%〜125%+$100K。"><span className="cursor-help">給与マッチング</span></HoverTip>
+                      </div>
                       <div className="text-xs text-stone-400">送出: ${(salaryValid.outgoing / 1000000).toFixed(1)}M → 範囲: ${(salaryValid.minIncoming / 1000000).toFixed(1)}M〜${(salaryValid.maxIncoming / 1000000).toFixed(1)}M</div>
                       <div className="text-xs text-stone-400">獲得: ${(salaryValid.incoming / 1000000).toFixed(1)}M</div>
                       <div className={salaryValid.allowed ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
@@ -901,7 +915,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
                   {outK.filter(p => p.round === 1).length > 0 && (
                     <div>
-                      <div className="text-stone-500 text-xs font-mono mb-0.5">ステピアンルール</div>
+                      <div className="text-stone-500 text-xs font-mono mb-0.5">
+                        <HoverTip text="ステピアンルール：連続する2年の1巡目ドラフトピックの同時放出を禁止。"><span className="cursor-help">ステピアンルール</span></HoverTip>
+                      </div>
                       <div className={stepienValid.valid ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
                         {stepienValid.valid ? '✓ 適合' : `✗ ${stepienValid.reason}`}
                       </div>
@@ -909,7 +925,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
                   {hardCapped && (
                     <div>
-                      <div className="text-stone-500 text-xs font-mono mb-0.5">ハードキャップ</div>
+                      <div className="text-stone-500 text-xs font-mono mb-0.5">
+                        <HoverTip text="ハードキャップ：第1エプロン（$178.1M）を超える如何なる手段でも補強不可。"><span className="cursor-help">ハードキャップ</span></HoverTip>
+                      </div>
                       <div className={hardCapValid.valid ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
                         {hardCapValid.valid ? '✓ 第1エプロン内' : `✗ ${hardCapValid.reason}`}
                       </div>
@@ -1040,7 +1058,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                 <div className="space-y-2">
                   {/* Cap Hit */}
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
+                    <HoverTip text="キャップヒット：チームの年俸総額。サラリーキャップ（$136M）以内が基本。超過するとFA契約制限やトレード条件が厳しくなる。">
+                      <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
+                    </HoverTip>
                     <span className={totalCapHit <= DYN_CAP ? 'text-emerald-400 font-black text-3xl' : totalCapHit <= DYN_TAX ? 'text-amber-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
                       ${(totalCapHit / 1000000).toFixed(1)}M <span className="text-lg text-stone-500 font-sans">/ ${(DYN_CAP / 1000000).toFixed(0)}M</span>
                     </span>
@@ -1049,7 +1069,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   {/* ハードキャップ */}
                   {hardCapped && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
-                      <span className="text-red-400 font-sans font-black text-sm">🔒 ハードキャップ:</span>
+                      <HoverTip text="ハードキャップ：MLE使用やサイン＆トレードで発動。第1エプロン（$178.1M）を超える如何なる手段でも補強が不可能に。翌シーズンで解除。">
+                        <span className="text-red-400 font-sans font-black text-sm">🔒 ハードキャップ:</span>
+                      </HoverTip>
                       <span className="text-red-400 font-black text-sm">第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}M拘束中</span>
                     </div>
                   )}
@@ -1086,7 +1108,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
                   {/* FA残り枠 */}
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <span className="text-stone-400 font-sans font-black text-sm">✍️ FA残り枠:</span>
+                    <HoverTip text="FA契約制限：キャップ以内で最大2人/年。第1エプロン超過で最大1人/年（3年まで）。第2エプロン超過でFA契約禁止（ドラフトとトレードのみ）。">
+                      <span className="text-stone-400 font-sans font-black text-sm">✍️ FA残り枠:</span>
+                    </HoverTip>
                     <span className={faSignedThisSeason >= faLimit ? 'text-red-400 font-black text-lg' : 'text-emerald-400 font-black text-lg'}>{faLimit - faSignedThisSeason} / {faLimit}人</span>
                   </div>
 
@@ -1101,13 +1125,32 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
 
                   {/* Repeater */}
-                  {repeaterSeasons >= 2 && <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center"><span className="text-red-400 font-sans font-black text-sm">⚠️ Repeater:</span><span className="text-red-400 font-black text-sm">{repeaterSeasons}/3 seasons</span></div>}
-                  {repeaterTax > 0 && <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center"><span className="text-red-400 font-sans font-black text-sm">💸 Tax:</span><span className="text-red-400 font-black text-lg">{(repeaterTax / 1000000).toFixed(1)}M</span></div>}
+                  {repeaterSeasons >= 2 && (
+                    <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
+                      <HoverTip text="リピータータックス：過去3シーズン中2回以上タックス超過したチームに適用される追加罰金。通常のタックスに上乗せで、超過額×税率が大幅アップ。">
+                        <span className="text-red-400 font-sans font-black text-sm">⚠️ Repeater:</span>
+                      </HoverTip>
+                      <span className="text-red-400 font-black text-sm">{repeaterSeasons}/3 seasons</span>
+                    </div>
+                  )}
+                  {repeaterTax > 0 && (
+                    <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
+                      <HoverTip text="ラグジュアリータックス：タックスライン（$165M）を超えた額に課される罰金。超過額が大きいほど税率が上がる。">
+                        <span className="text-red-400 font-sans font-black text-sm">💸 Tax:</span>
+                      </HoverTip>
+                      <span className="text-red-400 font-black text-lg">${(repeaterTax / 1000000).toFixed(1)}M</span>
+                    </div>
+                  )}
 
                   {/* Dead Cap */}
                   {deadCap > 0 && (
                     <div className="bg-stone-950 px-4 py-2 rounded-xl border border-red-900/50">
-                      <div className="flex justify-between items-center"><span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span><span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span></div>
+                      <div className="flex justify-between items-center">
+                        <HoverTip text="デッドキャップ：放出した選手の残り契約がキャップに残る金額。ウェイブ100%、バイアウト50〜70%、ストレッチで長期分割。">
+                          <span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span>
+                        </HoverTip>
+                        <span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span>
+                      </div>
                       {deadCapDetails.map((d, i) => <div key={i} className="text-xs text-stone-500 mt-1 font-mono">{d.name}: ${(d.amount / 1000000).toFixed(1)}M × {d.yearsLeft}yr [{d.type}]</div>)}
                     </div>
                   )}
