@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 /* ═══ VOTING OVERLAY — 視聴者投票 ═══                               */
 /* ═══════════════════════════════════════════════════════════════ */
 
+
 export function VotingOverlay({ options, title, subtitle, onDecide, onCancel, duration = 20 }) {
   const [timeLeft, setTimeLeft] = useState(duration);
   const [votes, setVotes] = useState(options.map(() => 0));
