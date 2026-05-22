@@ -154,7 +154,6 @@ function App() {
     minPlayers: currentStage.conditions.minPlayers,
   });
 
-  // ★変更: クリア判定ロジックを追加
   const isCleared =
     metrics.violations.length === 0 &&
     metrics.regularContractCount >= currentStage.conditions.minPlayers &&
@@ -166,12 +165,7 @@ function App() {
   const handleClearMission = () => {
     playClickSound();
     if (isStageMode) {
-      if (currentStageId < stages.length) {
-        setCurrentStageId(currentStageId + 1);
-        setGamePhase("missionStart");
-      } else {
-        setGamePhase("gameComplete");
-      }
+      setGamePhase("clear");
     }
   };
 
@@ -335,18 +329,9 @@ function App() {
           </div>
           <footer className="text-[10px] text-stone-700 font-mono space-y-1">
             <p>© 2025 SHOWCHOO. All Rights Reserved.</p>
-            <p>
-              This is a basketball strategy simulation game designed for
-              educational and entertainment purposes only.
-            </p>
-            <p>
-              All player names, team names, statistics, and related data
-              featured in this game are entirely fictional.
-            </p>
-            <p>
-              This game is not affiliated with, endorsed by, or connected to any
-              real-world basketball league, team, or organization.
-            </p>
+            <p>This is a basketball strategy simulation game designed for educational and entertainment purposes only.</p>
+            <p>All player names, team names, statistics, and related data featured in this game are entirely fictional.</p>
+            <p>This game is not affiliated with, endorsed by, or connected to any real-world basketball league, team, or organization.</p>
           </footer>
         </div>
       </div>
@@ -409,12 +394,8 @@ function App() {
               ✨ ALL STAGES CLEAR ✨
             </h1>
             <div className="bg-[#141210] border border-amber-700 rounded-2xl p-6 space-y-4">
-              <p className="text-xl text-stone-300">
-                すべてのミッションをクリアしました！
-              </p>
-              <p className="text-sm text-stone-400">
-                あなたはCBAマスターです。すべての給与規制を理解し、最適なチーム構築を実現しました。
-              </p>
+              <p className="text-xl text-stone-300">すべてのミッションをクリアしました！</p>
+              <p className="text-sm text-stone-400">あなたはCBAマスターです。すべての給与規制を理解し、最適なチーム構築を実現しました。</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
@@ -444,25 +425,28 @@ function App() {
     if (gamePhase === "clear") {
       return (
         <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black items-center justify-center">
-          <div className="w-full max-w-2xl text-center space-y-8">
-            <div className="space-y-2">
-              <p className="text-sm font-mono text-stone-500 tracking-widest">
-                STAGE {String(currentStageId).padStart(2, "0")}
-              </p>
-              <h1 className="text-4xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
-                ✨ MISSION CLEAR ✨
-              </h1>
+          <div className="w-full max-w-3xl flex flex-col items-center gap-8">
+
+            {/* クリアスタンプ */}
+            <div className="relative">
+              <div
+                className="text-[120px] md:text-[160px] font-black font-mono text-emerald-400 tracking-widest select-none opacity-90 rotate-[-12deg]"
+                style={{ textShadow: '0 0 60px rgba(52,211,153,0.4), 0 0 120px rgba(52,211,153,0.15)' }}
+              >
+                CLEAR
+              </div>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-mono text-emerald-300 tracking-[0.4em] whitespace-nowrap">
+                STAGE {String(currentStageId).padStart(2, "0")} MISSION COMPLETE
+              </div>
             </div>
-            <div className="bg-[#141210] border border-emerald-700 rounded-2xl p-6 space-y-4">
-              <p className="text-xl text-stone-300">
-                おめでとう！CBA制約をすべてクリアした！
-              </p>
-              <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 text-left font-mono text-sm">
+
+            {/* 成績サマリー */}
+            <div className="bg-[#141210] border border-emerald-700 rounded-2xl p-6 w-full max-w-md space-y-3">
+              <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-sm space-y-1">
                 <div className="flex justify-between py-1">
                   <span className="text-stone-500">Cap Hit:</span>
                   <span className="text-emerald-400">
-                    ${(metrics.totalCapHit / 1e6).toFixed(1)}M / $
-                    {(currentStage.conditions.maxSalary / 1e6).toFixed(0)}M
+                    ${(metrics.totalCapHit / 1e6).toFixed(1)}M / ${(currentStage.conditions.maxSalary / 1e6).toFixed(0)}M
                   </span>
                 </div>
                 <div className="flex justify-between py-1">
@@ -476,28 +460,33 @@ function App() {
                   <span className="text-white">
                     {metrics.regularContractCount}
                     {metrics.twoWayCount > 0 && (
-                      <span className="text-purple-400">
-                        +{metrics.twoWayCount} (2W)
-                      </span>
+                      <span className="text-purple-400">+{metrics.twoWayCount} (2W)</span>
                     )}
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+
+            {/* ボタン */}
+            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
               <button
                 onClick={handleRestartStage}
-                className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-6 py-3 rounded-xl text-sm hover:text-amber-400 transition-all"
+                className="bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black px-6 py-3 rounded-xl text-sm transition-all"
               >
-                もう一度挑戦
+                🔄 もう一度挑戦
               </button>
               <button
-                onClick={handleNextStage}
-                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black px-6 py-3 rounded-xl text-sm transition-all"
+                onClick={() => {
+                  playClickSound();
+                  if (currentStageId < stages.length) {
+                    loadStage(currentStageId + 1);
+                  } else {
+                    setGamePhase("gameComplete");
+                  }
+                }}
+                className="bg-gradient-to-r from-emerald-400 to-cyan-500 hover:from-emerald-300 hover:to-cyan-400 text-stone-950 font-mono font-black px-8 py-3 rounded-xl text-sm transition-all shadow-lg shadow-emerald-500/20"
               >
-                {currentStageId < stages.length
-                  ? `次のステージへ ▶`
-                  : "タイトルに戻る"}
+                OK ▶ 次のステージへ
               </button>
             </div>
           </div>
@@ -581,9 +570,7 @@ function App() {
                   {currentStage.conditions.mustHaveStar && (
                     <div className="flex justify-between py-1">
                       <span>スター:</span>
-                      <span className="text-yellow-400">
-                        ★必須 (Rating 90+)
-                      </span>
+                      <span className="text-yellow-400">★必須 (Rating 90+)</span>
                     </div>
                   )}
                   {currentStage.conditions.minDraftPicks > 0 && (
@@ -766,9 +753,7 @@ function App() {
                         <span className="text-xs font-mono text-cyan-400">
                           MLE残額: ${(metrics.mleRemaining / 1e6).toFixed(1)}M
                           {mleUsedThisSeason && (
-                            <span className="text-stone-500 ml-2">
-                              (使用済み)
-                            </span>
+                            <span className="text-stone-500 ml-2">(使用済み)</span>
                           )}
                         </span>
                       </div>
@@ -786,10 +771,7 @@ function App() {
                       <tbody>
                         {freeAgents.length === 0 ? (
                           <tr>
-                            <td
-                              colSpan={5}
-                              className="text-center py-8 text-stone-600"
-                            >
+                            <td colSpan={5} className="text-center py-8 text-stone-600">
                               FA市場に選手がいません
                             </td>
                           </tr>
@@ -875,10 +857,7 @@ function App() {
               ) : (
                 <div className="mt-2 space-y-1">
                   {metrics.violations.map((v) => (
-                    <div
-                      key={v.id}
-                      className="text-sm text-red-400 font-mono"
-                    >
+                    <div key={v.id} className="text-sm text-red-400 font-mono">
                       {v.label}
                     </div>
                   ))}
@@ -891,72 +870,27 @@ function App() {
                 CONDITION CHECK
               </span>
               <div className="mt-2 space-y-1 text-sm font-mono">
-                <div
-                  className={
-                    metrics.totalCapHit <= currentStage.conditions.maxSalary
-                      ? "text-emerald-400"
-                      : "text-red-400"
-                  }
-                >
-                  {metrics.totalCapHit <= currentStage.conditions.maxSalary
-                    ? "✅"
-                    : "❌"}{" "}
-                  Cap Hit: ${(metrics.totalCapHit / 1e6).toFixed(1)}M / $
-                  {(currentStage.conditions.maxSalary / 1e6).toFixed(0)}M
+                <div className={metrics.totalCapHit <= currentStage.conditions.maxSalary ? "text-emerald-400" : "text-red-400"}>
+                  {metrics.totalCapHit <= currentStage.conditions.maxSalary ? "✅" : "❌"}{" "}
+                  Cap Hit: ${(metrics.totalCapHit / 1e6).toFixed(1)}M / ${(currentStage.conditions.maxSalary / 1e6).toFixed(0)}M
                 </div>
-                <div
-                  className={
-                    metrics.totalOvr >= currentStage.conditions.minTotalRating
-                      ? "text-emerald-400"
-                      : "text-red-400"
-                  }
-                >
-                  {metrics.totalOvr >= currentStage.conditions.minTotalRating
-                    ? "✅"
-                    : "❌"}{" "}
-                  Total Rating: {metrics.totalOvr} /{" "}
-                  {currentStage.conditions.minTotalRating}+
+                <div className={metrics.totalOvr >= currentStage.conditions.minTotalRating ? "text-emerald-400" : "text-red-400"}>
+                  {metrics.totalOvr >= currentStage.conditions.minTotalRating ? "✅" : "❌"}{" "}
+                  Total Rating: {metrics.totalOvr} / {currentStage.conditions.minTotalRating}+
                 </div>
-                <div
-                  className={
-                    metrics.regularContractCount >=
-                    currentStage.conditions.minPlayers
-                      ? "text-emerald-400"
-                      : "text-red-400"
-                  }
-                >
-                  {metrics.regularContractCount >=
-                  currentStage.conditions.minPlayers
-                    ? "✅"
-                    : "❌"}{" "}
-                  Players: {metrics.regularContractCount} /{" "}
-                  {currentStage.conditions.minPlayers}+
+                <div className={metrics.regularContractCount >= currentStage.conditions.minPlayers ? "text-emerald-400" : "text-red-400"}>
+                  {metrics.regularContractCount >= currentStage.conditions.minPlayers ? "✅" : "❌"}{" "}
+                  Players: {metrics.regularContractCount} / {currentStage.conditions.minPlayers}+
                 </div>
                 {currentStage.conditions.mustHaveStar && (
-                  <div
-                    className={
-                      metrics.hasStar ? "text-emerald-400" : "text-red-400"
-                    }
-                  >
-                    {metrics.hasStar ? "✅" : "❌"} Star:{" "}
-                    {metrics.hasStar ? "在籍" : "不在"} (Rating 90+)
+                  <div className={metrics.hasStar ? "text-emerald-400" : "text-red-400"}>
+                    {metrics.hasStar ? "✅" : "❌"} Star: {metrics.hasStar ? "在籍" : "不在"} (Rating 90+)
                   </div>
                 )}
                 {currentStage.conditions.minDraftPicks > 0 && (
-                  <div
-                    className={
-                      metrics.draftPicks >=
-                      (currentStage.conditions.minDraftPicks || 0)
-                        ? "text-emerald-400"
-                        : "text-red-400"
-                    }
-                  >
-                    {metrics.draftPicks >=
-                    (currentStage.conditions.minDraftPicks || 0)
-                      ? "✅"
-                      : "❌"}{" "}
-                    Draft Picks: {metrics.draftPicks} /{" "}
-                    {currentStage.conditions.minDraftPicks}+
+                  <div className={metrics.draftPicks >= (currentStage.conditions.minDraftPicks || 0) ? "text-emerald-400" : "text-red-400"}>
+                    {metrics.draftPicks >= (currentStage.conditions.minDraftPicks || 0) ? "✅" : "❌"}{" "}
+                    Draft Picks: {metrics.draftPicks} / {currentStage.conditions.minDraftPicks}+
                   </div>
                 )}
               </div>
@@ -969,15 +903,11 @@ function App() {
               <div className="mt-2 space-y-1 text-sm font-mono">
                 <div className="flex justify-between">
                   <span className="text-stone-500">Cap Hit:</span>
-                  <span className="text-white">
-                    ${(metrics.totalCapHit / 1e6).toFixed(1)}M
-                  </span>
+                  <span className="text-white">${(metrics.totalCapHit / 1e6).toFixed(1)}M</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">Real Payroll:</span>
-                  <span className="text-white">
-                    ${(metrics.actualPayroll / 1e6).toFixed(1)}M
-                  </span>
+                  <span className="text-white">${(metrics.actualPayroll / 1e6).toFixed(1)}M</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">Total Rating:</span>
@@ -985,9 +915,7 @@ function App() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">Regular:</span>
-                  <span className="text-white">
-                    {metrics.regularContractCount}
-                  </span>
+                  <span className="text-white">{metrics.regularContractCount}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-stone-500">Two-Way:</span>
@@ -997,7 +925,7 @@ function App() {
             </div>
           </div>
 
-          {/* ★変更: クリアボタンを追加 */}
+          {/* クリアボタン */}
           <div className="w-full max-w-7xl mx-auto mt-4 mb-4">
             <button
               onClick={handleClearMission}
@@ -1008,9 +936,7 @@ function App() {
                   : "w-full bg-stone-900 border border-stone-800 text-stone-600 font-mono font-black py-4 rounded-xl text-lg tracking-widest cursor-not-allowed"
               }
             >
-              {isCleared
-                ? "✨ MISSION CLEAR！ 次のステージへ ▶"
-                : "条件を満たしていません"}
+              {isCleared ? "✨ MISSION CLEAR！ 次のステージへ ▶" : "条件を満たしていません"}
             </button>
             {!isCleared && (
               <p className="text-xs text-stone-600 font-mono text-center mt-1">
@@ -1031,8 +957,7 @@ function App() {
                       key={dc.id}
                       className="text-xs font-mono bg-red-950/60 border border-red-800 text-red-400 px-2 py-1 rounded"
                     >
-                      {dc.label}: ${(dc.salary / 1e6).toFixed(1)}M ×{" "}
-                      {dc.yearsRemaining}yr
+                      {dc.label}: ${(dc.salary / 1e6).toFixed(1)}M × {dc.yearsRemaining}yr
                     </span>
                   ))}
                 </div>
