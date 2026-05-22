@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const fmt = (v) => `$${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
+const fmt = (v) => `$$$${(v / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
 
 function Badge({ children, tooltip, className }) {
   const [show, setShow] = useState(false);
@@ -59,6 +59,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="font-black text-white text-base truncate">{player.name}</span>
+                  <span className="text-[10px] bg-stone-800 text-stone-400 px-1 py-0 rounded font-mono leading-tight">{player.position}</span>
                   {player.birdRights === 'Full' && (
                     <Badge tooltip="バード特例：3年以上在籍の生え抜き選手。サラリーキャップを超過しても再契約できる特別な権利。" className="text-[9px] bg-blue-900 text-blue-300 px-1 py-0 rounded font-mono leading-tight">🐦</Badge>
                   )}
@@ -79,7 +80,7 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                       {player.optionType === 'player' ? 'PO' : 'TO'}
                     </Badge>
                   )}
-                  {player.supermaxEligible && (
+                  {player.rating >= 90 && (
                     <Badge
                       tooltip="スーパーマックス対象選手：Rating 90以上かつチーム4年以上在籍。キャップの35%の大型契約が可能。"
                       className="text-[9px] bg-amber-950 border border-amber-700 text-amber-400 px-1 py-0 rounded font-mono leading-tight"
