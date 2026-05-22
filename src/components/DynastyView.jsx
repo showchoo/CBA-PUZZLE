@@ -14,6 +14,16 @@ import {
   FA_BASE_LIMIT, FA_APRON1_LIMIT,
   BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100
 } from '../dynastyEngine';
+// ★ 配信モード
+import {
+  VotingOverlay, DramaticSeasonReveal, DramaticDraftReveal,
+  StreamStatsWidget, SeasonShareCard, ViewerChallengePanel,
+  StreamSettingsPanel, generateViewerChallenges
+} from './StreamMode';
+// ★ イベントエンジン
+import {
+  generateEvents, applyEventEffects, getEventCategoryInfo, getEffectPreviewText
+} from '../eventEngine';
 
 /* ═══ 定数 ═══ */
 const TRADE_LIMIT = 3;
@@ -295,10 +305,31 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [mandateResult, setMandateResult] = useState(null);
   const [totalMandateBonus, setTotalMandateBonus] = useState(0);
 
-  // QO/RFA関連
   const [qoCandidates, setQoCandidates] = useState([]);
   const [rfaPlayers, setRfaPlayers] = useState([]);
   const [rfaOffers, setRfaOffers] = useState([]);
+
+  // ★ イベントシステム
+  const [activeEvents, setActiveEvents] = useState([]);
+  const [currentEventIndex, setCurrentEventIndex] = useState(0);
+  const [eventMode, setEventMode] = useState(false);
+  const [pendingEventCallback, setPendingEventCallback] = useState(null);
+
+  // ★ 配信モード
+  const [streamSettings, setStreamSettings] = useState({
+    votingEnabled: false,
+    dramaticMode: false,
+    statsOverlay: false,
+    challengesEnabled: false,
+    voteDuration: 20,
+  });
+  const [showStreamSettings, setShowStreamSettings] = useState(false);
+  const [votingState, setVotingState] = useState(null);
+  const [dramaticDraft, setDramaticDraft] = useState(null);
+  const [viewerChallenges, setViewerChallenges] = useState([]);
+  const [showChallenges, setShowChallenges] = useState(true);
+  const [dramaticSeasonResult, setDramaticSeasonResult] = useState(null);
+  const [shareCard, setShareCard] = useState(null);
 
   /* ── derived ── */
   const totalCapHit = calcCapHit(roster, deadCap);
@@ -390,6 +421,81 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setQoCandidates([]);
     setRfaPlayers([]);
     setRfaOffers([]);
+    // ★ 配信・イベント リセット
+    setActiveEvents([]);
+    setEventMode(false);
+    setViewerChallenges(generateViewerChallenges());
+    setDramaticSeasonResult(null);
+    setShareCard(null);
+    setDramaticDraft(null);
+    setVotingState(null);
+  }
+
+  /* ★ Voting Helper */
+  function startVoting(options, title, subtitle, callback) {
+    if (!streamSettings.votingEnabled) {
+      callback(0);
+      return;
+    }
+    const numbered = options.map((opt, i) => ({ ...opt, number: i + 1 }));
+    setVotingState({ options: numbered, title, subtitle, callback });
+  }
+
+  /* ★ Events */
+  function getGameState() {
+    return { roster, season, capHit: totalCapHit, effectiveOvr, minOvr, injuredList, deadCap, draftPicks };
+  }
+
+  function triggerEvents(callback, count = 2) {
+    const events = generateEvents(getGameState(), count);
+    if (events.length === 0) { callback?.(); return; }
+    setActiveEvents(events);
+    setCurrentEventIndex(0);
+    setEventMode(true);
+    setPendingEventCallback(() => callback);
+  }
+
+  function handleEventChoice(choiceIndex) {
+    playClickSound();
+    const event = activeEvents[currentEventIndex];
+    const choice = event.choices[choiceIndex];
+    applyEventEffects(choice.effects, {
+      roster, setRoster, setDeadCap, setDeadCapDetails, deadCapDetails, deadCap,
+      gmscoreAdjust: (amount) => setTotalMandateBonus(prev => prev + amount),
+    });
+    const info = getEventCategoryInfo(event.category);
+    addToast('info', info.icon, event.title, choice.text.substring(0, 40), 2500);
+    if (currentEventIndex + 1 < activeEvents.length) {
+      setCurrentEventIndex(prev => prev + 1);
+    } else {
+      setEventMode(false);
+      setActiveEvents([]);
+      pendingEventCallback?.();
+    }
+  }
+
+  function handleSkipEvents() {
+    playClickSound();
+    setEventMode(false);
+    setActiveEvents([]);
+    pendingEventCallback?.();
+  }
+
+  /* ★ Challenge check */
+  function checkChallengeResults() {
+    if (!streamSettings.challengesEnabled || viewerChallenges.length === 0) return;
+    const state = { capHit: totalCapHit, roster, effectiveOvr, minOvr, injuredList };
+    viewerChallenges.forEach(ch => {
+      if (ch.status !== 'active') return;
+      try {
+        if (ch.check(state)) {
+          ch.status = 'completed';
+          setTotalMandateBonus(prev => prev + ch.reward);
+          addToast('epic', '🏆', `チャレンジ達成: ${ch.name}`, `+${ch.reward} GM SCORE`, 5000);
+          triggerConfetti();
+        }
+      } catch (e) {}
+    });
   }
 
   function handleSignRequest(player) {
@@ -427,6 +533,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       addToast('success', '✍️', `契約: ${player.name}`, `R${player.rating} | $${(adjustedSalary / 1000000).toFixed(1)}M/年`, 3000);
     }
     setSigningPlayer(null);
+    // ★ 契約後にイベント
+    setTimeout(() => triggerEvents(null, 1), 1000);
   }
 
   function handleCancelSign() { playClickSound(); setSigningPlayer(null); }
@@ -687,6 +795,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (inP.length > 0) inNames.push(inP.map(p => p.name).join(', '));
     if (inK.length > 0) inNames.push(inK.map(p => `Y${p.year}R${p.round}${p.from ? `(${p.from})` : ''}`).join(', '));
     addToast('trade', '🤝', 'トレード成立!', `${outNames.join(' + ')} → ${inNames.join(' + ')}`, 5000);
+
+    // ★ トレード後にイベント
+    setTimeout(() => triggerEvents(null, 1), 1500);
   }
 
   /* ── Season ── */
@@ -719,7 +830,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setExpiredPlayers(result.expired);
     setOptionPlayers(result.optionPlayers);
     setRoster(result.surviving);
-    setDeadCap(deadResult.total); setDeadCapDetails(deadResult.details);
+    setDeadCap(deadResult.total); setDeadCap(deadResult.details);
     setTaxHistory([...taxHistory, isOnTax]); setMleUsed(false); setFaSignedThisSeason(0);
     setInjuredList(result.injuries);
     setHardCapped(false);
@@ -735,17 +846,27 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       playInjurySound();
       addToast('warning', '🏥', `${inj.playerName}: ${inj.name}`, `${sevLabel[inj.severity]} | -${inj.ratingLoss} Rating | ${inj.seasonsLeft}シーズン欠場`, 5000);
     });
-    if (record.gmBonus > 0) {
-      addToast('epic', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result} → GM SCORE +${record.gmBonus}`, 5000);
+
+    // ★ チャレンジ結果チェック
+    checkChallengeResults();
+
+    // ★ ドラマチックモード or 通常モード
+    if (streamSettings.dramaticMode) {
+      setDramaticSeasonResult({ record, mResult });
     } else {
-      addToast('warning', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result}`, 4000);
+      if (record.gmBonus > 0) {
+        addToast('epic', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result} → GM SCORE +${record.gmBonus}`, 5000);
+      } else {
+        addToast('warning', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result}`, 4000);
+      }
+      if (mResult) {
+        if (mResult.success) addToast('epic', '📋', `オーナー要請: 達成！`, `${mResult.mandate.name} → GM SCORE +${mResult.bonus}`, 5000);
+        else if (mResult.bonus < 0) addToast('warning', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name} → GM SCORE ${mResult.bonus}`, 4000);
+        else addToast('info', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name}（ペナルティなし）`, 3000);
+      }
+      // ★ イベントを挟んでからシーズン終了フェーズへ
+      triggerEvents(() => setPhase('seasonEnd'), 2);
     }
-    if (mResult) {
-      if (mResult.success) addToast('epic', '📋', `オーナー要請: 達成！`, `${mResult.mandate.name} → GM SCORE +${mResult.bonus}`, 5000);
-      else if (mResult.bonus < 0) addToast('warning', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name} → GM SCORE ${mResult.bonus}`, 4000);
-      else addToast('info', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name}（ペナルティなし）`, 3000);
-    }
-    setPhase('seasonEnd');
   }
 
   function handleToDraft() {
@@ -762,8 +883,36 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPhase('draft');
   }
 
+  // ★ ドラフト（投票・ドラマチック対応）
   function handleDraft(prospect) {
-    playClickSound(); playSuccessSound();
+    playClickSound();
+
+    if (streamSettings.dramaticMode) {
+      setDramaticDraft(prospect);
+      return;
+    }
+
+    if (streamSettings.votingEnabled && draftProspects.length >= 3) {
+      const top5 = draftProspects.slice(0, Math.min(5, draftProspects.length));
+      startVoting(
+        top5.map(p => ({
+          label: p.name,
+          detail: `${p.position} R${p.rating}${p.pot > p.rating ? ` Pot${p.pot}` : ''} Age${p.age}`,
+        })),
+        'ドラフト指名',
+        '誰を指名する？',
+        (winnerIndex) => {
+          executeDraft(top5[winnerIndex]);
+        }
+      );
+      return;
+    }
+
+    executeDraft(prospect);
+  }
+
+  function executeDraft(prospect) {
+    playSuccessSound();
     addToast('success', '🏀', `ドラフト: ${prospect.name}`, `${prospect.position} R${prospect.rating} | $${(prospect.salary / 1000000).toFixed(1)}M`, 3000);
     setRoster(r => [...r, { ...prospect, faStatus: 'None', hasOption: false, optionType: null, supermaxEligible: false, source: 'draft' }]);
     setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
@@ -773,6 +922,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       if (idx >= 0) return picks.filter((_, i) => i !== idx);
       return picks;
     });
+    setDramaticDraft(null);
   }
 
   function handleDraftComplete() {
@@ -798,7 +948,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setQoCandidates([]);
     setRfaPlayers([]);
     setRfaOffers([]);
-    setFreeAgents(genFA(8)); setSeason(newSeason); setPhase('manage');
+    setFreeAgents(genFA(8)); setSeason(newSeason);
+
+    // ★ 新シーズン開始時にイベント
+    triggerEvents(() => setPhase('manage'), 3);
     setTimeout(() => setGmAnimating(false), 3000);
   }
 
@@ -816,6 +969,15 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         </div>
       </div>
       <div className="flex items-center gap-3">
+        {/* ★ 配信モードボタン */}
+        <button onClick={() => { playClickSound(); setShowStreamSettings(true); }}
+          className={`px-2 py-1.5 text-xs font-mono rounded-lg transition-all border ${
+            streamSettings.votingEnabled || streamSettings.dramaticMode
+              ? 'text-cyan-400 bg-cyan-950/30 border-cyan-800/50'
+              : 'text-stone-500 hover:text-stone-300 bg-stone-900/30 border-stone-800/50'
+          }`}>
+          🎬 配信
+        </button>
         <button onClick={() => { playClickSound(); setShowBonusPanel(true); }} className="px-2 py-1.5 text-xs font-mono text-amber-400 hover:text-amber-300 bg-amber-950/30 border border-amber-800/50 rounded-lg transition-all">📋 ボーナス一覧</button>
         <span className="text-xs font-mono text-stone-500">GM SCORE</span>
         <span className="text-2xl font-mono font-black text-amber-400">
@@ -902,6 +1064,149 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const sevColor = { minor: 'text-stone-400', moderate: 'text-amber-400', severe: 'text-orange-400', critical: 'text-red-400' };
   const sevBg = { minor: 'bg-stone-900', moderate: 'bg-amber-950/50', severe: 'bg-orange-950/50', critical: 'bg-red-950/50' };
   const sevBorder = { minor: 'border-stone-800', moderate: 'border-amber-800', severe: 'border-orange-800', critical: 'border-red-800' };
+
+  /* ═══════════════════════════════════════ */
+  /* ═══ RENDER: VOTING / DRAMATIC / SHARE ═══ */
+  /* ═══════════════════════════════════════ */
+
+  if (votingState) {
+    return (
+      <VotingOverlay
+        options={votingState.options}
+        title={votingState.title}
+        subtitle={votingState.subtitle}
+        duration={streamSettings.voteDuration}
+        onDecide={(winnerIndex) => {
+          const cb = votingState.callback;
+          setVotingState(null);
+          cb(winnerIndex);
+        }}
+        onCancel={() => setVotingState(null)}
+      />
+    );
+  }
+
+  if (dramaticDraft) {
+    return (
+      <DramaticDraftReveal
+        prospect={dramaticDraft}
+        onConfirm={() => executeDraft(dramaticDraft)}
+        onCancel={() => setDramaticDraft(null)}
+      />
+    );
+  }
+
+  if (dramaticSeasonResult) {
+    return (
+      <DramaticSeasonReveal
+        season={season}
+        record={dramaticSeasonResult.record}
+        effectiveOvr={effectiveOvr}
+        minOvr={minOvr}
+        gmScore={gmScoreCalc()}
+        mandateResult={dramaticSeasonResult.mResult}
+        onContinue={() => {
+          const dr = dramaticSeasonResult;
+          setDramaticSeasonResult(null);
+          setShareCard({
+            record: dr.record,
+            effectiveOvr,
+            minOvr,
+            gmScore: gmScoreCalc(),
+            topPlayers: [...roster].sort((a, b) => b.rating - a.rating).slice(0, 3),
+          });
+        }}
+      />
+    );
+  }
+
+  if (shareCard) {
+    return (
+      <SeasonShareCard
+        season={season}
+        record={shareCard.record}
+        effectiveOvr={shareCard.effectiveOvr}
+        minOvr={shareCard.minOvr}
+        gmScore={shareCard.gmScore}
+        topPlayers={shareCard.topPlayers}
+        onContinue={() => {
+          setShareCard(null);
+          triggerEvents(() => setPhase('seasonEnd'), 2);
+        }}
+      />
+    );
+  }
+
+  /* ═══════════════════════════════════════ */
+  /* ═══ RENDER: EVENT ═══                   */
+  /* ═══════════════════════════════════════ */
+  if (eventMode && activeEvents.length > 0) {
+    const event = activeEvents[currentEventIndex];
+    const info = getEventCategoryInfo(event.category);
+    const progress = `${currentEventIndex + 1} / ${activeEvents.length}`;
+
+    const borderColor = {
+      cyan: 'border-cyan-600', emerald: 'border-emerald-600', amber: 'border-amber-600',
+      purple: 'border-purple-600', orange: 'border-orange-600', stone: 'border-stone-600',
+    }[info.color] || 'border-stone-600';
+
+    const titleColor = {
+      cyan: 'text-cyan-400', emerald: 'text-emerald-400', amber: 'text-amber-400',
+      purple: 'text-purple-400', orange: 'text-orange-400', stone: 'text-stone-400',
+    }[info.color] || 'text-stone-400';
+
+    const btnColor = {
+      cyan: 'bg-cyan-950 border-cyan-700 hover:bg-cyan-900',
+      emerald: 'bg-emerald-950 border-emerald-700 hover:bg-emerald-900',
+      amber: 'bg-amber-950 border-amber-700 hover:bg-amber-900',
+      purple: 'bg-purple-950 border-purple-700 hover:bg-purple-900',
+      orange: 'bg-orange-950 border-orange-700 hover:bg-orange-900',
+      stone: 'bg-stone-950 border-stone-700 hover:bg-stone-900',
+    }[info.color] || 'bg-stone-950 border-stone-700 hover:bg-stone-900';
+
+    return (
+      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
+        <ToastContainer toasts={toasts} />
+        <div className="w-full max-w-2xl space-y-5 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
+          <div className="flex justify-between items-start">
+            <div className="space-y-1">
+              <span className={`text-xs font-mono font-black uppercase tracking-widest ${titleColor}`}>
+                {info.icon} {info.label}イベント
+              </span>
+              <h2 className="text-3xl font-black text-white">{event.title}</h2>
+            </div>
+            <span className="text-xs font-mono text-stone-500 bg-stone-900 px-2 py-1 rounded">{progress}</span>
+          </div>
+
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-5">
+            <p className="text-stone-300 leading-relaxed text-sm">{event.text}</p>
+          </div>
+
+          <div className="space-y-2">
+            {event.choices.map((choice, i) => {
+              const preview = getEffectPreviewText(choice.effects);
+              return (
+                <button key={i} onClick={() => handleEventChoice(i)}
+                  className={`w-full text-left border rounded-xl p-4 transition-all ${btnColor} group`}>
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-bold text-sm">{choice.text}</span>
+                    <span className="text-xs font-mono text-stone-500 group-hover:text-stone-300 transition-colors">
+                      {preview}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <button onClick={handleSkipEvents}
+            className="w-full text-center text-xs text-stone-600 hover:text-stone-400 font-mono transition-colors py-2">
+            残りのイベントをスキップ →
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   /* ═══════════════════════════════════════ */
   /* ═══ RENDER: TRADE ═══                   */
@@ -1169,6 +1474,16 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
         {showBonusPanel && <BonusPanel onClose={() => setShowBonusPanel(false)} effectiveOvr={effectiveOvr} totalOvr={totalOvr} totalCapHit={totalCapHit} effectiveRoster={effectiveRoster} season={season} faSignedThisSeason={faSignedThisSeason} injuredList={injuredList} hardCapped={hardCapped} />}
         <SignModal />
+        {/* ★ 配信オーバーレイ */}
+        {streamSettings.statsOverlay && (
+          <StreamStatsWidget season={season} record={seasonRecord} effectiveOvr={effectiveOvr} minOvr={minOvr} capHit={totalCapHit} gmScore={gmScoreCalc()} injuredCount={injuredList.length} rosterCount={roster.length} />
+        )}
+        {streamSettings.challengesEnabled && viewerChallenges.length > 0 && showChallenges && (
+          <ViewerChallengePanel challenges={viewerChallenges} onDismiss={() => setShowChallenges(false)} />
+        )}
+        {showStreamSettings && (
+          <StreamSettingsPanel settings={streamSettings} onChange={setStreamSettings} onClose={() => setShowStreamSettings(false)} />
+        )}
         <div className={'w-full flex flex-col flex-1 justify-start ' + (screenShake ? 'animate-shake' : '')}>
           <Header />
           <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
@@ -1546,7 +1861,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <h2 className="text-4xl font-black text-white">QO延長の決定</h2>
           </div>
 
-          {/* QO説明パネル */}
           <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-xl p-5 space-y-3 text-sm">
             <h3 className="text-emerald-400 font-mono font-black text-base">QO（クオリファイングオファー）とは？</h3>
             <div className="text-stone-300 space-y-2 leading-relaxed">
@@ -1565,7 +1879,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             </div>
           </div>
 
-          {/* バード権説明 */}
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2 text-xs">
             <h4 className="text-purple-400 font-mono font-black">🐦 バード権とは？</h4>
             <div className="text-stone-400 space-y-1">
@@ -1652,7 +1965,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <h2 className="text-4xl font-black text-white">マッチングオファー</h2>
           </div>
 
-          {/* RFA説明パネル */}
           <div className="bg-purple-950/30 border border-purple-800/60 rounded-xl p-5 space-y-3 text-sm">
             <h3 className="text-purple-400 font-mono font-black text-base">RFA（制限付きFA）とは？</h3>
             <div className="text-stone-300 space-y-2 leading-relaxed">
@@ -1674,7 +1986,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             </div>
           </div>
 
-          {/* Full Birdの戦術的説明 */}
           {rfaPlayers.some(p => p.birdRights === 'Full') && (
             <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-4 text-xs space-y-1">
               <h4 className="text-emerald-400 font-mono font-black">🐦 Full Bird権の戦術的メリット</h4>
