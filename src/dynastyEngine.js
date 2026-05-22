@@ -131,7 +131,8 @@ export function genFA(count) {
 export function genDraft(count) {
   const players = [];
   for (let i = 0; i < count; i++) {
-    const p = generatePlayer();
+    const rating = 50 + Math.floor(Math.random() * 41);
+    const p = generatePlayer(rating);
     p.age = 19 + Math.floor(Math.random() * 3);
     p.salary = 1500000 + Math.floor(Math.random() * 2500000);
     p.salary = Math.round(p.salary / 100000) * 100000;
