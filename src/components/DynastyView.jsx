@@ -234,12 +234,17 @@ function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRos
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
             <h3 className="text-purple-400 font-mono font-black text-xs uppercase tracking-wider">🐦 バード権・RFAシステム</h3>
             <div className="text-stone-500 text-xs space-y-1">
-              <p>• 契約切れ選手にバード権がある場合、QO（クオリファイングオファー）を延長可能</p>
-              <p>• QO延長 → 選手はRFA（制限付きFA）化。他チームのオファーにマッチする権利が発生</p>
-              <p>• <span className="text-emerald-400">Full Bird</span>: 最大5年契約可（他チームは4年まで）、QO = 前年給与100%</p>
-              <p>• <span className="text-amber-400">Early Bird</span>: 最大4年契約、QO = 前年給与75%</p>
-              <p>• マッチング時はキャップ超過でも再契約可能（バード権の最大のメリット）</p>
-              <p>• QO見送り → 選手はUFAとしてFA市場へ</p>
+              <p className="text-stone-300">同じチームに長くいる選手ほど、有利な条件で再契約できる制度。</p>
+              <p className="text-stone-400 mt-2">【QO（クオリファイングオファー）】</p>
+              <p>• バード権持ちの契約切れ選手に1年契約の「仮オファー」を延長</p>
+              <p>• QO延長 → 選手はRFA化（次フェーズでマッチング判断）</p>
+              <p>• QO見送り → 選手は完全FA（他チームに自由に取られる）</p>
+              <p className="text-stone-400 mt-2">【RFA（制限付きFA）】</p>
+              <p>• 他チームがオファー → あなたは同じ条件でマッチして残留 or 見放して移動</p>
+              <p>• マッチ時はキャップ超過でもOK（バード権の最大の強み）</p>
+              <p className="text-stone-400 mt-2">【バード権の種類】</p>
+              <p>• <span className="text-emerald-400">Full Bird</span>: 3年以上在籍 → QO=100%、最大5年契約、キャップ超過でもマッチ可</p>
+              <p>• <span className="text-amber-400">Early Bird</span>: 2年以上在籍 → QO=75%、最大4年契約</p>
             </div>
           </div>
         </div>
@@ -629,7 +634,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     const inP = tradeTarget.players;
     const inK = tradeTarget.picks;
 
-    // ピック価値バランス検証（3ルール版）
     if (inK.length > 0) {
       const pv = validatePickBalance(outK, inK);
       if (!pv.valid) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'ピック価値不均衡', pv.reason, 4000); return; }
@@ -640,7 +644,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       if (!v.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'トレード不可', v.reason, 4000); return; }
     }
 
-    // ステピアンルール検証（獲得ピック対応版）
     if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
       const sv = validateStepienRule(draftPicks, outK, inK);
       if (!sv.valid) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'ステピアンルール', sv.reason, 4000); return; }
@@ -723,7 +726,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTradesUsedThisSeason(0);
     setTradeMarket({ players: [], picks: [] });
 
-    // 契約切れ選手をQO候補とUFAに分離
     const qoEligible = result.expired.filter(p => p.birdRights && p.birdRights !== 'None');
     setQoCandidates(qoEligible);
 
@@ -954,7 +956,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* 送出 */}
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
               <h3 className="text-sm font-mono font-black text-red-400 mb-2">📤 送出資産</h3>
               {!hasOut ? <p className="text-stone-500 text-sm">← 下から選択</p> : (
@@ -979,7 +980,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               )}
             </div>
 
-            {/* 獲得 */}
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
               <h3 className="text-sm font-mono font-black text-emerald-400 mb-2">📥 獲得資産</h3>
               {!hasIn ? <p className="text-stone-500 text-sm">← 市場から選択</p> : (
@@ -1004,7 +1004,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               )}
             </div>
 
-            {/* 判定 */}
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
               <h3 className="text-sm font-mono font-black text-amber-400 mb-2">📋 判定</h3>
               {hasOut && hasIn ? (
@@ -1067,7 +1066,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             </div>
           </div>
 
-          {/* あなたの資産 / 市場 */}
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 space-y-3">
               <div className="bg-[#141210] border border-stone-800 rounded-xl p-4 max-h-52 overflow-y-auto">
@@ -1441,12 +1439,21 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     <span className="text-stone-500 font-mono text-lg ml-2">{p.position} Rating {p.rating}</span>
                   </div>
                   {p.birdRights && p.birdRights !== 'None' ? (
-                    <span className="text-emerald-400 font-mono text-xs">🐦 {p.birdRights === 'Full' ? 'Full Bird' : 'Early Bird'} → QO決定へ</span>
+                    <div className="text-right">
+                      <span className="text-emerald-400 font-mono text-xs block">🐦 {p.birdRights === 'Full' ? 'Full Bird' : 'Early Bird'}</span>
+                      <span className="text-stone-500 font-mono text-xs">→ 次のフェーズでQO延長の判断</span>
+                    </div>
                   ) : (
-                    <span className="text-stone-500 font-mono text-xs">→ FA市場</span>
+                    <span className="text-stone-500 font-mono text-xs">→ FA市場へ</span>
                   )}
                 </div>
               ))}
+              {expiredPlayers.some(p => p.birdRights && p.birdRights !== 'None') && (
+                <p className="text-xs text-stone-500 mt-2 pt-2 border-t border-stone-800">
+                  🐦 バード権を持つ選手は次の画面でQO（1年契約の仮オファー）を延長してRFA化できます。
+                  RFA化すると他チームのオファーに対してマッチング（上書き契約）して残留させる権利が得られます。
+                </p>
+              )}
             </div>
           )}
           <button onClick={handleToDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">
@@ -1537,14 +1544,48 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           <div className="text-center space-y-2">
             <span className="text-xl font-mono font-black text-emerald-400 uppercase tracking-widest">📋 QUALIFYING OFFERS</span>
             <h2 className="text-4xl font-black text-white">QO延長の決定</h2>
-            <p className="text-sm text-stone-400">バード権を持つ契約切れ選手にQOを延長できます</p>
           </div>
 
-          <HoverTip text="QO（クオリファイングオファー）：バード権を持つ選手の契約切れ時に所属チームが1年契約を提示する権利。QO延長で選手はRFA（制限付きFA）となり、他チームのオファーに対してマッチング（上書き契約）できる権利が発生します。">
-            <div className="bg-stone-950 border border-stone-800 rounded-lg p-3 text-xs text-stone-400 text-center cursor-help">
-              ℹ️ QOとは？ マウスオーバーで詳細
+          {/* QO説明パネル */}
+          <div className="bg-emerald-950/30 border border-emerald-800/60 rounded-xl p-5 space-y-3 text-sm">
+            <h3 className="text-emerald-400 font-mono font-black text-base">QO（クオリファイングオファー）とは？</h3>
+            <div className="text-stone-300 space-y-2 leading-relaxed">
+              <p>
+                あなたのチームで<span className="text-white font-bold">バード権</span>を持つ選手が契約切れになった時、
+                <span className="text-cyan-400 font-bold">1年契約の「仮オファー」</span>を延長できます。
+              </p>
+              <div className="bg-stone-950/60 rounded-lg p-3 space-y-1">
+                <p className="text-emerald-400 font-bold">QOを延長する →</p>
+                <p className="text-stone-400">選手は<span className="text-white font-bold">RFA（制限付きFA）</span>となり、次のフェーズで他チームのオファーに対して<span className="text-white font-bold">「マッチング（上書き契約）」</span>して残留させる権利が得られます。</p>
+              </div>
+              <div className="bg-stone-950/60 rounded-lg p-3 space-y-1">
+                <p className="text-red-400 font-bold">QOを見送る →</p>
+                <p className="text-stone-400">選手は完全に<span className="text-white font-bold">FA市場</span>へ放出され、他のチームが自由に獲得できます。</p>
+              </div>
             </div>
-          </HoverTip>
+          </div>
+
+          {/* バード権説明 */}
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2 text-xs">
+            <h4 className="text-purple-400 font-mono font-black">🐦 バード権とは？</h4>
+            <div className="text-stone-400 space-y-1">
+              <p>同じチームに長く所属している選手に与えられる権利。契約切れになっても自チームが有利な条件で再契約できます。</p>
+              <div className="flex gap-4 mt-2">
+                <div className="flex-1 bg-emerald-950/30 border border-emerald-800/50 rounded-lg p-2">
+                  <p className="text-emerald-400 font-bold">🐦 Full Bird</p>
+                  <p>QO = 前年給与の<span className="text-white">100%</span></p>
+                  <p>再契約: 最大<span className="text-white">5年</span></p>
+                  <p className="text-stone-500 mt-1">3年以上同一チーム所属で発生</p>
+                </div>
+                <div className="flex-1 bg-amber-950/30 border border-amber-800/50 rounded-lg p-2">
+                  <p className="text-amber-400 font-bold">🐤 Early Bird</p>
+                  <p>QO = 前年給与の<span className="text-white">75%</span></p>
+                  <p>再契約: 最大<span className="text-white">4年</span></p>
+                  <p className="text-stone-500 mt-1">2年以上同一チーム所属で発生</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="space-y-3">
             {qoCandidates.map((p, i) => {
@@ -1562,6 +1603,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     <div className="text-xs text-stone-500 mt-1 font-mono">
                       前年給与: ${(p.salary / 1000000).toFixed(1)}M → QO: <span className="text-cyan-400">${(qoAmount / 1000000).toFixed(1)}M</span>/年
                       {p.birdRights === 'Full' && <span className="text-emerald-400 ml-2">※ 最大5年契約可</span>}
+                      {p.birdRights === 'Early' && <span className="text-amber-400 ml-2">※ 最大4年契約可</span>}
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -1580,7 +1622,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           {qoCandidates.length === 0 && (
             <div className="text-center space-y-4 py-8">
               <div className="text-emerald-400 font-mono font-black text-2xl">✓ QO決定完了</div>
-              {rfaPlayers.length > 0 && <p className="text-stone-400 text-sm">RFA選手: {rfaPlayers.length}人</p>}
+              {rfaPlayers.length > 0 && <p className="text-stone-400 text-sm">RFA化した選手: {rfaPlayers.length}人</p>}
               <button onClick={handleQOComplete} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">
                 {rfaPlayers.length > 0 ? 'RFA解決へ進む →' : 'DRAFT へ進む 🏀'}
               </button>
@@ -1608,14 +1650,41 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           <div className="text-center space-y-2">
             <span className="text-xl font-mono font-black text-purple-400 uppercase tracking-widest">🤝 RFA MATCHING</span>
             <h2 className="text-4xl font-black text-white">マッチングオファー</h2>
-            <p className="text-sm text-stone-400">RFA選手に対する他チームのオファーを確認し、マッチ（上書き契約）するか判断してください</p>
           </div>
 
-          <HoverTip text="マッチング：RFA選手に他チームがオファーを出した場合、所属チームがその条件を受け入れて選手を残留させる権利。マッチすればその選手は自チームに残留し、見放せばオファー元チームへ移動します。">
-            <div className="bg-stone-950 border border-stone-800 rounded-lg p-3 text-xs text-stone-400 text-center cursor-help">
-              ℹ️ マッチングとは？ マウスオーバーで詳細
+          {/* RFA説明パネル */}
+          <div className="bg-purple-950/30 border border-purple-800/60 rounded-xl p-5 space-y-3 text-sm">
+            <h3 className="text-purple-400 font-mono font-black text-base">RFA（制限付きFA）とは？</h3>
+            <div className="text-stone-300 space-y-2 leading-relaxed">
+              <p>
+                前のフェーズでQOを延長された選手は<span className="text-white font-bold">RFA</span>となりました。
+                RFA選手は他のチームからオファーを受けることができますが、<span className="text-cyan-400 font-bold">あなたのチームが「マッチング」する権利</span>を持ちます。
+              </p>
+              <div className="bg-stone-950/60 rounded-lg p-3 space-y-1">
+                <p className="text-emerald-400 font-bold">🤝 マッチする →</p>
+                <p className="text-stone-400">他チームが出した条件（年俸・年数）をそのまま受け入れて、選手を<span className="text-white font-bold">自チームに残留</span>させます。キャップ超過中でもマッチ可能です（バード権の最大のメリット）。</p>
+              </div>
+              <div className="bg-stone-950/60 rounded-lg p-3 space-y-1">
+                <p className="text-red-400 font-bold">🏃 見放す →</p>
+                <p className="text-stone-400">マッチング権を放棄し、選手はオファーを出した<span className="text-white font-bold">他チームへ移動</span>します。</p>
+              </div>
+              <p className="text-stone-500 text-xs mt-2">
+                💡 例: あなたの選手に他チームが「年俸$20M × 3年」をオファー → マッチすれば同じ条件で残留、見放せば他チームへ。
+              </p>
             </div>
-          </HoverTip>
+          </div>
+
+          {/* Full Birdの戦術的説明 */}
+          {rfaPlayers.some(p => p.birdRights === 'Full') && (
+            <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-4 text-xs space-y-1">
+              <h4 className="text-emerald-400 font-mono font-black">🐦 Full Bird権の戦術的メリット</h4>
+              <p className="text-stone-400">
+                Full Bird権を持つ選手はマッチング時に<span className="text-white font-bold">最大5年</span>の契約を提示できます。
+                他チームは最大4年までなので、<span className="text-emerald-400">1年長い契約で選手を囲い込む</span>ことができます。
+                また、キャップ超過中でもマッチできるため、主力選手の放出を防ぐ最後の砦となります。
+              </p>
+            </div>
+          )}
 
           <div className="space-y-4">
             {rfaPlayers.map((player) => {
@@ -1633,7 +1702,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   </div>
 
                   <div className="bg-[#1a1816] rounded-lg p-3 space-y-1">
-                    <div className="text-xs text-stone-500 font-mono">最高オファー</div>
+                    <div className="text-xs text-stone-500 font-mono">他チームからの最高オファー</div>
                     <div className="flex items-center gap-4">
                       <span className="text-white font-bold">{bestOffer.team}</span>
                       <span className="text-cyan-400 font-mono font-black">${(bestOffer.salary / 1000000).toFixed(1)}M × {bestOffer.years}yr</span>
@@ -1644,9 +1713,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     )}
                   </div>
 
-                  {player.birdRights === 'Full' && (
+                  {player.birdRights === 'Full' && bestOffer.years < 5 && (
                     <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-lg p-2 text-xs text-emerald-400 font-mono">
-                      🐦 Full Bird権: 最大5年のマッチングが可能。他チームは最大4年まで。
+                      🐦 Full Bird権: あなたは最大5年のマッチングが可能（{bestOffer.team}は最大{bestOffer.years}年）。長期契約で囲い込む選択肢あり。
                     </div>
                   )}
 
