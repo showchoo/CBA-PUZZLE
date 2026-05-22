@@ -114,7 +114,7 @@ export function genRoster() {
   return players;
 }
 
-// ═══ FA生成 ═══
+// ═══ FA生成（Rating 40-80） ═══
 export function genFA(count) {
   const players = [];
   for (let i = 0; i < count; i++) {
@@ -127,7 +127,7 @@ export function genFA(count) {
   return players;
 }
 
-// ═══ ドラフト生成 ═══
+// ═══ ドラフト生成（Rating 50-90） ═══
 export function genDraft(count) {
   const players = [];
   for (let i = 0; i < count; i++) {
@@ -174,7 +174,6 @@ export function advanceSeason(roster, currentInjuries = []) {
   const optionPlayers = [];
   const newInjuries = [];
 
-  // 既存の怪我カウントダウン
   const updatedInjuries = currentInjuries
     .map(inj => ({ ...inj, seasonsLeft: inj.seasonsLeft - 1 }))
     .filter(inj => inj.seasonsLeft > 0);
@@ -187,7 +186,6 @@ export function advanceSeason(roster, currentInjuries = []) {
     const source = player.source || 'roster';
     const isHighRating = player.rating >= 85;
 
-    // 通常の経年変化
     if (source === 'fa') {
       change = -(2 + Math.floor(Math.random() * 3));
     } else if (source === 'trade') {
@@ -207,7 +205,6 @@ export function advanceSeason(roster, currentInjuries = []) {
       if (change === 0) change = -1;
     }
 
-    // 怪我判定（既に怪我中の場合はスキップ）
     const injuryBaseChance = 0.15;
     const ageModifier = player.age >= 30 ? (player.age - 29) * 0.01 : 0;
     const injuryChance = injuryBaseChance + ageModifier;
@@ -218,7 +215,6 @@ export function advanceSeason(roster, currentInjuries = []) {
       injuryEvent = injury;
       change -= injury.ratingLoss;
 
-      // 深刻な怪我で引退判定
       if (injury.retireChance > 0 && Math.random() < injury.retireChance) {
         const newRating = Math.max(20, Math.min(99, oldRating + change));
         summaries.push({
@@ -231,7 +227,6 @@ export function advanceSeason(roster, currentInjuries = []) {
         continue;
       }
 
-      // 欠場がある場合は怪我リストに追加
       if (injury.seasonsOut > 0) {
         newInjuries.push({
           id: 'inj_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
@@ -247,7 +242,6 @@ export function advanceSeason(roster, currentInjuries = []) {
 
     const newRating = Math.max(20, Math.min(99, oldRating + change));
 
-    // 年齢による引退判定
     if (player.age >= 38 && Math.random() < 0.3 + (player.age - 38) * 0.15) {
       summaries.push({
         name: player.name, oldRating, newRating: 0, change: 'RETIRE',
@@ -278,8 +272,6 @@ export function advanceSeason(roster, currentInjuries = []) {
   }
 
   const allInjuries = [...updatedInjuries, ...newInjuries];
-
-  // ロスターに残っている選手の怪我のみ保持
   const activePlayerIds = new Set([...surviving.map(p => p.id), ...optionPlayers.map(p => p.id)]);
   const finalInjuries = allInjuries.filter(inj => activePlayerIds.has(inj.playerId));
 
