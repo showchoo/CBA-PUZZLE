@@ -127,13 +127,11 @@ function HoverTip({ children, text }) {
   );
 }
 
-// ═══ ボーナス一覧パネル ═══
 function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRoster, season, faSignedThisSeason, injuredList }) {
   const seasonBonus = calcSeasonBonus(effectiveRoster, season);
   const rating80Count = effectiveRoster.filter(p => p.rating >= 80).length;
   const minRequired = 380 + (season - 1) * 8;
   const seasonDiff = effectiveOvr - minRequired;
-
   const sevColor = { minor: 'text-stone-400', moderate: 'text-amber-400', severe: 'text-orange-400', critical: 'text-red-400' };
 
   return (
@@ -153,9 +151,7 @@ function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRos
             <div className="flex justify-between"><span className="text-stone-400">12人ロスター</span><span className="text-white font-mono">{effectiveRoster.length >= 12 ? '+30' : '0'}</span></div>
             <div className="flex justify-between"><span className="text-stone-400">バード権ボーナス</span><span className="text-white font-mono">+{Math.min(60, effectiveRoster.filter(p => p.birdRights === 'Full').length * 20)}</span></div>
             <div className="flex justify-between text-amber-400"><span>Rating 80+ボーナス（×{rating80Count}人）</span><span className="font-mono">+{rating80Count * BONUS_RATING80_GM_SCORE}</span></div>
-            {seasonBonus > 0 && (
-              <div className="flex justify-between text-emerald-400"><span>シーズン成績ボーナス（+{seasonDiff} over）</span><span className="font-mono">+{seasonBonus}</span></div>
-            )}
+            {seasonBonus > 0 && <div className="flex justify-between text-emerald-400"><span>シーズン成績ボーナス（+{seasonDiff} over）</span><span className="font-mono">+{seasonBonus}</span></div>}
           </div>
 
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
@@ -202,9 +198,7 @@ function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRos
                 {injuredList.map((inj, i) => (
                   <div key={i} className="flex justify-between text-xs py-0.5">
                     <span className="text-stone-300">{inj.playerName}</span>
-                    <span className={sevColor[inj.severity]}>
-                      {inj.name} ({inj.seasonsLeft}yr)
-                    </span>
+                    <span className={sevColor[inj.severity]}>{inj.name} ({inj.seasonsLeft}yr)</span>
                   </div>
                 ))}
               </div>
@@ -225,7 +219,6 @@ function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRos
   );
 }
 
-// ═══ メインコンポーネント ═══
 export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, toggleBGM }) {
   const [phase, setPhase] = useState('reroll');
   const [season, setSeason] = useState(1);
@@ -260,8 +253,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [gmAnimating, setGmAnimating] = useState(false);
   const [faSignedThisSeason, setFaSignedThisSeason] = useState(0);
   const [showBonusPanel, setShowBonusPanel] = useState(false);
-
-  // ★追加: 怪我リスト
   const [injuredList, setInjuredList] = useState([]);
 
   const totalCapHit = calcCapHit(roster, deadCap);
@@ -269,7 +260,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const minOvr = 380 + (season - 1) * 8;
   const faLimit = getFALimit(totalCapHit);
 
-  // ★追加: 実効Rating（怪我中選手を除外）
   const injuredIds = new Set(injuredList.map(inj => inj.playerId));
   const effectiveRoster = roster.filter(p => !injuredIds.has(p.id));
   const effectiveOvr = effectiveRoster.reduce((s, p) => s + p.rating, 0);
@@ -333,7 +323,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTaxHistory([]); setMleUsed(false);
     setSeason(1); setPhase('reroll'); setTradeMode(false);
     setGmAnimating(false); setFaSignedThisSeason(0);
-    setInjuredList([]); // ★追加
+    setInjuredList([]);
   }
 
   function handleSignRequest(player) {
@@ -368,7 +358,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
     }
     setRoster(r => r.filter(p => p.id !== player.id));
-    setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
+    setInjuredList(il => il.filter(inj => inj.playerId !== player.id));
     playReleaseSound();
     addToast('warning', '💀', `ウェイブ: ${player.name}`, `デッドキャップ $${(player.salary / 1000000).toFixed(1)}M/年 × {player.contractYears}年`, 4000);
   }
@@ -385,7 +375,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
       }
       setRoster(r => r.filter(p => p.id !== player.id));
-      setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
+      setInjuredList(il => il.filter(inj => inj.playerId !== player.id));
       playBuyoutSound();
       const totalSaved = player.salary * player.contractYears - deadAmount * player.contractYears;
       addToast('success', '🤝', `バイアウト成功: ${player.name}`, `契約${pct}%に軽減 | $$$${(totalSaved / 1000000).toFixed(1)}M節約`, 4500);
@@ -401,7 +391,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
     }
     setRoster(r => r.filter(p => p.id !== player.id));
-    setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
+    setInjuredList(il => il.filter(inj => inj.playerId !== player.id));
     playBuyoutSound();
     addToast('success', '⏳', `ストレッチ条項: ${player.name}`, `${st.stretchYears}年分割 | $${(st.annualAmount / 1000000).toFixed(1)}M/年`, 4500);
   }
@@ -424,7 +414,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       if (exercise) { addToast('info', '📋', `PO行使: ${player.name}`, `$$$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000); }
       else {
         setRoster(r => r.filter(x => x.id !== player.id));
-        setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
+        setInjuredList(il => il.filter(inj => inj.playerId !== player.id));
         player.faStatus = player.birdRights !== 'None' ? 'RFA' : 'UFA';
         setExpiredPlayers(ep => [...ep, { ...player }]);
         addToast('warning', '🏃', `PO拒否: ${player.name}`, 'FA市場へ移動', 3500);
@@ -433,7 +423,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       if (exercise) { addToast('success', '📋', `TO行使: ${player.name}`, `$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000); }
       else {
         setRoster(r => r.filter(x => x.id !== player.id));
-        setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
+        setInjuredList(il => il.filter(inj => inj.playerId !== player.id));
         addToast('info', '✂️', `TO拒否: {player.name}`, '契約を終了。キャップに余裕が生まれました', 3000);
       }
     }
@@ -454,13 +444,12 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     if (!validation.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'トレード不可', validation.reason, 4000); return; }
     const tradedIn = { ...tradeTarget, source: 'trade' };
     setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradedIn]);
-    setInjuredList(il => il.filter(inj => !tradeOffer.find(o => o.id === inj.playerId))); // ★追加
+    setInjuredList(il => il.filter(inj => !tradeOffer.find(o => o.id === inj.playerId)));
     setTradeOffer([]); setTradeTarget(null); setTradeMode(false);
     playTradeSound(); triggerConfetti();
     addToast('trade', '🤝', 'トレード成立!', `${tradeOffer.map(p => p.name).join(', ')} → ${tradeTarget.name}`, 4500);
   }
 
-  // ★修正: advanceSeasonにinjuredListを渡す
   function handleNextSeason() {
     playClickSound();
     const result = advanceSeason(roster, injuredList);
@@ -471,16 +460,13 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setRoster(result.surviving);
     setDeadCap(deadResult.total); setDeadCapDetails(deadResult.details);
     setTaxHistory([...taxHistory, isOnTax]); setMleUsed(false); setFaSignedThisSeason(0);
-    setInjuredList(result.injuries); // ★追加
-
-    // 怪我通知
+    setInjuredList(result.injuries);
     const newInjuries = result.injuries.filter(inj => !injuredList.find(old => old.id === inj.id));
     newInjuries.forEach(inj => {
       const sevLabel = { minor: '軽傷', moderate: '中度', severe: '重度', critical: '深刻' };
       playInjurySound();
       addToast('warning', '🏥', `${inj.playerName}: ${inj.name}`, `${sevLabel[inj.severity]} | -${inj.ratingLoss} Rating | ${inj.seasonsLeft}シーズン欠場`, 5000);
     });
-
     setPhase('seasonEnd');
   }
 
@@ -495,7 +481,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPicksLeft(p => p - 1);
   }
 
-  // ★修正: checkSurvivalにinjuredListを渡す
   function handleDraftComplete() {
     playClickSound();
     const newSeason = season + 1;
@@ -509,7 +494,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTimeout(() => setGmAnimating(false), 3000);
   }
 
-  // ★修正: Total Ratingを実効値で表示
   const Header = () => (
     <header className="w-full max-w-7xl mx-auto mb-3 flex justify-between items-center shrink-0">
       <div className="flex items-center gap-3">
@@ -687,10 +671,14 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-500 font-mono font-black px-4 py-2.5 rounded-xl text-sm hover:text-stone-300 transition-all">← 戻る</button>
           </div>
           <RosterTable title="YOUR ROSTER" players={roster} onActionClick={() => {}} actionLabel="—" totalSalary={totalCapHit} dynastyMode />
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-sm text-stone-400 flex gap-6">
-            <span>Total Rating: <span className="text-white font-black text-lg">{totalOvr}</span></span>
-            <span>Cap Hit: <span className="text-cyan-400 font-black text-lg">${(totalCapHit / 1000000).toFixed(1)}M</span></span>
-            <span>Players: <span className="text-white font-black">{roster.length}</span></span>
+          {/* ★修正: Cap Hitにキャップ上限とSalaryMeterを追加 */}
+          <div className="space-y-3">
+            <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-sm text-stone-400 flex gap-6">
+              <span>Total Rating: <span className="text-white font-black text-lg">{totalOvr}</span></span>
+              <span>Cap Hit: <span className={totalCapHit <= DYN_CAP ? 'text-emerald-400 font-black text-lg' : 'text-red-400 font-black text-lg'}>${(totalCapHit / 1000000).toFixed(1)}M <span className="text-stone-500 font-sans">/ ${(DYN_CAP / 1000000).toFixed(0)}M</span></span></span>
+              <span>Players: <span className="text-white font-black">{roster.length}</span></span>
+            </div>
+            <SalaryMeter totalSalary={totalCapHit} capLevel={DYN_CAP} taxLevel={DYN_TAX} firstApron={DYN_APRON1} secondApron={DYN_APRON2} />
           </div>
         </div>
       </div>
@@ -749,7 +737,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* ★追加: 怪我リスト */}
                   {injuredList.length > 0 && (
                     <div className={'px-4 py-2 rounded-xl border ' + 'bg-orange-950/20 border-orange-900/50'}>
                       <div className="flex justify-between items-center mb-1">
@@ -769,7 +756,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* ★修正: Total Ratingを実効値で表示 */}
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
                     <span className={effectiveOvr >= minOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
@@ -834,7 +820,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                 <div key={i} className="flex justify-between items-center py-1.5 px-3 rounded hover:bg-stone-900/50">
                   <div className="flex items-center gap-2">
                     <span className="text-white font-bold text-xl">{s.name}</span>
-                    {/* ★追加: 怪我表示 */}
                     {s.injury && (
                       <span className={'text-xs font-mono px-1.5 py-0.5 rounded ' + (s.change === 'RETIRE' ? 'bg-red-950 text-red-400' : 'bg-orange-950 text-orange-400')}>
                         🏥 {s.injury}
