@@ -28,6 +28,7 @@ import {
 /* ═══ 定数 ═══ */
 const TRADE_LIMIT = 3;
 
+
 /* ═══ Toast ═══ */
 function ToastContainer({ toasts }) {
   return (
