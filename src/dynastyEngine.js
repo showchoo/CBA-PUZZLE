@@ -454,7 +454,11 @@ export function generateMandate() {
 }
 
 // ═══ トレード市場ピック生成 ═══
-const TRADE_TEAMS = ['Warriors', 'Lakers', 'Celtics', 'Heat', 'Nuggets', 'Sixers', 'Suns', 'Bucks', 'Thunder', 'Grizzlies'];
+const TRADE_TEAMS = [
+  'Metro Vipers', 'Bay City Sharks', 'Capital Eagles', 'Desert Foxes',
+  'Lake City Wolves', 'Pacific Titans', 'Mountain Hawks', 'Coastal Dragons',
+  'Prairie Knights', 'Harbor Stingrays',
+];
 
 export function genTradeMarketPicks() {
   const picks = [];
