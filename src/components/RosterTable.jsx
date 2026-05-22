@@ -53,12 +53,12 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
       </div>
       <div className="overflow-y-auto flex-1">
         {players.map((player) => (
-          <div key={player.id} className="border-b border-stone-900/40 hover:bg-stone-950/60 transition-colors px-3 py-2">
+          <div key={player.id} className="border-b border-stone-900/40 hover:bg-stone-950/60 transition-colors px-3 py-2.5">
             <div className="flex items-start justify-between gap-2">
               {/* 左側: 選手情報 */}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="font-bold text-white text-sm truncate">{player.name}</span>
+                  <span className="font-black text-white text-base truncate">{player.name}</span>
                   {player.birdRights === 'Full' && (
                     <Badge tooltip="バード特例：3年以上在籍の生え抜き選手。サラリーキャップを超過しても再契約できる特別な権利。" className="text-[9px] bg-blue-900 text-blue-300 px-1 py-0 rounded font-mono leading-tight">🐦</Badge>
                   )}
@@ -88,31 +88,31 @@ export default function RosterTable({ title, players, onActionClick, actionLabel
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-3 mt-1">
                   {dynastyMode ? (
                     <>
-                      <span className="text-[11px] text-stone-500 font-mono">Age {player.age}</span>
+                      <span className="text-sm text-stone-500 font-mono">Age {player.age}</span>
                       <span className="text-stone-700">·</span>
-                      <span className="text-[11px] font-mono font-black text-amber-400">R{player.rating}</span>
+                      <span className="text-lg font-mono font-black text-amber-400">R{player.rating}</span>
                       <span className="text-stone-700">·</span>
-                      <span className="text-[11px] font-mono text-stone-400">{fmt(player.salary)}</span>
+                      <span className="text-base font-mono font-bold text-stone-300">{fmt(player.salary)}</span>
                       <span className="text-stone-700">·</span>
-                      <span className="text-[11px] font-mono text-cyan-400 font-black">{player.contractYears}yr</span>
+                      <span className="text-base font-mono text-cyan-400 font-black">{player.contractYears}yr</span>
                     </>
                   ) : (
                     <>
-                      <span className="text-[11px] text-stone-500 font-mono">{player.experience}年</span>
+                      <span className="text-sm text-stone-500 font-mono">{player.experience}yr</span>
                       <span className="text-stone-700">·</span>
-                      <span className="text-[11px] font-mono font-black text-amber-400">R{player.rating}</span>
+                      <span className="text-lg font-mono font-black text-amber-400">R{player.rating}</span>
                       <span className="text-stone-700">·</span>
-                      <span className="text-[11px] font-mono text-stone-400">{fmt(player.salary)}</span>
+                      <span className="text-base font-mono font-bold text-stone-300">{fmt(player.salary)}</span>
                     </>
                   )}
                 </div>
               </div>
 
               {/* 右側: アクションボタン */}
-              <div className="flex items-center gap-0.5 shrink-0 pt-0.5">
+              <div className="flex items-center gap-0.5 shrink-0 pt-1">
                 {dynastyMode ? (
                   <>
                     <TipButton
