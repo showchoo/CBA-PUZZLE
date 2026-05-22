@@ -6,7 +6,7 @@ import {
   checkSurvival, calcCapHit, canSignFA, adjustSalaryForYears,
   getMLEAmount, calcRepeaterTax, calcStretch, validateTrade,
   isSupermaxEligible, isGilbertArenasRestricted, getFALimit, calcSeasonBonus, calcGMScore,
-  calcSeasonRecord, calcRosterBalance,
+  calcSeasonRecord, calcRosterBalance, generateMandate,
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT,
   FA_BASE_LIMIT, FA_APRON1_LIMIT,
   BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100
@@ -178,7 +178,7 @@ function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRos
             <div className="text-stone-500 text-xs space-y-1">
               <p>• FA契約選手 → 毎シーズン <span className="text-red-400 font-mono">-2〜-4</span> Rating低下</p>
               <p>• トレード獲得選手 → 毎シーズン <span className="text-emerald-400 font-mono">-0〜-2</span> Rating低下</p>
-              <p>• ドラフト/ロスター → <span className="text-stone-300 font-mono">-1〜-2</span>（15%の確率で+1〜+3成長）</p>
+              <p>• ドラフト/ロスター → <span className="text-stone-300 font-mono">Potまで成長</span>（25%の確率で成長）</p>
               <p>• Rating 85+ → 低下率が <span className="text-amber-400 font-mono">30%軽減</span></p>
             </div>
           </div>
@@ -255,6 +255,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [injuredList, setInjuredList] = useState([]);
   const [seasonRecord, setSeasonRecord] = useState(null);
   const [totalRecordBonus, setTotalRecordBonus] = useState(0);
+  const [currentMandate, setCurrentMandate] = useState(null);        // ★追加
+  const [mandateResult, setMandateResult] = useState(null);          // ★追加
+  const [totalMandateBonus, setTotalMandateBonus] = useState(0);    // ★追加
 
   const totalCapHit = calcCapHit(roster, deadCap);
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
@@ -267,8 +270,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const balance = calcRosterBalance(effectiveRoster);
   const effectiveOvr = Math.floor(rawEffectiveOvr * (100 - balance.penaltyPct) / 100);
 
+  // ★修正: totalMandateBonus を加算
   function gmScoreCalc() {
-    return calcGMScore(season, effectiveOvr, totalCapHit, effectiveRoster) + totalRecordBonus;
+    return calcGMScore(season, effectiveOvr, totalCapHit, effectiveRoster) + totalRecordBonus + totalMandateBonus;
   }
 
   const mleAmount = getMLEAmount(totalCapHit);
@@ -316,6 +320,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   useEffect(() => { doReroll(); }, []);
 
+  // ★修正: mandate関連のリセット追加
   function doReroll() {
     playClickSound();
     setRoster(genRoster());
@@ -328,6 +333,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setInjuredList([]);
     setSeasonRecord(null);
     setTotalRecordBonus(0);
+    setCurrentMandate(generateMandate());
+    setMandateResult(null);
+    setTotalMandateBonus(0);
   }
 
   function handleSignRequest(player) {
@@ -442,11 +450,31 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     addToast('trade', '🤝', 'トレード成立!', `${tradeOffer.map(p => p.name).join(', ')} → ${tradeTarget.name}`, 4500);
   }
 
+  // ★修正: mandate チェック追加
   function handleNextSeason() {
     playClickSound();
     const record = calcSeasonRecord(effectiveOvr, minOvr);
     setSeasonRecord(record);
     setTotalRecordBonus(prev => prev + record.gmBonus);
+
+    // ★追加: オーナー要請チェック
+    let mResult = null;
+    if (currentMandate) {
+      let success = false;
+      switch (currentMandate.id) {
+        case 'win': success = record.winRate >= 60; break;
+        case 'playoff': success = record.winRate >= 40; break;
+        case 'cap': success = totalCapHit <= DYN_CAP; break;
+        case 'stars': success = effectiveRoster.filter(p => p.rating >= 80).length >= 3; break;
+        case 'balance': success = balance.penaltyPct === 0; break;
+      }
+      const bonus = success ? currentMandate.successBonus : currentMandate.failPenalty;
+      setTotalMandateBonus(prev => prev + bonus);
+      mResult = { mandate: currentMandate, success, bonus };
+    }
+    setMandateResult(mResult);
+    setCurrentMandate(generateMandate());
+
     const result = advanceSeason(roster, injuredList);
     const deadResult = advanceDeadCap(deadCapDetails);
     setSummaries(result.summaries);
@@ -466,6 +494,16 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       addToast('epic', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result} → GM SCORE +${record.gmBonus}`, 5000);
     } else {
       addToast('warning', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result}`, 4000);
+    }
+    // ★追加: mandate toast
+    if (mResult) {
+      if (mResult.success) {
+        addToast('epic', '📋', `オーナー要請: 達成！`, `${mResult.mandate.name} → GM SCORE +${mResult.bonus}`, 5000);
+      } else if (mResult.bonus < 0) {
+        addToast('warning', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name} → GM SCORE ${mResult.bonus}`, 4000);
+      } else {
+        addToast('info', '📋', `オーナー要請: 未達成`, `${mResult.mandate.name}（ペナルティなし）`, 3000);
+      }
     }
     setPhase('seasonEnd');
   }
@@ -492,6 +530,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     });
   }
 
+  // ★修正: mandate 生成追加
   function handleDraftComplete() {
     playClickSound();
     const newSeason = season + 1;
@@ -510,6 +549,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       }
       return updated;
     });
+    setCurrentMandate(generateMandate());  // ★追加
     setFreeAgents(genFA(8)); setSeason(newSeason); setPhase('manage');
     setTimeout(() => setGmAnimating(false), 3000);
   }
@@ -551,6 +591,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <div className="flex items-center justify-center gap-3 text-sm">
               <span className="text-stone-500 font-mono">{signingPlayer.position}</span>
               <span className="text-amber-400 font-mono font-black">Rating {signingPlayer.rating}</span>
+              {/* ★追加: Pot表示 */}
+              {signingPlayer.pot > signingPlayer.rating && (
+                <span className="text-emerald-400 font-mono text-xs">(Pot {signingPlayer.pot})</span>
+              )}
               <span className="text-stone-400">Age {signingPlayer.age}</span>
             </div>
           </div>
@@ -710,6 +754,19 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </span>
                   </div>
 
+                  {/* ★追加: オーナー要請 */}
+                  {currentMandate && (
+                    <div className="bg-amber-950/20 px-4 py-2.5 rounded-xl border border-amber-800/50">
+                      <div className="text-xs font-mono font-black text-amber-400 uppercase tracking-wider mb-1">📋 オーナー要請</div>
+                      <div className="text-white font-bold text-sm">{currentMandate.name}</div>
+                      <div className="text-stone-400 text-xs mt-0.5">{currentMandate.desc}</div>
+                      <div className="flex gap-3 mt-1 text-xs font-mono">
+                        <span className="text-emerald-400">達成: +{currentMandate.successBonus}</span>
+                        {currentMandate.failPenalty !== 0 && <span className="text-red-400">失敗: {currentMandate.failPenalty}</span>}
+                      </div>
+                    </div>
+                  )}
+
                   {/* ★追加: ロスターバランス */}
                   {balance.penaltyPct > 0 && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50">
@@ -844,6 +901,21 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               )}
             </div>
           )}
+          {/* ★追加: オーナー要請結果 */}
+          {mandateResult && (
+            <div className={'border rounded-xl p-6 text-center space-y-1 ' + (mandateResult.success ? 'bg-emerald-950/30 border-emerald-800' : 'bg-stone-950 border-stone-800')}>
+              <div className="text-xs font-mono font-black text-amber-400 uppercase tracking-wider">📋 オーナー要請</div>
+              <div className="text-lg font-bold text-white">{mandateResult.mandate.name}</div>
+              <div className={'text-xl font-black font-mono ' + (mandateResult.success ? 'text-emerald-400' : mandateResult.bonus < 0 ? 'text-red-400' : 'text-stone-400')}>
+                {mandateResult.success ? '✅ 達成！' : '❌ 未達成'}
+              </div>
+              {mandateResult.bonus !== 0 && (
+                <div className={'text-sm font-mono ' + (mandateResult.bonus > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                  GM SCORE {mandateResult.bonus > 0 ? '+' : ''}{mandateResult.bonus}
+                </div>
+              )}
+            </div>
+          )}
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-6 space-y-3">
             <h3 className="text-xl font-mono font-black text-cyan-400 uppercase">選手の経年変化</h3>
             <div className="space-y-2 max-h-80 overflow-y-auto">
@@ -943,6 +1015,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     <div className="flex items-center gap-3 mt-1 text-lg">
                       <span className="text-stone-500 font-mono">{p.position}</span>
                       <span className="text-amber-400 font-mono font-black">Rating {p.rating}</span>
+                      {/* ★追加: Pot表示 */}
+                      {p.pot > p.rating && <span className="text-emerald-400 font-mono text-sm">Pot {p.pot}</span>}
                       <span className="text-stone-500">Age {p.age}</span>
                       <span className="text-cyan-400 font-mono">${(p.salary / 1000000).toFixed(1)}M / {p.contractYears}yr</span>
                     </div>
