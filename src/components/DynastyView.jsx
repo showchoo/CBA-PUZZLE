@@ -5,8 +5,11 @@ import {
   genRoster, genFA, genDraft, genDraftPicks, advanceSeason, advanceDeadCap,
   checkSurvival, calcCapHit, canSignFA, adjustSalaryForYears,
   getMLEAmount, calcRepeaterTax, calcStretch, validateTrade,
-  isSupermaxEligible, isGilbertArenasRestricted,
-  DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT
+  isSupermaxEligible, isGilbertArenasRestricted, getFALimit, calcSeasonBonus, calcGMScore,
+  DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT,
+  FA_BASE_LIMIT, FA_APRON1_LIMIT,
+  BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100,
+  BONUS_STAR_GROWTH_MULT
 } from '../dynastyEngine';
 
 // Toast コンポーネント
@@ -85,7 +88,7 @@ function ConfettiOverlay({ active }) {
   );
 }
 
-// ★修正: GM SCORE カウンターコンポーネント（animate プロップ追加）
+// GM SCORE カウンターコンポーネント
 function AnimatedScore({ target, playClickSound, animate = true }) {
   const [display, setDisplay] = useState(0);
   const prevRef = useRef(0);
@@ -96,7 +99,6 @@ function AnimatedScore({ target, playClickSound, animate = true }) {
     const end = target;
     prevRef.current = end;
 
-    // ★修正: animate=false または 10pt未満の変化は即時表示
     if (!animate || Math.abs(end - start) < 10) {
       setDisplay(end);
       return;
@@ -164,6 +166,83 @@ function HoverTip({ children, text }) {
   );
 }
 
+// ★追加: ボーナス一覧パネル
+function BonusPanel({ onClose, totalOvr, totalCapHit, roster, season, faSignedThisSeason }) {
+  const seasonBonus = calcSeasonBonus(roster, season);
+  const rating80Count = roster.filter(p => p.rating >= 80).length;
+  const minRequired = 380 + (season - 1) * 8;
+  const seasonDiff = totalOvr - minRequired;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9998]" onClick={onClose}>
+      <div className="bg-[#110f0e] border border-stone-700 rounded-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-black font-mono text-amber-400">📋 ボーナス・ペナルティ一覧</h2>
+          <button onClick={onClose} className="text-stone-400 hover:text-white text-sm font-mono">✕ 閉じる</button>
+        </div>
+
+        <div className="space-y-4 text-sm">
+          {/* GM SCORE構成 */}
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
+            <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">GM SCORE 内訳</h3>
+            <div className="flex justify-between"><span className="text-stone-400">基本（生存シーズン×100）</span><span className="text-white font-mono">{Math.max(0, season - 1) * 100}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">Total Rating ボーナス（÷10）</span><span className="text-white font-mono">+{Math.floor(totalOvr / 10)}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">キャップ残りボーナス</span><span className="text-white font-mono">+{Math.min(100, Math.floor((Math.max(0, DYN_CAP - totalCapHit) / 1000000) * 5))}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">スター保持（90+）</span><span className="text-white font-mono">{roster.some(p => p.rating >= 90) ? '+50' : '0'}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">12人ロスター</span><span className="text-white font-mono">{roster.length >= 12 ? '+30' : '0'}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">バード権ボーナス</span><span className="text-white font-mono">+{Math.min(60, roster.filter(p => p.birdRights === 'Full').length * 20)}</span></div>
+            <div className="flex justify-between text-amber-400"><span>Rating 80+ボーナス（×{rating80Count}人）</span><span className="font-mono">+{rating80Count * BONUS_RATING80_GM_SCORE}</span></div>
+            {seasonBonus > 0 && (
+              <div className="flex justify-between text-emerald-400"><span>シーズン成績ボーナス（+{seasonDiff} over）</span><span className="font-mono">+{seasonBonus}</span></div>
+            )}
+          </div>
+
+          {/* FA制限 */}
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
+            <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">FA契約制限</h3>
+            <div className="flex justify-between"><span className="text-stone-400">今シーズンのFA契約</span><span className="text-white font-mono">{faSignedThisSeason} / {getFALimit(totalCapHit)}人</span></div>
+            <div className="text-stone-500 text-xs space-y-1 mt-2">
+              <p>• キャップ以内 → 最大{FA_BASE_LIMIT}人/シーズン</p>
+              <p>• 第1エプロン超過 → 最大{FA_APRON1_LIMIT}人/シーズン、契約年数最大3年</p>
+              <p>• 第2エプロン超過 → FA契約禁止（ドラフトとトレードのみ）</p>
+            </div>
+          </div>
+
+          {/* シーズン成績ボーナス */}
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
+            <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">シーズン成績ボーナス</h3>
+            <div className="text-stone-500 text-xs space-y-1">
+              <p className={seasonDiff >= 50 && seasonDiff < 100 ? 'text-emerald-400 font-bold' : ''}>• Total Rating が生存ライン+50超え → <span className="text-amber-400 font-mono">+{BONUS_SEASON_50} GM SCORE</span></p>
+              <p className={seasonDiff >= 100 ? 'text-emerald-400 font-bold' : ''}>• Total Rating が生存ライン+100超え → <span className="text-amber-400 font-mono">+{BONUS_SEASON_100} GM SCORE</span></p>
+            </div>
+          </div>
+
+          {/* トレード優遇 */}
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
+            <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">成長率の違い</h3>
+            <div className="text-stone-500 text-xs space-y-1">
+              <p>• FA契約選手 → 毎シーズン <span className="text-red-400 font-mono">-2〜-4</span> Rating低下</p>
+              <p>• トレード獲得選手 → 毎シーズン <span className="text-emerald-400 font-mono">-0〜-2</span> Rating低下</p>
+              <p>• ドラフト/ロスター → <span className="text-stone-300 font-mono">-1〜-2</span>（15%の確率で+1〜+3成長）</p>
+              <p>• Rating 85+ → 低下率が <span className="text-amber-400 font-mono">30%軽減</span></p>
+            </div>
+          </div>
+
+          {/* 放出手段 */}
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
+            <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">放出手段の使いどころ</h3>
+            <div className="text-stone-500 text-xs space-y-1">
+              <p>• <span className="text-white font-bold">ウェイブ</span>: 100%デッドキャップ。契約を完全に切る。キャップ余裕がなくても放出できる</p>
+              <p>• <span className="text-white font-bold">バイアウト</span>: 50-70%デッドキャップ。選手が同意するとは限らない（Rating低いほど同意率UP）</p>
+              <p>• <span className="text-white font-bold">ストレッチ</span>: 今年のキャップを空けるが、長期のデッドキャップになる。来季のFA枠を確保したい時に</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, toggleBGM }) {
   const [phase, setPhase] = useState('reroll');
   const [season, setSeason] = useState(1);
@@ -195,23 +274,19 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const toastCounter = useRef(0);
-
-  // ★修正: GM SCORE アニメーション制御
   const [gmAnimating, setGmAnimating] = useState(false);
+
+  // ★追加: FA制限・ボーナスパネル用
+  const [faSignedThisSeason, setFaSignedThisSeason] = useState(0);
+  const [showBonusPanel, setShowBonusPanel] = useState(false);
 
   const totalCapHit = calcCapHit(roster, deadCap);
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
   const minOvr = 380 + (season - 1) * 8;
+  const faLimit = getFALimit(totalCapHit);
 
-  function calcGMScore() {
-    const base = Math.max(0, season - 1) * 100;
-    const ratingBonus = Math.floor(totalOvr / 10);
-    const capRemaining = Math.max(0, DYN_CAP - totalCapHit);
-    const capBonus = Math.min(100, Math.floor((capRemaining / 1000000) * 5));
-    const starBonus = roster.some(p => p.rating >= 90) ? 50 : 0;
-    const rosterBonus = roster.length >= 12 ? 30 : 0;
-    const birdBonus = Math.min(60, roster.filter(p => p.birdRights === 'Full').length * 20);
-    return base + ratingBonus + capBonus + starBonus + rosterBonus + birdBonus;
+  function gmScoreCalc() {
+    return calcGMScore(season, totalOvr, totalCapHit, roster);
   }
 
   const mleAmount = getMLEAmount(totalCapHit);
@@ -323,7 +398,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   useEffect(() => { doReroll(); }, []);
 
-  // ★修正: gmAnimating をリセット
   function doReroll() {
     playClickSound();
     setRoster(genRoster());
@@ -337,6 +411,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPhase('reroll');
     setTradeMode(false);
     setGmAnimating(false);
+    setFaSignedThisSeason(0);
   }
 
   function handleSignRequest(player) {
@@ -346,12 +421,13 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setUseMLE(false);
   }
 
+  // ★修正: FA人数チェック追加
   function handleConfirmSign() {
     playClickSound();
     const player = signingPlayer;
     const years = signingYears;
 
-    const check = canSignFA(player, years);
+    const check = canSignFA(player, years, totalCapHit, faSignedThisSeason);
     if (!check.allowed) {
       playErrorSound();
       triggerShake();
@@ -372,9 +448,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       return;
     }
 
-    const signedPlayer = { ...player, salary: adjustedSalary, contractYears: years, faStatus: 'None' };
+    const signedPlayer = { ...player, salary: adjustedSalary, contractYears: years, faStatus: 'None', source: 'fa' };
     setFreeAgents(fa => fa.filter(p => p.id !== player.id));
     setRoster(r => [...r, signedPlayer]);
+    setFaSignedThisSeason(c => c + 1);
     if (useMLE) {
       setMleUsed(true);
       playMLESound();
@@ -503,6 +580,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTradeTarget(player);
   }
 
+  // ★修正: トレード獲得選手にsource='trade'を付与
   function handleExecuteTrade() {
     playClickSound();
     if (!tradeTarget || tradeOffer.length === 0) { alert('トレードする選手を選んでください'); return; }
@@ -516,7 +594,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       addToast('warning', '❌', 'トレード不可', validation.reason, 4000);
       return;
     }
-    setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradeTarget]);
+    const tradedIn = { ...tradeTarget, source: 'trade' };
+    setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradedIn]);
     setTradeOffer([]);
     setTradeTarget(null);
     setTradeMode(false);
@@ -537,6 +616,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setDeadCapDetails(deadResult.details);
     setTaxHistory([...taxHistory, isOnTax]);
     setMleUsed(false);
+    setFaSignedThisSeason(0);
     setPhase('seasonEnd');
   }
 
@@ -555,16 +635,17 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPhase('draft');
   }
 
+  // ★修正: ドラフト選手にsource='draft'を付与
   function handleDraft(prospect) {
     playClickSound();
     playSuccessSound();
     addToast('success', '🏀', `ドラフト: ${prospect.name}`, `R${prospect.rating} | $$$${(prospect.salary / 1000000).toFixed(1)}M`, 3000);
-    setRoster(r => [...r, { ...prospect, faStatus: 'None', hasOption: false, optionType: null, supermaxEligible: false }]);
+    setRoster(r => [...r, { ...prospect, faStatus: 'None', hasOption: false, optionType: null, supermaxEligible: false, source: 'draft' }]);
     setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
     setPicksLeft(p => p - 1);
   }
 
-  // ★修正: 新シーズン開始時にGM SCOREアニメーションON
+  // ★修正: シーズンボーナス適用
   function handleDraftComplete() {
     playClickSound();
     const newSeason = season + 1;
@@ -574,6 +655,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       setCollapseReason(survival.reason);
       setPhase('gameOver');
       return;
+    }
+    const bonus = calcSeasonBonus(roster, season);
+    if (bonus > 0) {
+      addToast('epic', '🏆', `シーズンボーナス +${bonus} GM SCORE!`, `Total Rating ${totalOvr}（生存ライン+${totalOvr - minOvr}）`, 4000);
     }
     playEpicSound();
     triggerConfetti();
@@ -585,7 +670,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTimeout(() => setGmAnimating(false), 3000);
   }
 
-  // ★修正: Header で animate={gmAnimating} を使用
   const Header = () => (
     <header className="w-full max-w-7xl mx-auto mb-3 flex justify-between items-center shrink-0">
       <div className="flex items-center gap-3">
@@ -596,9 +680,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         </div>
       </div>
       <div className="flex items-center gap-3">
+        {/* ★追加: ボーナス一覧ボタン */}
+        <button onClick={() => { playClickSound(); setShowBonusPanel(true); }} className="px-2 py-1.5 text-xs font-mono text-amber-400 hover:text-amber-300 bg-amber-950/30 border border-amber-800/50 rounded-lg transition-all">📋 ボーナス一覧</button>
         <span className="text-xs font-mono text-stone-500">GM SCORE</span>
         <span className="text-2xl font-mono font-black text-amber-400">
-          <AnimatedScore target={calcGMScore()} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} animate={gmAnimating} />
+          <AnimatedScore target={gmScoreCalc()} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} animate={gmAnimating} />
         </span>
         <span className="text-xs font-mono text-stone-600">pts</span>
         <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2 rounded-lg transition-all text-sm ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
@@ -637,11 +723,17 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             </div>
           )}
 
+          {/* ★追加: FA残枠表示 */}
+          <div className="bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs font-mono text-stone-400 text-center">
+            今シーズンのFA契約: <span className="text-white font-black">{faSignedThisSeason}</span> / {faLimit}人
+            {faLimit === 0 && <span className="text-red-400 ml-2">⚠️ FA契約不可</span>}
+          </div>
+
           <div className="space-y-2">
             <label className="text-xs font-mono font-black text-stone-400 uppercase">契約年数を選択</label>
             <div className="grid grid-cols-5 gap-2">
               {[1, 2, 3, 4, 5].map(y => {
-                const check = canSignFA(signingPlayer, y);
+                const check = canSignFA(signingPlayer, y, totalCapHit, faSignedThisSeason);
                 return (
                   <button key={y} onClick={() => setSigningYears(y)} disabled={!check.allowed}
                     className={'py-2 rounded-lg border font-mono font-black text-sm transition-all ' + (
@@ -685,7 +777,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
           <div className="flex gap-2">
             <button onClick={handleCancelSign} className="flex-1 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-2.5 rounded-xl text-sm transition-all">キャンセル</button>
-            <button onClick={handleConfirmSign} className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-2.5 rounded-xl text-sm transition-all">契約する</button>
+            <button onClick={handleConfirmSign} disabled={faSignedThisSeason >= faLimit} className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:from-stone-800 disabled:to-stone-800 disabled:text-stone-600 text-stone-950 font-mono font-black py-2.5 rounded-xl text-sm transition-all">契約する</button>
           </div>
         </div>
       </div>
@@ -728,7 +820,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <button onClick={() => { playClickSound(); setTradeMode(false); }} className="text-stone-400 hover:text-white font-mono text-sm">← 戻る</button>
           </div>
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400">
-            トレードルール: 獲得額は送出額の75%〜125%+$100Kの範囲内
+            トレードルール: 獲得額は送出額の75%〜125%+$100Kの範囲内 ｜ トレード獲得選手は成長率優遇（-0〜-2）
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
@@ -860,6 +952,16 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         `}</style>
         <ToastContainer toasts={toasts} />
         <ConfettiOverlay active={showConfetti} />
+        {showBonusPanel && (
+          <BonusPanel
+            onClose={() => setShowBonusPanel(false)}
+            totalOvr={totalOvr}
+            totalCapHit={totalCapHit}
+            roster={roster}
+            season={season}
+            faSignedThisSeason={faSignedThisSeason}
+          />
+        )}
         <SignModal />
         <div className={'w-full flex flex-col flex-1 justify-start ' + (screenShake ? 'animate-shake' : '')}>
           <Header />
@@ -872,6 +974,14 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
                     <span className={totalCapHit <= DYN_CAP ? 'text-emerald-400 font-black text-3xl' : totalCapHit <= DYN_TAX ? 'text-amber-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
                       ${(totalCapHit / 1000000).toFixed(1)}M <span className="text-lg text-stone-500 font-sans">/ ${(DYN_CAP / 1000000).toFixed(0)}M</span>
+                    </span>
+                  </div>
+
+                  {/* ★追加: FA残枠表示 */}
+                  <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850 flex justify-between items-center">
+                    <span className="text-stone-400 font-sans font-black text-sm">✍️ FA残り枠:</span>
+                    <span className={faSignedThisSeason >= faLimit ? 'text-red-400 font-black text-lg' : 'text-emerald-400 font-black text-lg'}>
+                      {faLimit - faSignedThisSeason} / {faLimit}人
                     </span>
                   </div>
 
@@ -948,7 +1058,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <div className="w-full lg:w-[58%] space-y-4 flex flex-col justify-between">
               <div className="flex flex-col sm:flex-row gap-4 flex-1">
                 <RosterTable title="ROSTER" players={roster} totalSalary={totalCapHit} dynastyMode onWaiver={handleWaiver} onBuyout={handleBuyout} onStretch={handleStretch} />
-                <RosterTable title="FREE AGENT" players={freeAgents} onActionClick={handleSignRequest} actionLabel="契約" />
+                <RosterTable title="FREE AGENT" players={freeAgents} onActionClick={faSignedThisSeason < faLimit ? handleSignRequest : undefined} actionLabel={faSignedThisSeason >= faLimit ? '枠なし' : '契約'} />
               </div>
             </div>
           </main>
@@ -978,8 +1088,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   <span className="font-mono">
                     <span className="text-stone-400">{s.oldRating}</span>
                     <span className="text-stone-600 mx-1">→</span>
-                    <span className={s.change <= -2 ? 'text-red-400 font-black' : 'text-amber-400 font-black'}>{s.newRating}</span>
-                    <span className="text-red-500 ml-2 text-lg">({s.change})</span>
+                    <span className={s.change === 'RETIRE' ? 'text-yellow-400 font-black' : s.change <= -2 ? 'text-red-400 font-black' : 'text-amber-400 font-black'}>{s.newRating === 0 ? 'RETIRE' : s.newRating}</span>
+                    {s.change !== 'RETIRE' && <span className="text-red-500 ml-2 text-lg">({s.change})</span>}
+                    {s.change === 'RETIRE' && <span className="text-yellow-400 ml-2 text-lg">🏆</span>}
                   </span>
                 </div>
               ))}
@@ -1093,7 +1204,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   // ═══ GAME OVER PHASE ═══
   if (phase === 'gameOver') {
-    const score = calcGMScore();
+    const score = gmScoreCalc() + calcSeasonBonus(roster, season);
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
         <div className="w-full max-w-2xl space-y-6 bg-[#110f0e] border border-red-900 rounded-3xl p-8 text-center">
