@@ -244,8 +244,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [tradeTarget, setTradeTarget] = useState(null);
   const [tradeMarket, setTradeMarket] = useState([]);
 
-  const [signTradePlayer, setSignTradePlayer] = useState(null);
-
   const [toasts, setToasts] = useState([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
@@ -308,7 +306,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const playErrorSound = () => { playTone(200, 0.2, 'square', 0.06); playTone(190, 0.2, 'square', 0.06, 0.15); };
   const playReleaseSound = () => { playTone(600, 0.15, 'sine', 0.05); playTone(400, 0.15, 'sine', 0.04, 0.1); playTone(250, 0.3, 'sine', 0.03, 0.2); };
   const playMLESound = () => { playTone(698.46, 0.15, 'sine', 0.06); playTone(880.00, 0.15, 'sine', 0.06, 0.1); playTone(1046.50, 0.3, 'triangle', 0.08, 0.2); };
-  const playSTSound = () => { playTone(440, 0.2, 'sine', 0.06); playTone(554.37, 0.2, 'sine', 0.06, 0.1); playTone(659.25, 0.3, 'sine', 0.08, 0.2); playTone(1318.51, 0.6, 'sine', 0.04, 0.4); };
   const playOptionSound = () => { playTone(1000, 0.06, 'square', 0.05); playTone(1400, 0.1, 'sine', 0.07, 0.06); };
   const playInjurySound = () => { playTone(300, 0.4, 'sawtooth', 0.05); playTone(200, 0.6, 'sine', 0.04, 0.1); playTone(120, 0.8, 'sine', 0.06, 0.3); };
 
@@ -396,22 +393,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     addToast('success', '⏳', `ストレッチ条項: ${player.name}`, `${st.stretchYears}年分割 | $${(st.annualAmount / 1000000).toFixed(1)}M/年`, 4500);
   }
 
-  function handleSignAndTrade(player) { playClickSound(); setSignTradePlayer(player); }
-
-  function handleConfirmSignAndTrade() {
-    playClickSound();
-    const p = signTradePlayer;
-    setDraftPicks(prev => [...prev, { id: 'pick_' + Date.now(), year: season + 1, round: Math.random() > 0.5 ? 1 : 2, own: true, from: p.name }]);
-    setExpiredPlayers(ep => ep.filter(x => x.id !== p.id));
-    setSignTradePlayer(null);
-    playSTSound(); triggerConfetti();
-    addToast('epic', '🔄', `S&T成功: {p.name}`, 'ドラフトピック+1獲得！将来の戦力に期待', 5000);
-  }
-
   function handleOptionDecision(player, exercise) {
     playClickSound(); playOptionSound();
     if (player.optionType === 'player') {
-      if (exercise) { addToast('info', '📋', `PO行使: ${player.name}`, `$$$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000); }
+      if (exercise) { addToast('info', '📋', `PO行使: {player.name}`, `$$$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000); }
       else {
         setRoster(r => r.filter(x => x.id !== player.id));
         setInjuredList(il => il.filter(inj => inj.playerId !== player.id));
@@ -572,29 +557,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     );
   };
 
-  const SignTradeModal = () => {
-    if (!signTradePlayer) return null;
-    return (
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9998]" onClick={() => setSignTradePlayer(null)}>
-        <div className="bg-[#141210] border border-amber-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
-          <div className="text-center space-y-1">
-            <span className="text-xs font-mono font-black text-amber-400 uppercase tracking-widest">SIGN & TRADE</span>
-            <h3 className="text-xl font-black text-white">{signTradePlayer.name}</h3>
-            <p className="text-sm text-stone-400">Rating {signTradePlayer.rating} / Age {signTradePlayer.age}</p>
-          </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-sm text-stone-300">
-            <p>再契約してから放出し、ドラフトピックと引き換えにできます。</p>
-            <p className="text-amber-400 mt-1 font-mono">→ 来シーズンのドラフトピックを1つ獲得</p>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={() => setSignTradePlayer(null)} className="flex-1 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-2.5 rounded-xl text-sm">キャンセル</button>
-            <button onClick={handleConfirmSignAndTrade} className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-2.5 rounded-xl text-sm">S&T実行</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const sevColor = { minor: 'text-stone-400', moderate: 'text-amber-400', severe: 'text-orange-400', critical: 'text-red-400' };
   const sevBg = { minor: 'bg-stone-900', moderate: 'bg-amber-950/50', severe: 'bg-orange-950/50', critical: 'bg-red-950/50' };
   const sevBorder = { minor: 'border-stone-800', moderate: 'border-amber-800', severe: 'border-orange-800', critical: 'border-red-800' };
@@ -654,8 +616,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     );
   }
 
-
-    // ═══ REROLL PHASE ═══
+  // ═══ REROLL PHASE ═══
   if (phase === 'reroll') {
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
@@ -684,7 +645,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       </div>
     );
   }
-
 
   // ═══ MANAGE PHASE ═══
   if (phase === 'manage') {
@@ -739,7 +699,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
 
                   {injuredList.length > 0 && (
-                    <div className={'px-4 py-2 rounded-xl border ' + 'bg-orange-950/20 border-orange-900/50'}>
+                    <div className={'px-4 py-2 rounded-xl border bg-orange-950/20 border-orange-900/50'}>
                       <div className="flex justify-between items-center mb-1">
                         <span className="text-orange-400 font-sans font-black text-sm">🏥 Injured List:</span>
                         <span className="text-orange-400 font-black text-sm">{injuredList.length}人</span>
@@ -808,7 +768,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
         <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
-        <SignTradeModal />
         <div className="w-full max-w-2xl space-y-6 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
           <div className="text-center space-y-3">
             <span className="text-xl font-mono font-black text-amber-400 uppercase tracking-widest">SEASON {season} COMPLETE</span>
@@ -842,11 +801,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <div className="bg-stone-950 border border-amber-900/50 rounded-xl p-6 space-y-3">
               <h3 className="text-xl font-mono font-black text-amber-400 uppercase">契約切れ → FA移行</h3>
               {expiredPlayers.map((p, i) => (
-                <div key={i} className="flex justify-between items-center text-xl py-1.5 px-3">
-                  <div><span className="text-white font-bold">{p.name}</span><span className="text-stone-500 font-mono text-lg ml-2">Rating {p.rating}</span></div>
-                  <HoverTip text="サイン・アンド・トレード（S&T）：FA選手と再契約してから即座に他チームへ放出。ドラフトピックを1つ獲得できる。3年以上の契約が必要。スターを逃さず補強素材に変換できる手段。">
-                    <button onClick={() => handleSignAndTrade(p)} className="text-xs bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded font-mono whitespace-nowrap">S&T</button>
-                  </HoverTip>
+                <div key={i} className="flex items-center text-xl py-1.5 px-3">
+                  <span className="text-white font-bold">{p.name}</span>
+                  <span className="text-stone-500 font-mono text-lg ml-2">Rating {p.rating}</span>
                 </div>
               ))}
             </div>
