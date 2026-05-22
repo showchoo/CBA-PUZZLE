@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SalaryMeter from './components/SalaryMeter';
 import LeaderboardPage from './components/LeaderboardPage';
 import DynastyView from './components/DynastyView';
-import { CBACoreEngine } from './engine/cbaEngine';
+import { CBACoreEngine } from './data/cbaEngine';
 import stagesData from './data/stages.json';
 
 // ═══════════════════════════════════════════════
