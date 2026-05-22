@@ -8,21 +8,15 @@ import {
   isSupermaxEligible, isGilbertArenasRestricted, getFALimit, calcSeasonBonus, calcGMScore,
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT,
   FA_BASE_LIMIT, FA_APRON1_LIMIT,
-  BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100,
-  BONUS_STAR_GROWTH_MULT
+  BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100
 } from '../dynastyEngine';
 
-// Toast コンポーネント
 function ToastContainer({ toasts }) {
   return (
     <div className="fixed top-4 right-4 z-[100] space-y-3 pointer-events-none" style={{ maxWidth: '400px' }}>
       {toasts.map((toast) => (
-        <div key={toast.id}
-          className="pointer-events-auto"
-          style={{
-            animation: toast.exiting ? 'dyToastOut 0.4s ease forwards' : 'dyToastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-          }}
-        >
+        <div key={toast.id} className="pointer-events-auto"
+          style={{ animation: toast.exiting ? 'dyToastOut 0.4s ease forwards' : 'dyToastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}>
           <div className={
             'border rounded-xl px-5 py-3.5 shadow-2xl backdrop-blur-sm ' +
             (toast.type === 'success' ? 'bg-emerald-950/90 border-emerald-500/60' :
@@ -54,41 +48,31 @@ function ToastContainer({ toasts }) {
   );
 }
 
-// 紙吹雪コンポーネント
 function ConfettiOverlay({ active }) {
   if (!active) return null;
   const colors = ['#e8c547', '#22d3ee', '#f97316', '#a78bfa', '#34d399', '#fb7185'];
   const pieces = Array.from({ length: 60 }, (_, i) => ({
-    id: i,
-    color: colors[i % colors.length],
-    left: Math.random() * 100,
-    delay: Math.random() * 2,
-    duration: 2 + Math.random() * 2,
-    size: 4 + Math.random() * 8,
-    rotation: Math.random() * 360,
+    id: i, color: colors[i % colors.length], left: Math.random() * 100,
+    delay: Math.random() * 2, duration: 2 + Math.random() * 2,
+    size: 4 + Math.random() * 8, rotation: Math.random() * 360,
     shape: Math.random() > 0.5 ? 'circle' : 'rect',
   }));
   return (
     <div className="fixed inset-0 z-[90] pointer-events-none overflow-hidden">
       {pieces.map((p) => (
         <div key={p.id} style={{
-          position: 'absolute',
-          left: `${p.left}%`,
-          top: '-20px',
+          position: 'absolute', left: `${p.left}%`, top: '-20px',
           width: p.shape === 'circle' ? `${p.size}px` : `${p.size * 1.5}px`,
-          height: `${p.size}px`,
-          backgroundColor: p.color,
+          height: `${p.size}px`, backgroundColor: p.color,
           borderRadius: p.shape === 'circle' ? '50%' : '2px',
           transform: `rotate(${p.rotation}deg)`,
-          animation: `dyConfettiFall ${p.duration}s ease-in ${p.delay}s forwards`,
-          opacity: 0.9,
+          animation: `dyConfettiFall ${p.duration}s ease-in ${p.delay}s forwards`, opacity: 0.9,
         }} />
       ))}
     </div>
   );
 }
 
-// GM SCORE カウンターコンポーネント
 function AnimatedScore({ target, playClickSound, animate = true }) {
   const [display, setDisplay] = useState(0);
   const prevRef = useRef(0);
@@ -98,38 +82,22 @@ function AnimatedScore({ target, playClickSound, animate = true }) {
     const start = prevRef.current;
     const end = target;
     prevRef.current = end;
-
-    if (!animate || Math.abs(end - start) < 10) {
-      setDisplay(end);
-      return;
-    }
-
+    if (!animate || Math.abs(end - start) < 10) { setDisplay(end); return; }
     const diff = end - start;
     const steps = Math.min(Math.abs(diff), 40);
     const stepSize = diff / steps;
     let current = 0;
-
     if (timerRef.current) clearInterval(timerRef.current);
-
     timerRef.current = setInterval(() => {
       current++;
-      const val = Math.round(start + stepSize * current);
-      setDisplay(val);
+      setDisplay(Math.round(start + stepSize * current));
       try { playClickSound(); } catch (e) {}
-      if (current >= steps) {
-        clearInterval(timerRef.current);
-        setDisplay(end);
-      }
+      if (current >= steps) { clearInterval(timerRef.current); setDisplay(end); }
     }, 50);
-
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [target, animate]);
 
-  useEffect(() => {
-    setDisplay(target);
-    prevRef.current = target;
-  }, []);
-
+  useEffect(() => { setDisplay(target); prevRef.current = target; }, []);
   return <>{display}</>;
 }
 
@@ -140,15 +108,8 @@ function HoverTip({ children, text }) {
   const handleEnter = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = rect.left + rect.width / 2;
-    const tooltipWidth = 288;
-    const halfW = tooltipWidth / 2;
-    if (x - halfW < 8) {
-      setAlign('left');
-    } else {
-      setAlign('center');
-    }
-    setPos({ x, y: rect.top });
-    setShow(true);
+    if (x - 144 < 8) setAlign('left'); else setAlign('center');
+    setPos({ x, y: rect.top }); setShow(true);
   };
   const style = align === 'left'
     ? { left: 8, top: pos.y, transform: 'translateY(-110%)' }
@@ -166,12 +127,14 @@ function HoverTip({ children, text }) {
   );
 }
 
-// ★追加: ボーナス一覧パネル
-function BonusPanel({ onClose, totalOvr, totalCapHit, roster, season, faSignedThisSeason }) {
-  const seasonBonus = calcSeasonBonus(roster, season);
-  const rating80Count = roster.filter(p => p.rating >= 80).length;
+// ═══ ボーナス一覧パネル ═══
+function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRoster, season, faSignedThisSeason, injuredList }) {
+  const seasonBonus = calcSeasonBonus(effectiveRoster, season);
+  const rating80Count = effectiveRoster.filter(p => p.rating >= 80).length;
   const minRequired = 380 + (season - 1) * 8;
-  const seasonDiff = totalOvr - minRequired;
+  const seasonDiff = effectiveOvr - minRequired;
+
+  const sevColor = { minor: 'text-stone-400', moderate: 'text-amber-400', severe: 'text-orange-400', critical: 'text-red-400' };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[9998]" onClick={onClose}>
@@ -180,24 +143,21 @@ function BonusPanel({ onClose, totalOvr, totalCapHit, roster, season, faSignedTh
           <h2 className="text-xl font-black font-mono text-amber-400">📋 ボーナス・ペナルティ一覧</h2>
           <button onClick={onClose} className="text-stone-400 hover:text-white text-sm font-mono">✕ 閉じる</button>
         </div>
-
         <div className="space-y-4 text-sm">
-          {/* GM SCORE構成 */}
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
             <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">GM SCORE 内訳</h3>
             <div className="flex justify-between"><span className="text-stone-400">基本（生存シーズン×100）</span><span className="text-white font-mono">{Math.max(0, season - 1) * 100}</span></div>
-            <div className="flex justify-between"><span className="text-stone-400">Total Rating ボーナス（÷10）</span><span className="text-white font-mono">+{Math.floor(totalOvr / 10)}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">Total Rating ボーナス（÷10）</span><span className="text-white font-mono">+{Math.floor(effectiveOvr / 10)}</span></div>
             <div className="flex justify-between"><span className="text-stone-400">キャップ残りボーナス</span><span className="text-white font-mono">+{Math.min(100, Math.floor((Math.max(0, DYN_CAP - totalCapHit) / 1000000) * 5))}</span></div>
-            <div className="flex justify-between"><span className="text-stone-400">スター保持（90+）</span><span className="text-white font-mono">{roster.some(p => p.rating >= 90) ? '+50' : '0'}</span></div>
-            <div className="flex justify-between"><span className="text-stone-400">12人ロスター</span><span className="text-white font-mono">{roster.length >= 12 ? '+30' : '0'}</span></div>
-            <div className="flex justify-between"><span className="text-stone-400">バード権ボーナス</span><span className="text-white font-mono">+{Math.min(60, roster.filter(p => p.birdRights === 'Full').length * 20)}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">スター保持（90+）</span><span className="text-white font-mono">{effectiveRoster.some(p => p.rating >= 90) ? '+50' : '0'}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">12人ロスター</span><span className="text-white font-mono">{effectiveRoster.length >= 12 ? '+30' : '0'}</span></div>
+            <div className="flex justify-between"><span className="text-stone-400">バード権ボーナス</span><span className="text-white font-mono">+{Math.min(60, effectiveRoster.filter(p => p.birdRights === 'Full').length * 20)}</span></div>
             <div className="flex justify-between text-amber-400"><span>Rating 80+ボーナス（×{rating80Count}人）</span><span className="font-mono">+{rating80Count * BONUS_RATING80_GM_SCORE}</span></div>
             {seasonBonus > 0 && (
               <div className="flex justify-between text-emerald-400"><span>シーズン成績ボーナス（+{seasonDiff} over）</span><span className="font-mono">+{seasonBonus}</span></div>
             )}
           </div>
 
-          {/* FA制限 */}
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
             <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">FA契約制限</h3>
             <div className="flex justify-between"><span className="text-stone-400">今シーズンのFA契約</span><span className="text-white font-mono">{faSignedThisSeason} / {getFALimit(totalCapHit)}人</span></div>
@@ -208,7 +168,6 @@ function BonusPanel({ onClose, totalOvr, totalCapHit, roster, season, faSignedTh
             </div>
           </div>
 
-          {/* シーズン成績ボーナス */}
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
             <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">シーズン成績ボーナス</h3>
             <div className="text-stone-500 text-xs space-y-1">
@@ -217,7 +176,6 @@ function BonusPanel({ onClose, totalOvr, totalCapHit, roster, season, faSignedTh
             </div>
           </div>
 
-          {/* トレード優遇 */}
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
             <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">成長率の違い</h3>
             <div className="text-stone-500 text-xs space-y-1">
@@ -228,7 +186,31 @@ function BonusPanel({ onClose, totalOvr, totalCapHit, roster, season, faSignedTh
             </div>
           </div>
 
-          {/* 放出手段 */}
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
+            <h3 className="text-orange-400 font-mono font-black text-xs uppercase tracking-wider">🏥 怪我システム</h3>
+            <div className="text-stone-500 text-xs space-y-1">
+              <p>• 発生確率: <span className="text-white font-mono">15%</span>/シーズン（30歳以上 +1%/歳）</p>
+              <p>• <span className={sevColor.minor}>軽傷 55%</span>: Rating -1〜-2、即回復</p>
+              <p>• <span className={sevColor.moderate}>中度 25%</span>: Rating -2〜-5、1シーズン欠場</p>
+              <p>• <span className={sevColor.severe}>重度 15%</span>: Rating -4〜-15、1〜2シーズン欠場</p>
+              <p>• <span className={sevColor.critical}>深刻 5%</span>: Rating -5〜-25、1〜5シーズン欠場、引退の可能性</p>
+              <p className="text-stone-400 mt-1">※ 怪我中の選手はTotal Ratingに反映されません</p>
+            </div>
+            {injuredList.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-stone-800">
+                <h4 className="text-orange-400 font-mono font-black text-xs mb-1">現在の負傷者</h4>
+                {injuredList.map((inj, i) => (
+                  <div key={i} className="flex justify-between text-xs py-0.5">
+                    <span className="text-stone-300">{inj.playerName}</span>
+                    <span className={sevColor[inj.severity]}>
+                      {inj.name} ({inj.seasonsLeft}yr)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
             <h3 className="text-cyan-400 font-mono font-black text-xs uppercase tracking-wider">放出手段の使いどころ</h3>
             <div className="text-stone-500 text-xs space-y-1">
@@ -243,6 +225,7 @@ function BonusPanel({ onClose, totalOvr, totalCapHit, roster, season, faSignedTh
   );
 }
 
+// ═══ メインコンポーネント ═══
 export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, toggleBGM }) {
   const [phase, setPhase] = useState('reroll');
   const [season, setSeason] = useState(1);
@@ -275,18 +258,24 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [screenShake, setScreenShake] = useState(false);
   const toastCounter = useRef(0);
   const [gmAnimating, setGmAnimating] = useState(false);
-
-  // ★追加: FA制限・ボーナスパネル用
   const [faSignedThisSeason, setFaSignedThisSeason] = useState(0);
   const [showBonusPanel, setShowBonusPanel] = useState(false);
+
+  // ★追加: 怪我リスト
+  const [injuredList, setInjuredList] = useState([]);
 
   const totalCapHit = calcCapHit(roster, deadCap);
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
   const minOvr = 380 + (season - 1) * 8;
   const faLimit = getFALimit(totalCapHit);
 
+  // ★追加: 実効Rating（怪我中選手を除外）
+  const injuredIds = new Set(injuredList.map(inj => inj.playerId));
+  const effectiveRoster = roster.filter(p => !injuredIds.has(p.id));
+  const effectiveOvr = effectiveRoster.reduce((s, p) => s + p.rating, 0);
+
   function gmScoreCalc() {
-    return calcGMScore(season, totalOvr, totalCapHit, roster);
+    return calcGMScore(season, effectiveOvr, totalCapHit, effectiveRoster);
   }
 
   const mleAmount = getMLEAmount(totalCapHit);
@@ -298,29 +287,16 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const addToast = useCallback((type, icon, title, message, duration = 3000) => {
     const id = ++toastCounter.current;
     setToasts(prev => [...prev, { id, type, icon, title, message, exiting: false }]);
-    setTimeout(() => {
-      setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-    }, duration);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, duration + 500);
+    setTimeout(() => setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t)), duration);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration + 500);
   }, []);
 
-  const triggerConfetti = useCallback(() => {
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 5000);
-  }, []);
-
-  const triggerShake = useCallback(() => {
-    setScreenShake(true);
-    setTimeout(() => setScreenShake(false), 600);
-  }, []);
+  const triggerConfetti = useCallback(() => { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 5000); }, []);
+  const triggerShake = useCallback(() => { setScreenShake(true); setTimeout(() => setScreenShake(false), 600); }, []);
 
   const ctxRef = useRef(null);
   const getAudioCtx = () => {
-    if (!ctxRef.current || ctxRef.current.state === 'closed') {
-      ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (!ctxRef.current || ctxRef.current.state === 'closed') ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
     if (ctxRef.current.state === 'suspended') ctxRef.current.resume();
     return ctxRef.current;
   };
@@ -330,71 +306,21 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       const ctx = getAudioCtx(); const now = ctx.currentTime + delay;
       const o = ctx.createOscillator(); const g = ctx.createGain();
       o.type = type; o.frequency.setValueAtTime(freq, now);
-      g.gain.setValueAtTime(vol, now);
-      g.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      g.gain.setValueAtTime(vol, now); g.gain.exponentialRampToValueAtTime(0.001, now + duration);
       o.connect(g); g.connect(ctx.destination); o.start(now); o.stop(now + duration + 0.01);
     } catch (e) {}
   };
 
-  const playSuccessSound = () => {
-    playTone(523.25, 0.15, 'sine', 0.07);
-    playTone(659.25, 0.15, 'sine', 0.07, 0.1);
-    playTone(783.99, 0.25, 'sine', 0.09, 0.2);
-  };
-
-  const playEpicSound = () => {
-    [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
-      playTone(f, 0.4, 'sine', 0.06, i * 0.12);
-      playTone(f * 1.5, 0.3, 'triangle', 0.03, i * 0.12 + 0.05);
-    });
-    [1318.51, 1567.98, 2093.00].forEach((f, i) => {
-      playTone(f, 0.8, 'sine', 0.02, 0.5 + i * 0.15);
-    });
-  };
-
-  const playTradeSound = () => {
-    playTone(200, 0.3, 'sawtooth', 0.06);
-    playTone(150, 0.4, 'sine', 0.08, 0.05);
-    playTone(800, 0.08, 'square', 0.04, 0.1);
-    playTone(600, 0.15, 'sine', 0.06, 0.15);
-    playTone(900, 0.2, 'sine', 0.08, 0.25);
-  };
-
-  const playBuyoutSound = () => {
-    playTone(329.63, 0.6, 'sine', 0.05);
-    playTone(415.30, 0.6, 'sine', 0.05, 0.02);
-    playTone(493.88, 0.8, 'sine', 0.07, 0.04);
-    playTone(987.77, 1.2, 'sine', 0.02, 0.4);
-  };
-
-  const playErrorSound = () => {
-    playTone(200, 0.2, 'square', 0.06);
-    playTone(190, 0.2, 'square', 0.06, 0.15);
-  };
-
-  const playReleaseSound = () => {
-    playTone(600, 0.15, 'sine', 0.05);
-    playTone(400, 0.15, 'sine', 0.04, 0.1);
-    playTone(250, 0.3, 'sine', 0.03, 0.2);
-  };
-
-  const playMLESound = () => {
-    playTone(698.46, 0.15, 'sine', 0.06);
-    playTone(880.00, 0.15, 'sine', 0.06, 0.1);
-    playTone(1046.50, 0.3, 'triangle', 0.08, 0.2);
-  };
-
-  const playSTSound = () => {
-    playTone(440, 0.2, 'sine', 0.06);
-    playTone(554.37, 0.2, 'sine', 0.06, 0.1);
-    playTone(659.25, 0.3, 'sine', 0.08, 0.2);
-    playTone(1318.51, 0.6, 'sine', 0.04, 0.4);
-  };
-
-  const playOptionSound = () => {
-    playTone(1000, 0.06, 'square', 0.05);
-    playTone(1400, 0.1, 'sine', 0.07, 0.06);
-  };
+  const playSuccessSound = () => { playTone(523.25, 0.15, 'sine', 0.07); playTone(659.25, 0.15, 'sine', 0.07, 0.1); playTone(783.99, 0.25, 'sine', 0.09, 0.2); };
+  const playEpicSound = () => { [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => { playTone(f, 0.4, 'sine', 0.06, i * 0.12); playTone(f * 1.5, 0.3, 'triangle', 0.03, i * 0.12 + 0.05); }); [1318.51, 1567.98, 2093.00].forEach((f, i) => { playTone(f, 0.8, 'sine', 0.02, 0.5 + i * 0.15); }); };
+  const playTradeSound = () => { playTone(200, 0.3, 'sawtooth', 0.06); playTone(150, 0.4, 'sine', 0.08, 0.05); playTone(800, 0.08, 'square', 0.04, 0.1); playTone(600, 0.15, 'sine', 0.06, 0.15); playTone(900, 0.2, 'sine', 0.08, 0.25); };
+  const playBuyoutSound = () => { playTone(329.63, 0.6, 'sine', 0.05); playTone(415.30, 0.6, 'sine', 0.05, 0.02); playTone(493.88, 0.8, 'sine', 0.07, 0.04); playTone(987.77, 1.2, 'sine', 0.02, 0.4); };
+  const playErrorSound = () => { playTone(200, 0.2, 'square', 0.06); playTone(190, 0.2, 'square', 0.06, 0.15); };
+  const playReleaseSound = () => { playTone(600, 0.15, 'sine', 0.05); playTone(400, 0.15, 'sine', 0.04, 0.1); playTone(250, 0.3, 'sine', 0.03, 0.2); };
+  const playMLESound = () => { playTone(698.46, 0.15, 'sine', 0.06); playTone(880.00, 0.15, 'sine', 0.06, 0.1); playTone(1046.50, 0.3, 'triangle', 0.08, 0.2); };
+  const playSTSound = () => { playTone(440, 0.2, 'sine', 0.06); playTone(554.37, 0.2, 'sine', 0.06, 0.1); playTone(659.25, 0.3, 'sine', 0.08, 0.2); playTone(1318.51, 0.6, 'sine', 0.04, 0.4); };
+  const playOptionSound = () => { playTone(1000, 0.06, 'square', 0.05); playTone(1400, 0.1, 'sine', 0.07, 0.06); };
+  const playInjurySound = () => { playTone(300, 0.4, 'sawtooth', 0.05); playTone(200, 0.6, 'sine', 0.04, 0.1); playTone(120, 0.8, 'sine', 0.06, 0.3); };
 
   useEffect(() => { doReroll(); }, []);
 
@@ -402,71 +328,36 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     playClickSound();
     setRoster(genRoster());
     setFreeAgents(genFA(8));
-    setDeadCap(0);
-    setDeadCapDetails([]);
+    setDeadCap(0); setDeadCapDetails([]);
     setDraftPicks(genDraftPicks());
-    setTaxHistory([]);
-    setMleUsed(false);
-    setSeason(1);
-    setPhase('reroll');
-    setTradeMode(false);
-    setGmAnimating(false);
-    setFaSignedThisSeason(0);
+    setTaxHistory([]); setMleUsed(false);
+    setSeason(1); setPhase('reroll'); setTradeMode(false);
+    setGmAnimating(false); setFaSignedThisSeason(0);
+    setInjuredList([]); // ★追加
   }
 
   function handleSignRequest(player) {
-    playClickSound();
-    setSigningPlayer(player);
-    setSigningYears(2);
-    setUseMLE(false);
+    playClickSound(); setSigningPlayer(player); setSigningYears(2); setUseMLE(false);
   }
 
-  // ★修正: FA人数チェック追加
   function handleConfirmSign() {
     playClickSound();
-    const player = signingPlayer;
-    const years = signingYears;
-
+    const player = signingPlayer; const years = signingYears;
     const check = canSignFA(player, years, totalCapHit, faSignedThisSeason);
-    if (!check.allowed) {
-      playErrorSound();
-      triggerShake();
-      addToast('warning', '❌', '契約不可', check.reason, 4000);
-      return;
-    }
-
+    if (!check.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', '契約不可', check.reason, 4000); return; }
     let adjustedSalary = adjustSalaryForYears(player.salary, years);
-
-    if (useMLE && mleAmount > 0 && !mleUsed) {
-      adjustedSalary = Math.min(adjustedSalary, mleAmount);
-    }
-
-    if (totalCapHit + adjustedSalary > DYN_APRON2) {
-      playErrorSound();
-      triggerShake();
-      addToast('warning', '❌', '第2エプロン超過', '補強できません！', 4000);
-      return;
-    }
-
+    if (useMLE && mleAmount > 0 && !mleUsed) adjustedSalary = Math.min(adjustedSalary, mleAmount);
+    if (totalCapHit + adjustedSalary > DYN_APRON2) { playErrorSound(); triggerShake(); addToast('warning', '❌', '第2エプロン超過', '補強できません！', 4000); return; }
     const signedPlayer = { ...player, salary: adjustedSalary, contractYears: years, faStatus: 'None', source: 'fa' };
     setFreeAgents(fa => fa.filter(p => p.id !== player.id));
     setRoster(r => [...r, signedPlayer]);
     setFaSignedThisSeason(c => c + 1);
-    if (useMLE) {
-      setMleUsed(true);
-      playMLESound();
-      addToast('info', '📋', `MLE契約: ${player.name}`, `$${(adjustedSalary / 1000000).toFixed(1)}M`, 3500);
-    } else {
-      playSuccessSound();
-      addToast('success', '✍️', `契約: {player.name}`, `R${player.rating} | $$$${(adjustedSalary / 1000000).toFixed(1)}M/年`, 3000);
-    }
+    if (useMLE) { setMleUsed(true); playMLESound(); addToast('info', '📋', `MLE契約: ${player.name}`, `$${(adjustedSalary / 1000000).toFixed(1)}M`, 3500); }
+    else { playSuccessSound(); addToast('success', '✍️', `契約: {player.name}`, `R${player.rating} | $$$${(adjustedSalary / 1000000).toFixed(1)}M/年`, 3000); }
     setSigningPlayer(null);
   }
 
-  function handleCancelSign() {
-    playClickSound();
-    setSigningPlayer(null);
-  }
+  function handleCancelSign() { playClickSound(); setSigningPlayer(null); }
 
   function handleWaiver(player) {
     playClickSound();
@@ -477,6 +368,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
     }
     setRoster(r => r.filter(p => p.id !== player.id));
+    setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
     playReleaseSound();
     addToast('warning', '💀', `ウェイブ: ${player.name}`, `デッドキャップ $${(player.salary / 1000000).toFixed(1)}M/年 × {player.contractYears}年`, 4000);
   }
@@ -493,13 +385,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
       }
       setRoster(r => r.filter(p => p.id !== player.id));
+      setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
       playBuyoutSound();
       const totalSaved = player.salary * player.contractYears - deadAmount * player.contractYears;
       addToast('success', '🤝', `バイアウト成功: ${player.name}`, `契約${pct}%に軽減 | $$$${(totalSaved / 1000000).toFixed(1)}M節約`, 4500);
-    } else {
-      playErrorSound();
-      addToast('warning', '❌', `バイアウト拒否: ${player.name}`, `同意確率: ${agreeChance}%`, 3500);
-    }
+    } else { playErrorSound(); addToast('warning', '❌', `バイアウト拒否: ${player.name}`, `同意確率: ${agreeChance}%`, 3500); }
   }
 
   function handleStretch(player) {
@@ -511,44 +401,39 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       setDeadCapDetails(nd); setDeadCap(nd.reduce((s, d) => s + d.amount, 0));
     }
     setRoster(r => r.filter(p => p.id !== player.id));
+    setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
     playBuyoutSound();
     addToast('success', '⏳', `ストレッチ条項: ${player.name}`, `${st.stretchYears}年分割 | $${(st.annualAmount / 1000000).toFixed(1)}M/年`, 4500);
   }
 
-  function handleSignAndTrade(player) {
-    playClickSound();
-    setSignTradePlayer(player);
-  }
+  function handleSignAndTrade(player) { playClickSound(); setSignTradePlayer(player); }
 
   function handleConfirmSignAndTrade() {
     playClickSound();
     const p = signTradePlayer;
-    const newPicks = [...draftPicks, { id: 'pick_' + Date.now(), year: season + 1, round: Math.random() > 0.5 ? 1 : 2, own: true, from: p.name }];
-    setDraftPicks(newPicks);
+    setDraftPicks(prev => [...prev, { id: 'pick_' + Date.now(), year: season + 1, round: Math.random() > 0.5 ? 1 : 2, own: true, from: p.name }]);
     setExpiredPlayers(ep => ep.filter(x => x.id !== p.id));
     setSignTradePlayer(null);
-    playSTSound();
-    triggerConfetti();
+    playSTSound(); triggerConfetti();
     addToast('epic', '🔄', `S&T成功: {p.name}`, 'ドラフトピック+1獲得！将来の戦力に期待', 5000);
   }
 
   function handleOptionDecision(player, exercise) {
-    playClickSound();
-    playOptionSound();
+    playClickSound(); playOptionSound();
     if (player.optionType === 'player') {
-      if (exercise) {
-        addToast('info', '📋', `PO行使: ${player.name}`, `$$$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000);
-      } else {
+      if (exercise) { addToast('info', '📋', `PO行使: ${player.name}`, `$$$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000); }
+      else {
         setRoster(r => r.filter(x => x.id !== player.id));
+        setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
         player.faStatus = player.birdRights !== 'None' ? 'RFA' : 'UFA';
         setExpiredPlayers(ep => [...ep, { ...player }]);
         addToast('warning', '🏃', `PO拒否: ${player.name}`, 'FA市場へ移動', 3500);
       }
     } else {
-      if (exercise) {
-        addToast('success', '📋', `TO行使: ${player.name}`, `$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000);
-      } else {
+      if (exercise) { addToast('success', '📋', `TO行使: ${player.name}`, `$${(player.salary / 1000000).toFixed(1)}Mで契約延長`, 3000); }
+      else {
         setRoster(r => r.filter(x => x.id !== player.id));
+        setInjuredList(il => il.filter(inj => inj.playerId !== player.id)); // ★追加
         addToast('info', '✂️', `TO拒否: {player.name}`, '契約を終了。キャップに余裕が生まれました', 3000);
       }
     }
@@ -556,120 +441,75 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   }
 
   function handleOpenTrade() {
-    playClickSound();
-    setTradeMarket(genFA(6));
-    setTradeOffer([]);
-    setTradeTarget(null);
-    setTradeMode(true);
+    playClickSound(); setTradeMarket(genFA(6)); setTradeOffer([]); setTradeTarget(null); setTradeMode(true);
   }
+  function handleAddToTradeOffer(player) { playClickSound(); if (!tradeOffer.find(p => p.id === player.id)) setTradeOffer([...tradeOffer, player]); }
+  function handleRemoveFromTradeOffer(player) { playClickSound(); setTradeOffer(tradeOffer.filter(p => p.id !== player.id)); }
+  function handleSelectTradeTarget(player) { playClickSound(); setTradeTarget(player); }
 
-  function handleAddToTradeOffer(player) {
-    playClickSound();
-    if (!tradeOffer.find(p => p.id === player.id)) {
-      setTradeOffer([...tradeOffer, player]);
-    }
-  }
-
-  function handleRemoveFromTradeOffer(player) {
-    playClickSound();
-    setTradeOffer(tradeOffer.filter(p => p.id !== player.id));
-  }
-
-  function handleSelectTradeTarget(player) {
-    playClickSound();
-    setTradeTarget(player);
-  }
-
-  // ★修正: トレード獲得選手にsource='trade'を付与
   function handleExecuteTrade() {
     playClickSound();
     if (!tradeTarget || tradeOffer.length === 0) { alert('トレードする選手を選んでください'); return; }
-    const validation = validateTrade(
-      tradeOffer.map(p => p.salary),
-      [tradeTarget.salary]
-    );
-    if (!validation.allowed) {
-      playErrorSound();
-      triggerShake();
-      addToast('warning', '❌', 'トレード不可', validation.reason, 4000);
-      return;
-    }
+    const validation = validateTrade(tradeOffer.map(p => p.salary), [tradeTarget.salary]);
+    if (!validation.allowed) { playErrorSound(); triggerShake(); addToast('warning', '❌', 'トレード不可', validation.reason, 4000); return; }
     const tradedIn = { ...tradeTarget, source: 'trade' };
     setRoster(r => [...r.filter(p => !tradeOffer.find(o => o.id === p.id)), tradedIn]);
-    setTradeOffer([]);
-    setTradeTarget(null);
-    setTradeMode(false);
-    playTradeSound();
-    triggerConfetti();
+    setInjuredList(il => il.filter(inj => !tradeOffer.find(o => o.id === inj.playerId))); // ★追加
+    setTradeOffer([]); setTradeTarget(null); setTradeMode(false);
+    playTradeSound(); triggerConfetti();
     addToast('trade', '🤝', 'トレード成立!', `${tradeOffer.map(p => p.name).join(', ')} → ${tradeTarget.name}`, 4500);
   }
 
+  // ★修正: advanceSeasonにinjuredListを渡す
   function handleNextSeason() {
     playClickSound();
-    const result = advanceSeason(roster);
+    const result = advanceSeason(roster, injuredList);
     const deadResult = advanceDeadCap(deadCapDetails);
     setSummaries(result.summaries);
     setExpiredPlayers(result.expired);
     setOptionPlayers(result.optionPlayers);
     setRoster(result.surviving);
-    setDeadCap(deadResult.total);
-    setDeadCapDetails(deadResult.details);
-    setTaxHistory([...taxHistory, isOnTax]);
-    setMleUsed(false);
-    setFaSignedThisSeason(0);
+    setDeadCap(deadResult.total); setDeadCapDetails(deadResult.details);
+    setTaxHistory([...taxHistory, isOnTax]); setMleUsed(false); setFaSignedThisSeason(0);
+    setInjuredList(result.injuries); // ★追加
+
+    // 怪我通知
+    const newInjuries = result.injuries.filter(inj => !injuredList.find(old => old.id === inj.id));
+    newInjuries.forEach(inj => {
+      const sevLabel = { minor: '軽傷', moderate: '中度', severe: '重度', critical: '深刻' };
+      playInjurySound();
+      addToast('warning', '🏥', `${inj.playerName}: ${inj.name}`, `${sevLabel[inj.severity]} | -${inj.ratingLoss} Rating | ${inj.seasonsLeft}シーズン欠場`, 5000);
+    });
+
     setPhase('seasonEnd');
   }
 
-  function handleToDraft() {
-    playClickSound();
-    if (optionPlayers.length > 0) {
-      setPhase('optionDecision');
-      return;
-    }
-    startDraft();
-  }
+  function handleToDraft() { playClickSound(); if (optionPlayers.length > 0) { setPhase('optionDecision'); return; } startDraft(); }
+  function startDraft() { setDraftProspects(genDraft(10)); setPicksLeft(PICKS_PER_DRAFT); setPhase('draft'); }
 
-  function startDraft() {
-    setDraftProspects(genDraft(10));
-    setPicksLeft(PICKS_PER_DRAFT);
-    setPhase('draft');
-  }
-
-  // ★修正: ドラフト選手にsource='draft'を付与
   function handleDraft(prospect) {
-    playClickSound();
-    playSuccessSound();
+    playClickSound(); playSuccessSound();
     addToast('success', '🏀', `ドラフト: ${prospect.name}`, `R${prospect.rating} | $$$${(prospect.salary / 1000000).toFixed(1)}M`, 3000);
     setRoster(r => [...r, { ...prospect, faStatus: 'None', hasOption: false, optionType: null, supermaxEligible: false, source: 'draft' }]);
     setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
     setPicksLeft(p => p - 1);
   }
 
-  // ★修正: シーズンボーナス適用
+  // ★修正: checkSurvivalにinjuredListを渡す
   function handleDraftComplete() {
     playClickSound();
     const newSeason = season + 1;
-    const survival = checkSurvival(roster, newSeason);
-    if (!survival.alive) {
-      playErrorSound();
-      setCollapseReason(survival.reason);
-      setPhase('gameOver');
-      return;
-    }
-    const bonus = calcSeasonBonus(roster, season);
-    if (bonus > 0) {
-      addToast('epic', '🏆', `シーズンボーナス +${bonus} GM SCORE!`, `Total Rating ${totalOvr}（生存ライン+${totalOvr - minOvr}）`, 4000);
-    }
-    playEpicSound();
-    triggerConfetti();
-    setGmAnimating(true);
+    const survival = checkSurvival(roster, newSeason, injuredList);
+    if (!survival.alive) { playErrorSound(); setCollapseReason(survival.reason); setPhase('gameOver'); return; }
+    const bonus = calcSeasonBonus(effectiveRoster, season);
+    if (bonus > 0) addToast('epic', '🏆', `シーズンボーナス +${bonus} GM SCORE!`, `Total Rating ${effectiveOvr}（生存ライン+${effectiveOvr - minOvr}）`, 4000);
+    playEpicSound(); triggerConfetti(); setGmAnimating(true);
     addToast('epic', '➡️', `SEASON ${newSeason}`, '新シーズン開始！', 3500);
-    setFreeAgents(genFA(8));
-    setSeason(newSeason);
-    setPhase('manage');
+    setFreeAgents(genFA(8)); setSeason(newSeason); setPhase('manage');
     setTimeout(() => setGmAnimating(false), 3000);
   }
 
+  // ★修正: Total Ratingを実効値で表示
   const Header = () => (
     <header className="w-full max-w-7xl mx-auto mb-3 flex justify-between items-center shrink-0">
       <div className="flex items-center gap-3">
@@ -680,7 +520,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         </div>
       </div>
       <div className="flex items-center gap-3">
-        {/* ★追加: ボーナス一覧ボタン */}
         <button onClick={() => { playClickSound(); setShowBonusPanel(true); }} className="px-2 py-1.5 text-xs font-mono text-amber-400 hover:text-amber-300 bg-amber-950/30 border border-amber-800/50 rounded-lg transition-all">📋 ボーナス一覧</button>
         <span className="text-xs font-mono text-stone-500">GM SCORE</span>
         <span className="text-2xl font-mono font-black text-amber-400">
@@ -699,7 +538,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       : adjustSalaryForYears(signingPlayer.salary, signingYears);
     const gilbert = isGilbertArenasRestricted(signingPlayer);
     const supermax = isSupermaxEligible(signingPlayer);
-
     return (
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9998]" onClick={handleCancelSign}>
         <div className="bg-[#141210] border border-stone-700 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -711,44 +549,23 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               <span className="text-stone-400">Age {signingPlayer.age}</span>
             </div>
           </div>
-
-          {supermax && (
-            <div className="bg-amber-950/40 border border-amber-700 rounded-lg p-2 text-xs text-amber-300 font-mono text-center">
-              ⭐ スーパーマックス対象選手（Rating 90+, チーム4年以上）
-            </div>
-          )}
-          {gilbert && (
-            <div className="bg-purple-950/40 border border-purple-700 rounded-lg p-2 text-xs text-purple-300 font-mono text-center">
-              🔒 ギルバート・アリーナス条項適用（他チームはMLE上限まで）
-            </div>
-          )}
-
-          {/* ★追加: FA残枠表示 */}
+          {supermax && <div className="bg-amber-950/40 border border-amber-700 rounded-lg p-2 text-xs text-amber-300 font-mono text-center">⭐ スーパーマックス対象選手（Rating 90+, チーム4年以上）</div>}
+          {gilbert && <div className="bg-purple-950/40 border border-purple-700 rounded-lg p-2 text-xs text-purple-300 font-mono text-center">🔒 ギルバート・アリーナス条項適用（他チームはMLE上限まで）</div>}
           <div className="bg-stone-950 border border-stone-800 rounded-lg px-3 py-2 text-xs font-mono text-stone-400 text-center">
             今シーズンのFA契約: <span className="text-white font-black">{faSignedThisSeason}</span> / {faLimit}人
             {faLimit === 0 && <span className="text-red-400 ml-2">⚠️ FA契約不可</span>}
           </div>
-
           <div className="space-y-2">
             <label className="text-xs font-mono font-black text-stone-400 uppercase">契約年数を選択</label>
             <div className="grid grid-cols-5 gap-2">
               {[1, 2, 3, 4, 5].map(y => {
                 const check = canSignFA(signingPlayer, y, totalCapHit, faSignedThisSeason);
-                return (
-                  <button key={y} onClick={() => setSigningYears(y)} disabled={!check.allowed}
-                    className={'py-2 rounded-lg border font-mono font-black text-sm transition-all ' + (
-                      signingYears === y ? 'bg-cyan-950 border-cyan-500 text-cyan-400'
-                      : check.allowed ? 'bg-stone-900 border-stone-800 text-stone-300 hover:bg-stone-850'
-                      : 'bg-stone-950 border-stone-900 text-stone-600 cursor-not-allowed'
-                    )}>{y}年</button>
-                );
+                return <button key={y} onClick={() => setSigningYears(y)} disabled={!check.allowed}
+                  className={'py-2 rounded-lg border font-mono font-black text-sm transition-all ' + (signingYears === y ? 'bg-cyan-950 border-cyan-500 text-cyan-400' : check.allowed ? 'bg-stone-900 border-stone-800 text-stone-300 hover:bg-stone-850' : 'bg-stone-950 border-stone-900 text-stone-600 cursor-not-allowed')}>{y}年</button>;
               })}
             </div>
-            {signingPlayer.rating >= 85 && signingYears === 1 && (
-              <p className="text-xs text-red-400 font-mono">⚠️ スター級選手は1年契約を拒否します</p>
-            )}
+            {signingPlayer.rating >= 85 && signingYears === 1 && <p className="text-xs text-red-400 font-mono">⚠️ スター級選手は1年契約を拒否します</p>}
           </div>
-
           {mleAmount > 0 && !mleUsed && (
             <div className="flex items-center gap-2">
               <input type="checkbox" id="useMLE" checked={useMLE} onChange={e => setUseMLE(e.target.checked)} className="accent-cyan-500" />
@@ -757,24 +574,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               </HoverTip>
             </div>
           )}
-
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-400">年俸:</span>
-              <span className="text-white font-mono font-black">${(adjustedSalary / 1000000).toFixed(1)}M</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-400">契約総額:</span>
-              <span className="text-white font-mono font-black">${(adjustedSalary * signingYears / 1000000).toFixed(1)}M</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-stone-400">契約後キャップ:</span>
-              <span className={(totalCapHit + adjustedSalary) <= DYN_CAP ? 'text-emerald-400 font-mono font-black' : 'text-red-400 font-mono font-black'}>
-                ${((totalCapHit + adjustedSalary) / 1000000).toFixed(1)}M
-              </span>
-            </div>
+            <div className="flex justify-between text-sm"><span className="text-stone-400">年俸:</span><span className="text-white font-mono font-black">${(adjustedSalary / 1000000).toFixed(1)}M</span></div>
+            <div className="flex justify-between text-sm"><span className="text-stone-400">契約総額:</span><span className="text-white font-mono font-black">${(adjustedSalary * signingYears / 1000000).toFixed(1)}M</span></div>
+            <div className="flex justify-between text-sm"><span className="text-stone-400">契約後キャップ:</span><span className={(totalCapHit + adjustedSalary) <= DYN_CAP ? 'text-emerald-400 font-mono font-black' : 'text-red-400 font-mono font-black'}>${((totalCapHit + adjustedSalary) / 1000000).toFixed(1)}M</span></div>
           </div>
-
           <div className="flex gap-2">
             <button onClick={handleCancelSign} className="flex-1 bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-2.5 rounded-xl text-sm transition-all">キャンセル</button>
             <button onClick={handleConfirmSign} disabled={faSignedThisSeason >= faLimit} className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:from-stone-800 disabled:to-stone-800 disabled:text-stone-600 text-stone-950 font-mono font-black py-2.5 rounded-xl text-sm transition-all">契約する</button>
@@ -807,48 +611,35 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     );
   };
 
+  const sevColor = { minor: 'text-stone-400', moderate: 'text-amber-400', severe: 'text-orange-400', critical: 'text-red-400' };
+  const sevBg = { minor: 'bg-stone-900', moderate: 'bg-amber-950/50', severe: 'bg-orange-950/50', critical: 'bg-red-950/50' };
+  const sevBorder = { minor: 'border-stone-800', moderate: 'border-amber-800', severe: 'border-orange-800', critical: 'border-red-800' };
+
   // ═══ TRADE PHASE ═══
   if (tradeMode) {
     const validation = tradeOffer.length > 0 && tradeTarget ? validateTrade(tradeOffer.map(p => p.salary), [tradeTarget.salary]) : null;
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <ToastContainer toasts={toasts} />
-        <ConfettiOverlay active={showConfetti} />
+        <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
         <div className={'w-full max-w-5xl space-y-4 ' + (screenShake ? 'animate-shake' : '')}>
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-black font-mono text-cyan-400">⚖️ TRADE MACHINE</h2>
             <button onClick={() => { playClickSound(); setTradeMode(false); }} className="text-stone-400 hover:text-white font-mono text-sm">← 戻る</button>
           </div>
-          <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400">
-            トレードルール: 獲得額は送出額の75%〜125%+$100Kの範囲内 ｜ トレード獲得選手は成長率優遇（-0〜-2）
-          </div>
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400">トレードルール: 獲得額は送出額の75%〜125%+$100Kの範囲内 ｜ トレード獲得選手は成長率優遇（-0〜-2）</div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
               <h3 className="text-sm font-mono font-black text-red-400 mb-2">送出選手</h3>
-              {tradeOffer.length === 0 ? (
-                <p className="text-stone-500 text-sm">← ロスターから選択</p>
-              ) : (
+              {tradeOffer.length === 0 ? <p className="text-stone-500 text-sm">← ロスターから選択</p> : (
                 <div className="space-y-1">
-                  {tradeOffer.map(p => (
-                    <div key={p.id} className="flex justify-between items-center text-sm bg-stone-950 rounded p-2">
-                      <span className="text-white">{p.name} ({(p.salary / 1000000).toFixed(1)}M)</span>
-                      <button onClick={() => handleRemoveFromTradeOffer(p)} className="text-red-400 text-xs">✕</button>
-                    </div>
-                  ))}
+                  {tradeOffer.map(p => <div key={p.id} className="flex justify-between items-center text-sm bg-stone-950 rounded p-2"><span className="text-white">{p.name} ({(p.salary / 1000000).toFixed(1)}M)</span><button onClick={() => handleRemoveFromTradeOffer(p)} className="text-red-400 text-xs">✕</button></div>)}
                   <div className="text-xs font-mono text-stone-400 mt-1">合計: ${(tradeOffer.reduce((s, p) => s + p.salary, 0) / 1000000).toFixed(1)}M</div>
                 </div>
               )}
             </div>
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
               <h3 className="text-sm font-mono font-black text-emerald-400 mb-2">獲得選手</h3>
-              {tradeTarget ? (
-                <div className="bg-stone-950 rounded p-2">
-                  <span className="text-white text-sm">{tradeTarget.name}</span>
-                  <span className="text-stone-400 text-xs ml-2">({(tradeTarget.salary / 1000000).toFixed(1)}M)</span>
-                </div>
-              ) : (
-                <p className="text-stone-500 text-sm">← 市場から選択</p>
-              )}
+              {tradeTarget ? <div className="bg-stone-950 rounded p-2"><span className="text-white text-sm">{tradeTarget.name}</span><span className="text-stone-400 text-xs ml-2">({(tradeTarget.salary / 1000000).toFixed(1)}M)</span></div> : <p className="text-stone-500 text-sm">← 市場から選択</p>}
             </div>
             <div className="bg-[#141210] border border-stone-800 rounded-xl p-4">
               <h3 className="text-sm font-mono font-black text-amber-400 mb-2">判定</h3>
@@ -858,39 +649,20 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   <div>下限: <span className="text-amber-400 font-mono">${(validation.minIncoming / 1000000).toFixed(1)}M</span></div>
                   <div>上限: <span className="text-cyan-400 font-mono">${(validation.maxIncoming / 1000000).toFixed(1)}M</span></div>
                   <div>獲得: <span className="text-white font-mono">${(validation.incoming / 1000000).toFixed(1)}M</span></div>
-                  <div className={validation.allowed ? 'text-emerald-400 font-black' : 'text-red-400 font-black'}>
-                    {validation.allowed ? '✓ トレード成立' : `✗ ${validation.reason}`}
-                  </div>
+                  <div className={validation.allowed ? 'text-emerald-400 font-black' : 'text-red-400 font-black'}>{validation.allowed ? '✓ トレード成立' : `✗ ${validation.reason}`}</div>
                 </div>
-              ) : (
-                <p className="text-stone-500 text-sm">送出と獲得を選択してください</p>
-              )}
-              <button onClick={handleExecuteTrade} disabled={!validation?.allowed}
-                className="w-full mt-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:from-stone-800 disabled:to-stone-800 disabled:text-stone-600 text-stone-950 font-mono font-black py-2 rounded-lg text-sm">
-                トレード実行
-              </button>
+              ) : <p className="text-stone-500 text-sm">送出と獲得を選択してください</p>}
+              <button onClick={handleExecuteTrade} disabled={!validation?.allowed} className="w-full mt-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 disabled:from-stone-800 disabled:to-stone-800 disabled:text-stone-600 text-stone-950 font-mono font-black py-2 rounded-lg text-sm">トレード実行</button>
             </div>
           </div>
           <div className="flex gap-4">
             <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl p-4 max-h-60 overflow-y-auto">
               <h3 className="text-xs font-mono font-black text-stone-400 mb-2">YOUR ROSTER（クリックで送出に追加）</h3>
-              {roster.map(p => (
-                <button key={p.id} onClick={() => handleAddToTradeOffer(p)}
-                  className="w-full text-left text-sm py-1 px-2 rounded hover:bg-stone-900/50 flex justify-between">
-                  <span className="text-white">{p.name}</span>
-                  <span className="text-stone-400">${(p.salary / 1000000).toFixed(1)}M</span>
-                </button>
-              ))}
+              {roster.map(p => <button key={p.id} onClick={() => handleAddToTradeOffer(p)} className="w-full text-left text-sm py-1 px-2 rounded hover:bg-stone-900/50 flex justify-between"><span className="text-white">{p.name}</span><span className="text-stone-400">${(p.salary / 1000000).toFixed(1)}M</span></button>)}
             </div>
             <div className="flex-1 bg-[#141210] border border-stone-800 rounded-xl p-4 max-h-60 overflow-y-auto">
               <h3 className="text-xs font-mono font-black text-stone-400 mb-2">TRADE MARKET（クリックで獲得を選択）</h3>
-              {tradeMarket.map(p => (
-                <button key={p.id} onClick={() => handleSelectTradeTarget(p)}
-                  className={'w-full text-left text-sm py-1 px-2 rounded hover:bg-stone-900/50 flex justify-between ' + (tradeTarget?.id === p.id ? 'bg-cyan-950 border border-cyan-700' : '')}>
-                  <span className="text-white">{p.name} (R{p.rating})</span>
-                  <span className="text-stone-400">${(p.salary / 1000000).toFixed(1)}M</span>
-                </button>
-              ))}
+              {tradeMarket.map(p => <button key={p.id} onClick={() => handleSelectTradeTarget(p)} className={'w-full text-left text-sm py-1 px-2 rounded hover:bg-stone-900/50 flex justify-between ' + (tradeTarget?.id === p.id ? 'bg-cyan-950 border border-cyan-700' : '')}><span className="text-white">{p.name} (R{p.rating})</span><span className="text-stone-400">${(p.salary / 1000000).toFixed(1)}M</span></button>)}
             </div>
           </div>
         </div>
@@ -902,8 +674,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   if (phase === 'reroll') {
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <ToastContainer toasts={toasts} />
-        <ConfettiOverlay active={showConfetti} />
+        <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
         <div className="w-full max-w-5xl space-y-4">
           <div className="text-center space-y-2 mb-4">
             <span className="text-sm font-mono font-black text-amber-400 uppercase tracking-widest">👑 DYNASTY MODE</span>
@@ -931,37 +702,14 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
         <style>{`
-          @keyframes dyToastIn {
-            from { transform: translateX(120%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-          }
-          @keyframes dyToastOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(120%); opacity: 0; }
-          }
-          @keyframes dyConfettiFall {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-          }
+          @keyframes dyToastIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+          @keyframes dyToastOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(120%); opacity: 0; } }
+          @keyframes dyConfettiFall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
           .animate-shake { animation: dyShake 0.6s cubic-bezier(.36,.07,.19,.97) both; }
-          @keyframes dyShake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-            20%, 40%, 60%, 80% { transform: translateX(4px); }
-          }
+          @keyframes dyShake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); } 20%, 40%, 60%, 80% { transform: translateX(4px); } }
         `}</style>
-        <ToastContainer toasts={toasts} />
-        <ConfettiOverlay active={showConfetti} />
-        {showBonusPanel && (
-          <BonusPanel
-            onClose={() => setShowBonusPanel(false)}
-            totalOvr={totalOvr}
-            totalCapHit={totalCapHit}
-            roster={roster}
-            season={season}
-            faSignedThisSeason={faSignedThisSeason}
-          />
-        )}
+        <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
+        {showBonusPanel && <BonusPanel onClose={() => setShowBonusPanel(false)} effectiveOvr={effectiveOvr} totalOvr={totalOvr} totalCapHit={totalCapHit} effectiveRoster={effectiveRoster} season={season} faSignedThisSeason={faSignedThisSeason} injuredList={injuredList} />}
         <SignModal />
         <div className={'w-full flex flex-col flex-1 justify-start ' + (screenShake ? 'animate-shake' : '')}>
           <Header />
@@ -977,12 +725,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </span>
                   </div>
 
-                  {/* ★追加: FA残枠表示 */}
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">✍️ FA残り枠:</span>
-                    <span className={faSignedThisSeason >= faLimit ? 'text-red-400 font-black text-lg' : 'text-emerald-400 font-black text-lg'}>
-                      {faLimit - faSignedThisSeason} / {faLimit}人
-                    </span>
+                    <span className={faSignedThisSeason >= faLimit ? 'text-red-400 font-black text-lg' : 'text-emerald-400 font-black text-lg'}>{faLimit - faSignedThisSeason} / {faLimit}人</span>
                   </div>
 
                   {mleAmount > 0 && (
@@ -990,42 +735,50 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                       <HoverTip text="Mid-Level Exception（MLE）：キャップ超過チームにも使える例外枠の補強予算。キャップ以下なら約$12.4M、1st Apron超えで約$5M、2nd Apron超えで没収。毎シーズン1回だけ使用可能。">
                         <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
                       </HoverTip>
-                      <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
-                        {mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}
-                      </span>
+                      <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>{mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}</span>
                     </div>
                   )}
 
-                  {repeaterSeasons >= 2 && (
-                    <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
-                      <span className="text-red-400 font-sans font-black text-sm">⚠️ Repeater:</span>
-                      <span className="text-red-400 font-black text-sm">{repeaterSeasons}/3 seasons</span>
-                    </div>
-                  )}
-                  {repeaterTax > 0 && (
-                    <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
-                      <span className="text-red-400 font-sans font-black text-sm">💸 Tax:</span>
-                      <span className="text-red-400 font-black text-lg">${(repeaterTax / 1000000).toFixed(1)}M</span>
-                    </div>
-                  )}
+                  {repeaterSeasons >= 2 && <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center"><span className="text-red-400 font-sans font-black text-sm">⚠️ Repeater:</span><span className="text-red-400 font-black text-sm">{repeaterSeasons}/3 seasons</span></div>}
+                  {repeaterTax > 0 && <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center"><span className="text-red-400 font-sans font-black text-sm">💸 Tax:</span><span className="text-red-400 font-black text-lg">${(repeaterTax / 1000000).toFixed(1)}M</span></div>}
 
                   {deadCap > 0 && (
                     <div className="bg-stone-950 px-4 py-2 rounded-xl border border-red-900/50">
-                      <div className="flex justify-between items-center">
-                        <span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span>
-                        <span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span>
+                      <div className="flex justify-between items-center"><span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span><span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span></div>
+                      {deadCapDetails.map((d, i) => <div key={i} className="text-xs text-stone-500 mt-1 font-mono">{d.name}: ${(d.amount / 1000000).toFixed(1)}M × {d.yearsLeft}yr [{d.type}]</div>)}
+                    </div>
+                  )}
+
+                  {/* ★追加: 怪我リスト */}
+                  {injuredList.length > 0 && (
+                    <div className={'px-4 py-2 rounded-xl border ' + 'bg-orange-950/20 border-orange-900/50'}>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-orange-400 font-sans font-black text-sm">🏥 Injured List:</span>
+                        <span className="text-orange-400 font-black text-sm">{injuredList.length}人</span>
                       </div>
-                      {deadCapDetails.map((d, i) => (
-                        <div key={i} className="text-xs text-stone-500 mt-1 font-mono">{d.name}: ${(d.amount / 1000000).toFixed(1)}M × {d.yearsLeft}yr [{d.type}]</div>
+                      {injuredList.map((inj, i) => (
+                        <div key={i} className={'flex justify-between items-center text-xs py-1 px-2 rounded mt-0.5 ' + sevBg[inj.severity] + ' ' + sevBorder[inj.severity] + ' border'}>
+                          <span className="text-stone-300">{inj.playerName}</span>
+                          <div className="flex items-center gap-2">
+                            <span className={sevColor[inj.severity]}>{inj.name}</span>
+                            <span className="text-stone-500 font-mono">-{inj.ratingLoss}</span>
+                            <span className="text-stone-400 font-mono">{inj.seasonsLeft}yr</span>
+                          </div>
+                        </div>
                       ))}
                     </div>
                   )}
+
+                  {/* ★修正: Total Ratingを実効値で表示 */}
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
-                    <span className={totalOvr >= minOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
-                      {totalOvr} <span className="text-lg text-stone-500 font-sans">/ {minOvr}+</span>
+                    <span className={effectiveOvr >= minOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
+                      {effectiveOvr}
+                      {injuredList.length > 0 && effectiveOvr !== totalOvr && <span className="text-sm text-stone-500 font-sans ml-2">(フル: {totalOvr})</span>}
+                      <span className="text-lg text-stone-500 font-sans"> / {minOvr}+</span>
                     </span>
                   </div>
+
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">👥 Players:</span>
                     <span className="text-white font-black text-2xl">{roster.length}</span>
@@ -1036,13 +789,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                       <span className="text-stone-400 font-sans font-black text-sm">🏀 Draft Picks:</span>
                     </HoverTip>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {draftPicks.length === 0 ? (
-                        <span className="text-stone-500 text-xs font-mono">なし</span>
-                      ) : draftPicks.map((pk, i) => (
+                      {draftPicks.length === 0 ? <span className="text-stone-500 text-xs font-mono">なし</span> : draftPicks.map((pk, i) => (
                         <HoverTip key={i} text={`ドラフトピック: ${pk.year}年目の${pk.round}巡目${pk.from ? `（${pk.from}から獲得）` : '（自チーム）'}`}>
-                          <span className="text-xs font-mono bg-stone-900 px-1.5 py-0.5 rounded text-cyan-400 cursor-help">
-                            Y{pk.year} R{pk.round}{pk.from ? ` (${pk.from})` : ''}
-                          </span>
+                          <span className="text-xs font-mono bg-stone-900 px-1.5 py-0.5 rounded text-cyan-400 cursor-help">Y{pk.year} R{pk.round}{pk.from ? ` (${pk.from})` : ''}</span>
                         </HoverTip>
                       ))}
                     </div>
@@ -1071,8 +820,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   if (phase === 'seasonEnd') {
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <ToastContainer toasts={toasts} />
-        <ConfettiOverlay active={showConfetti} />
+        <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
         <SignTradeModal />
         <div className="w-full max-w-2xl space-y-6 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
           <div className="text-center space-y-3">
@@ -1083,12 +831,20 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <h3 className="text-xl font-mono font-black text-cyan-400 uppercase">選手の経年変化</h3>
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {summaries.map((s, i) => (
-                <div key={i} className="flex justify-between items-center text-xl py-1.5 px-3 rounded hover:bg-stone-900/50">
-                  <span className="text-white font-bold">{s.name}</span>
+                <div key={i} className="flex justify-between items-center py-1.5 px-3 rounded hover:bg-stone-900/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-white font-bold text-xl">{s.name}</span>
+                    {/* ★追加: 怪我表示 */}
+                    {s.injury && (
+                      <span className={'text-xs font-mono px-1.5 py-0.5 rounded ' + (s.change === 'RETIRE' ? 'bg-red-950 text-red-400' : 'bg-orange-950 text-orange-400')}>
+                        🏥 {s.injury}
+                      </span>
+                    )}
+                  </div>
                   <span className="font-mono">
                     <span className="text-stone-400">{s.oldRating}</span>
                     <span className="text-stone-600 mx-1">→</span>
-                    <span className={s.change === 'RETIRE' ? 'text-yellow-400 font-black' : s.change <= -2 ? 'text-red-400 font-black' : 'text-amber-400 font-black'}>{s.newRating === 0 ? 'RETIRE' : s.newRating}</span>
+                    <span className={s.change === 'RETIRE' ? 'text-yellow-400 font-black' : s.change <= -5 ? 'text-red-400 font-black' : s.change <= -2 ? 'text-orange-400 font-black' : 'text-amber-400 font-black'}>{s.newRating === 0 ? 'RETIRE' : s.newRating}</span>
                     {s.change !== 'RETIRE' && <span className="text-red-500 ml-2 text-lg">({s.change})</span>}
                     {s.change === 'RETIRE' && <span className="text-yellow-400 ml-2 text-lg">🏆</span>}
                   </span>
@@ -1101,10 +857,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               <h3 className="text-xl font-mono font-black text-amber-400 uppercase">契約切れ → FA移行</h3>
               {expiredPlayers.map((p, i) => (
                 <div key={i} className="flex justify-between items-center text-xl py-1.5 px-3">
-                  <div>
-                    <span className="text-white font-bold">{p.name}</span>
-                    <span className="text-stone-500 font-mono text-lg ml-2">Rating {p.rating}</span>
-                  </div>
+                  <div><span className="text-white font-bold">{p.name}</span><span className="text-stone-500 font-mono text-lg ml-2">Rating {p.rating}</span></div>
                   <HoverTip text="サイン・アンド・トレード（S&T）：FA選手と再契約してから即座に他チームへ放出。ドラフトピックを1つ獲得できる。3年以上の契約が必要。スターを逃さず補強素材に変換できる手段。">
                     <button onClick={() => handleSignAndTrade(p)} className="text-xs bg-amber-950/60 border border-amber-800 text-amber-400 hover:text-amber-300 px-2 py-0.5 rounded font-mono whitespace-nowrap">S&T</button>
                   </HoverTip>
@@ -1138,9 +891,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   <div className="flex items-center gap-3 mt-1 text-base">
                     <span className="text-amber-400 font-mono font-black">Rating {p.rating}</span>
                     <span className="text-stone-500">${(p.salary / 1000000).toFixed(1)}M</span>
-                    <span className="text-purple-400 font-mono text-sm">
-                      {p.optionType === 'player' ? 'Player Option' : 'Team Option'}
-                    </span>
+                    <span className="text-purple-400 font-mono text-sm">{p.optionType === 'player' ? 'Player Option' : 'Team Option'}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -1150,9 +901,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               </div>
             ))}
           </div>
-          {optionPlayers.length === 0 && (
-            <button onClick={startDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">DRAFT へ進む 🏀</button>
-          )}
+          {optionPlayers.length === 0 && <button onClick={startDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">DRAFT へ進む 🏀</button>}
         </div>
       </div>
     );
@@ -1162,8 +911,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   if (phase === 'draft') {
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
-        <ToastContainer toasts={toasts} />
-        <ConfettiOverlay active={showConfetti} />
+        <ToastContainer toasts={toasts} /><ConfettiOverlay active={showConfetti} />
         <div className="w-full max-w-3xl space-y-6 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
           <div className="text-center space-y-3">
             <span className="text-xl font-mono font-black text-cyan-400 uppercase tracking-widest">🏀 DRAFT</span>
@@ -1190,13 +938,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           ) : (
             <div className="text-center space-y-4 py-8">
               <div className="text-emerald-400 font-mono font-black text-2xl">✓ ドラフト完了</div>
-              <div className="text-xl text-stone-400">ロスター: {roster.length}人 / Total Rating: {totalOvr}</div>
+              <div className="text-xl text-stone-400">ロスター: {roster.length}人 / Total Rating: {effectiveOvr}</div>
               <button onClick={handleDraftComplete} className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">新シーズン開始 🏀</button>
             </div>
           )}
-          {picksLeft > 0 && (
-            <button onClick={handleDraftComplete} className="w-full bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-3 rounded-xl text-lg transition-all">ドラフトをスキップ</button>
-          )}
+          {picksLeft > 0 && <button onClick={handleDraftComplete} className="w-full bg-stone-900 border border-stone-800 text-stone-400 hover:text-white font-mono font-black py-3 rounded-xl text-lg transition-all">ドラフトをスキップ</button>}
         </div>
       </div>
     );
@@ -1204,7 +950,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   // ═══ GAME OVER PHASE ═══
   if (phase === 'gameOver') {
-    const score = gmScoreCalc() + calcSeasonBonus(roster, season);
+    const score = gmScoreCalc() + calcSeasonBonus(effectiveRoster, season);
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
         <div className="w-full max-w-2xl space-y-6 bg-[#110f0e] border border-red-900 rounded-3xl p-8 text-center">
