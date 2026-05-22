@@ -1,5 +1,6 @@
 import React from "react";
 
+
 export default function StageStartScreen({ stage, onDismiss }) {
   if (!stage) return null;
 
