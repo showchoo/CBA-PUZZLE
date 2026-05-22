@@ -519,3 +519,39 @@ export function validateHardCap(newCapHit, hardCapped) {
   }
   return { valid: true };
 }
+
+// ═══ ピック価値計算 ═══
+export function getPickValue(pick) {
+  if (pick.round === 1) {
+    switch (pick.year) {
+      case 1: return 75;
+      case 2: return 55;
+      case 3: return 40;
+      default: return 30;
+    }
+  } else {
+    switch (pick.year) {
+      case 1: return 20;
+      case 2: return 15;
+      case 3: return 10;
+      default: return 8;
+    }
+  }
+}
+
+// ═══ ピック価値バランス検証 ═══
+export function validatePickBalance(outPicks, inPicks) {
+  if (inPicks.length === 0) return { valid: true };
+  const outValue = outPicks.reduce((s, p) => s + getPickValue(p), 0);
+  const inValue = inPicks.reduce((s, p) => s + getPickValue(p), 0);
+  const maxInValue = outValue * 2 + 25;
+  if (inValue > maxInValue) {
+    return {
+      valid: false,
+      reason: `ピック価値不均衡（送出:${outValue} → 獲得:${inValue}、上限:${maxInValue}）`,
+      outValue,
+      inValue,
+    };
+  }
+  return { valid: true, outValue, inValue };
+}
