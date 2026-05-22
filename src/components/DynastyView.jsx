@@ -9,6 +9,7 @@ import {
   calcSeasonRecord, calcRosterBalance, generateMandate,
   genTradeMarketPicks, genTradeMarketPlayers, validateStepienRule, validateHardCap,
   validatePickBalance, getPickValue,
+  calcQualifyingOffer, getBirdMaxYears, generateRFAMarketOffers,
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT,
   FA_BASE_LIMIT, FA_APRON1_LIMIT,
   BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100
@@ -230,6 +231,17 @@ function BonusPanel({ onClose, effectiveOvr, totalOvr, totalCapHit, effectiveRos
               <p>• シーズンあたり最大{TRADE_LIMIT}回まで</p>
             </div>
           </div>
+          <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2">
+            <h3 className="text-purple-400 font-mono font-black text-xs uppercase tracking-wider">🐦 バード権・RFAシステム</h3>
+            <div className="text-stone-500 text-xs space-y-1">
+              <p>• 契約切れ選手にバード権がある場合、QO（クオリファイングオファー）を延長可能</p>
+              <p>• QO延長 → 選手はRFA（制限付きFA）化。他チームのオファーにマッチする権利が発生</p>
+              <p>• <span className="text-emerald-400">Full Bird</span>: 最大5年契約可（他チームは4年まで）、QO = 前年給与100%</p>
+              <p>• <span className="text-amber-400">Early Bird</span>: 最大4年契約、QO = 前年給与75%</p>
+              <p>• マッチング時はキャップ超過でも再契約可能（バード権の最大のメリット）</p>
+              <p>• QO見送り → 選手はUFAとしてFA市場へ</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -277,6 +289,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [currentMandate, setCurrentMandate] = useState(null);
   const [mandateResult, setMandateResult] = useState(null);
   const [totalMandateBonus, setTotalMandateBonus] = useState(0);
+
+  // QO/RFA関連
+  const [qoCandidates, setQoCandidates] = useState([]);
+  const [rfaPlayers, setRfaPlayers] = useState([]);
+  const [rfaOffers, setRfaOffers] = useState([]);
 
   /* ── derived ── */
   const totalCapHit = calcCapHit(roster, deadCap);
@@ -365,6 +382,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTradeOffer({ players: [], picks: [] });
     setTradeTarget({ players: [], picks: [] });
     setTradeMarket({ players: [], picks: [] });
+    setQoCandidates([]);
+    setRfaPlayers([]);
+    setRfaOffers([]);
   }
 
   function handleSignRequest(player) {
@@ -475,6 +495,73 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setOptionPlayers(op => op.filter(x => x.id !== player.id));
   }
 
+  /* ── QO / RFA ── */
+  function handleQODecision(player, extend) {
+    playClickSound();
+    if (extend) {
+      const qoAmount = calcQualifyingOffer(player);
+      setRfaPlayers(prev => [...prev, { ...player, salary: qoAmount, contractYears: 1 }]);
+      playSuccessSound();
+      addToast('info', '📋', `QO延長: ${player.name}`, `RFA化 | $${(qoAmount / 1000000).toFixed(1)}M/年`, 3500);
+    } else {
+      setFreeAgents(fa => [...fa, { ...player, faStatus: 'UFA' }]);
+      addToast('warning', '🏃', `QO見送り: {player.name}`, 'FA市場へ移動', 3000);
+    }
+    setQoCandidates(prev => prev.filter(p => p.id !== player.id));
+  }
+
+  function handleQOComplete() {
+    playClickSound();
+    if (rfaPlayers.length === 0) { startDraft(); return; }
+    const offers = generateRFAMarketOffers(rfaPlayers);
+    const offeredIds = new Set(offers.map(o => o.playerId));
+    const autoSigned = rfaPlayers.filter(p => !offeredIds.has(p.id));
+    const needsDecision = rfaPlayers.filter(p => offeredIds.has(p.id));
+    if (autoSigned.length > 0) {
+      setRoster(r => [...r, ...autoSigned.map(p => ({ ...p, faStatus: 'None', source: 'roster' }))]);
+      autoSigned.forEach(p => {
+        addToast('success', '📋', `RFA再契約: ${p.name}`, `$$$${(p.salary / 1000000).toFixed(1)}M × ${p.contractYears}yr（QO残留）`, 3000);
+      });
+    }
+    if (needsDecision.length > 0) {
+      setRfaPlayers(needsDecision);
+      setRfaOffers(offers);
+      setPhase('rfaResolution');
+    } else {
+      setRfaPlayers([]);
+      startDraft();
+    }
+  }
+
+  function handleRFAMatch(offer) {
+    playClickSound();
+    const player = rfaPlayers.find(p => p.id === offer.playerId);
+    if (!player) return;
+    setRoster(r => [...r, { ...player, salary: offer.salary, contractYears: offer.years, faStatus: 'None', source: 'roster' }]);
+    setRfaPlayers(prev => prev.filter(p => p.id !== offer.playerId));
+    setRfaOffers(prev => prev.filter(o => o.playerId !== offer.playerId));
+    playSuccessSound();
+    addToast('success', '🤝', `マッチング: ${player.name}`, `${offer.team}のオファー $${(offer.salary / 1000000).toFixed(1)}M × {offer.years}yr にマッチ`, 4500);
+  }
+
+  function handleRFADecline(offer) {
+    playClickSound();
+    const player = rfaPlayers.find(p => p.id === offer.playerId);
+    if (!player) return;
+    setRfaPlayers(prev => prev.filter(p => p.id !== offer.playerId));
+    setRfaOffers(prev => prev.filter(o => o.playerId !== offer.playerId));
+    playErrorSound();
+    addToast('warning', '🏃', `見放し: ${player.name}`, `${offer.team}へ移動`, 3500);
+  }
+
+  function handleRFAComplete() {
+    playClickSound();
+    rfaPlayers.forEach(p => { setFreeAgents(fa => [...fa, { ...p, faStatus: 'UFA' }]); });
+    setRfaPlayers([]);
+    setRfaOffers([]);
+    startDraft();
+  }
+
   /* ── Trade ── */
   function handleOpenTrade() {
     playClickSound();
@@ -565,7 +652,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       const postCap = totalCapHit - outSal + inSal;
       if (postCap > DYN_APRON1) {
         playErrorSound(); triggerShake();
-        addToast('warning', '🔒', 'ハードキャップ', `Cap Hit $${(postCap / 1000000).toFixed(1)}M > 第1エプロン`, 4000);
+        addToast('warning', '🔒', 'ハードキャップ', `Cap Hit $$$${(postCap / 1000000).toFixed(1)}M > 第1エプロン`, 4000);
         return;
       }
     }
@@ -592,7 +679,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     playTradeSound(); triggerConfetti();
     const outNames = [];
     if (outP.length > 0) outNames.push(outP.map(p => p.name).join(', '));
-    if (outK.length > 0) outNames.push(outK.map(p => `Y{p.year}R${p.round}`).join(', '));
+    if (outK.length > 0) outNames.push(outK.map(p => `Y${p.year}R${p.round}`).join(', '));
     const inNames = [];
     if (inP.length > 0) inNames.push(inP.map(p => p.name).join(', '));
     if (inK.length > 0) inNames.push(inK.map(p => `Y${p.year}R${p.round}${p.from ? `(${p.from})` : ''}`).join(', '));
@@ -636,6 +723,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTradesUsedThisSeason(0);
     setTradeMarket({ players: [], picks: [] });
 
+    // 契約切れ選手をQO候補とUFAに分離
+    const qoEligible = result.expired.filter(p => p.birdRights && p.birdRights !== 'None');
+    setQoCandidates(qoEligible);
+
     const newInjuries = result.injuries.filter(inj => !injuredList.find(old => old.id === inj.id));
     newInjuries.forEach(inj => {
       const sevLabel = { minor: '軽傷', moderate: '中度', severe: '重度', critical: '深刻' };
@@ -655,7 +746,12 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPhase('seasonEnd');
   }
 
-  function handleToDraft() { playClickSound(); if (optionPlayers.length > 0) { setPhase('optionDecision'); return; } startDraft(); }
+  function handleToDraft() {
+    playClickSound();
+    if (optionPlayers.length > 0) { setPhase('optionDecision'); return; }
+    if (qoCandidates.length > 0) { setPhase('qualifyingOffer'); return; }
+    startDraft();
+  }
 
   function startDraft() {
     const year1Picks = draftPicks.filter(pk => pk.year === 1).length;
@@ -666,7 +762,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   function handleDraft(prospect) {
     playClickSound(); playSuccessSound();
-    addToast('success', '🏀', `ドラフト: ${prospect.name}`, `${prospect.position} R${prospect.rating} | $$$${(prospect.salary / 1000000).toFixed(1)}M`, 3000);
+    addToast('success', '🏀', `ドラフト: ${prospect.name}`, `${prospect.position} R${prospect.rating} | $${(prospect.salary / 1000000).toFixed(1)}M`, 3000);
     setRoster(r => [...r, { ...prospect, faStatus: 'None', hasOption: false, optionType: null, supermaxEligible: false, source: 'draft' }]);
     setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
     setPicksLeft(p => p - 1);
@@ -683,7 +779,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     const survival = checkSurvival(roster, newSeason, injuredList);
     if (!survival.alive) { playErrorSound(); setCollapseReason(survival.reason); setPhase('gameOver'); return; }
     const bonus = calcSeasonBonus(effectiveRoster, season);
-    if (bonus > 0) addToast('epic', '🏆', `シーズンボーナス +${bonus} GM SCORE!`, `Total Rating ${effectiveOvr}（生存ライン+${effectiveOvr - minOvr}）`, 4000);
+    if (bonus > 0) addToast('epic', '🏆', `シーズンボーナス +{bonus} GM SCORE!`, `Total Rating ${effectiveOvr}（生存ライン+${effectiveOvr - minOvr}）`, 4000);
     playEpicSound(); triggerConfetti(); setGmAnimating(true);
     addToast('epic', '➡️', `SEASON ${newSeason}`, '新シーズン開始！', 3500);
     setDraftPicks(picks => {
@@ -697,6 +793,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setTradesUsedThisSeason(0);
     setTradeMarket({ players: [], picks: [] });
     setCurrentMandate(generateMandate());
+    setQoCandidates([]);
+    setRfaPlayers([]);
+    setRfaOffers([]);
     setFreeAgents(genFA(8)); setSeason(newSeason); setPhase('manage');
     setTimeout(() => setGmAnimating(false), 3000);
   }
@@ -818,7 +917,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       salaryValid = validateTrade(outP.map(p => p.salary), inP.map(p => p.salary));
     }
 
-    // ステピアンルール検証（獲得ピック対応版）
     let stepienValid = { valid: true };
     if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
       stepienValid = validateStepienRule(draftPicks, outK, inK);
@@ -831,7 +929,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       hardCapValid = validateHardCap(totalCapHit - outSal + inSal, true);
     }
 
-    // ピック価値バランス検証（3ルール版）
     const pickBalanceValid = inK.length > 0 ? validatePickBalance(outK, inK) : { valid: true };
     const tradeAllowed = hasOut && hasIn && (!salaryValid || salaryValid.allowed) && stepienValid.valid && hardCapValid.valid && pickBalanceValid.valid;
 
@@ -923,7 +1020,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* ステピアンルール（獲得ピック含む条件で表示） */}
                   {(outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) && (
                     <div>
                       <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ステピアンルール：連続する2年の1巡目ピックが両方空いてはならない。獲得ピックもカウントに含まれる。"><span className="cursor-help">ステピアンルール</span></HoverTip></div>
@@ -933,7 +1029,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* ピック価値バランス（3ルール版） */}
                   {(outK.length > 0 || inK.length > 0) && (() => {
                     const outVal = outK.reduce((s, p) => s + getPickValue(p), 0);
                     const inVal = inK.reduce((s, p) => s + getPickValue(p), 0);
@@ -1084,7 +1179,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                 <span className="text-sm font-mono font-black text-cyan-400 uppercase tracking-wider">TEAM STATUS</span>
                 <div className="space-y-2">
 
-                  {/* 生存ライン警告 */}
                   {survivalMargin <= 0 && (
                     <div className="bg-red-950/50 px-4 py-3 rounded-xl border-2 border-red-600 animate-pulse">
                       <div className="flex justify-between items-center mb-1">
@@ -1113,7 +1207,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* Cap Hit */}
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <HoverTip text="キャップヒット：チームの年俸総額。サラリーキャップ（$136M）以内が基本。超過するとFA契約制限やトレード条件が厳しくなる。">
                       <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
@@ -1123,7 +1216,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </span>
                   </div>
 
-                  {/* ハードキャップ */}
                   {hardCapped && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
                       <HoverTip text="ハードキャップ：MLE使用やサイン＆トレードで発動。第1エプロン（$178.1M）を超える如何なる手段でも補強が不可能に。翌シーズンで解除。">
@@ -1133,7 +1225,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* オーナー要請 */}
                   {currentMandate && (
                     <div className="bg-amber-950/20 px-4 py-2.5 rounded-xl border border-amber-800/50">
                       <div className="text-xs font-mono font-black text-amber-400 uppercase tracking-wider mb-1">📋 オーナー要請</div>
@@ -1146,7 +1237,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* ポジション不足 */}
                   {balance.penaltyPct > 0 && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50">
                       <div className="flex justify-between items-center">
@@ -1163,7 +1253,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* FA残り枠 */}
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850 flex justify-between items-center">
                     <HoverTip text="FA契約制限：キャップ以内で最大2人/年。第1エプロン超過で最大1人/年（3年まで）。第2エプロン超過でFA契約禁止（ドラフトとトレードのみ）。">
                       <span className="text-stone-400 font-sans font-black text-sm">✍️ FA残り枠:</span>
@@ -1171,7 +1260,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     <span className={faSignedThisSeason >= faLimit ? 'text-red-400 font-black text-lg' : 'text-emerald-400 font-black text-lg'}>{faLimit - faSignedThisSeason} / {faLimit}人</span>
                   </div>
 
-                  {/* トレード残り */}
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">⚖️ トレード残り:</span>
                     <span className={tradesUsedThisSeason >= TRADE_LIMIT ? 'text-red-400 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>
@@ -1179,17 +1267,15 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </span>
                   </div>
 
-                  {/* MLE */}
                   {mleAmount > 0 && (
                     <div className="bg-stone-950 px-4 py-2 rounded-xl border border-cyan-900/50 flex justify-between items-center">
                       <HoverTip text="Mid-Level Exception：キャップ超過チームにも使える例外枠。キャップ以下≈$12.4M、1st Apron超え≈$5M、2nd Apron超えで没収。使用で第1エプロンハードキャップ。毎シーズン1回。">
                         <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
                       </HoverTip>
-                      <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>{mleUsed ? '使用済み' : `$${(mleAmount / 1000000).toFixed(1)}M`}</span>
+                      <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>{mleUsed ? '使用済み' : `$$$${(mleAmount / 1000000).toFixed(1)}M`}</span>
                     </div>
                   )}
 
-                  {/* Repeater */}
                   {repeaterSeasons >= 2 && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
                       <HoverTip text="リピータータックス：過去3シーズン中2回以上タックス超過したチームに適用される追加罰金。">
@@ -1207,7 +1293,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* Dead Cap */}
                   {deadCap > 0 && (
                     <div className="bg-stone-950 px-4 py-2 rounded-xl border border-red-900/50">
                       <div className="flex justify-between items-center">
@@ -1220,7 +1305,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* Injured List */}
                   {injuredList.length > 0 && (
                     <div className="px-4 py-2 rounded-xl border bg-orange-950/20 border-orange-900/50">
                       <div className="flex justify-between items-center mb-1">
@@ -1240,7 +1324,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </div>
                   )}
 
-                  {/* Total Rating */}
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">🔥 Total Rating:</span>
                     <span className={effectiveOvr >= minOvr ? 'text-emerald-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
@@ -1251,13 +1334,11 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     </span>
                   </div>
 
-                  {/* Players */}
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
                     <span className="text-stone-400 font-sans font-black text-sm">👥 Players:</span>
                     <span className="text-white font-black text-2xl">{roster.length}</span>
                   </div>
 
-                  {/* Draft Picks */}
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850">
                     <HoverTip text="ドラフトピック：新人選手を指名する権利。Y=年、R=巡目。トレードで獲得・放出可能。ステピアンルール: 連続する2年の1巡目ピックの同時放出は禁止。">
                       <span className="text-stone-400 font-sans font-black text-sm">🏀 Draft Picks:</span>
@@ -1352,17 +1433,24 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           </div>
           {expiredPlayers.length > 0 && (
             <div className="bg-stone-950 border border-amber-900/50 rounded-xl p-6 space-y-3">
-              <h3 className="text-xl font-mono font-black text-amber-400 uppercase">契約切れ → FA移行</h3>
+              <h3 className="text-xl font-mono font-black text-amber-400 uppercase">契約切れ</h3>
               {expiredPlayers.map((p, i) => (
-                <div key={i} className="flex items-center text-xl py-1.5 px-3">
-                  <span className="text-white font-bold">{p.name}</span>
-                  <span className="text-stone-500 font-mono text-lg ml-2">{p.position} Rating {p.rating}</span>
+                <div key={i} className="flex items-center justify-between py-1.5 px-3">
+                  <div>
+                    <span className="text-white font-bold text-xl">{p.name}</span>
+                    <span className="text-stone-500 font-mono text-lg ml-2">{p.position} Rating {p.rating}</span>
+                  </div>
+                  {p.birdRights && p.birdRights !== 'None' ? (
+                    <span className="text-emerald-400 font-mono text-xs">🐦 {p.birdRights === 'Full' ? 'Full Bird' : 'Early Bird'} → QO決定へ</span>
+                  ) : (
+                    <span className="text-stone-500 font-mono text-xs">→ FA市場</span>
+                  )}
                 </div>
               ))}
             </div>
           )}
           <button onClick={handleToDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">
-            {optionPlayers.length > 0 ? 'OPTIONS → DRAFT' : 'DRAFT へ進む 🏀'}
+            {optionPlayers.length > 0 ? 'OPTIONS → QO → DRAFT' : qoCandidates.length > 0 ? 'QO決定へ進む →' : 'DRAFT へ進む 🏀'}
           </button>
         </div>
       </div>
@@ -1394,13 +1482,195 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleOptionDecision(p, true)} className="bg-emerald-950 border border-emerald-700 text-emerald-400 hover:bg-emerald-900 font-mono font-black px-4 py-2 rounded-lg text-sm transition-all">行使</button>
-                  <button onClick={() => handleOptionDecision(p, false)} className="bg-red-950 border border-red-700 text-red-400 hover:bg-red-900 font-mono font-black px-4 py-2 rounded-lg text-sm transition-all">拒否</button>
+                  <button onClick={() => {
+                    handleOptionDecision(p, true);
+                    setTimeout(() => {
+                      setOptionPlayers(prev => {
+                        const next = prev.filter(x => x.id !== p.id);
+                        if (next.length === 0) {
+                          if (qoCandidates.length > 0) setPhase('qualifyingOffer');
+                          else startDraft();
+                        }
+                        return next;
+                      });
+                    }, 50);
+                  }} className="bg-emerald-950 border border-emerald-700 text-emerald-400 hover:bg-emerald-900 font-mono font-black px-4 py-2 rounded-lg text-sm transition-all">行使</button>
+                  <button onClick={() => {
+                    handleOptionDecision(p, false);
+                    setTimeout(() => {
+                      setOptionPlayers(prev => {
+                        const next = prev.filter(x => x.id !== p.id);
+                        if (next.length === 0) {
+                          if (qoCandidates.length > 0) setPhase('qualifyingOffer');
+                          else startDraft();
+                        }
+                        return next;
+                      });
+                    }, 50);
+                  }} className="bg-red-950 border border-red-700 text-red-400 hover:bg-red-900 font-mono font-black px-4 py-2 rounded-lg text-sm transition-all">拒否</button>
                 </div>
               </div>
             ))}
           </div>
-          {optionPlayers.length === 0 && <button onClick={startDraft} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">DRAFT へ進む 🏀</button>}
+          {optionPlayers.length === 0 && (
+            <button onClick={() => {
+              playClickSound();
+              if (qoCandidates.length > 0) setPhase('qualifyingOffer');
+              else startDraft();
+            }} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">
+              {qoCandidates.length > 0 ? 'QO決定へ進む →' : 'DRAFT へ進む 🏀'}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════ */
+  /* ═══ RENDER: QUALIFYING OFFER ═══        */
+  /* ═══════════════════════════════════════ */
+  if (phase === 'qualifyingOffer') {
+    return (
+      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
+        <ToastContainer toasts={toasts} />
+        <div className="w-full max-w-3xl space-y-4 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
+          <div className="text-center space-y-2">
+            <span className="text-xl font-mono font-black text-emerald-400 uppercase tracking-widest">📋 QUALIFYING OFFERS</span>
+            <h2 className="text-4xl font-black text-white">QO延長の決定</h2>
+            <p className="text-sm text-stone-400">バード権を持つ契約切れ選手にQOを延長できます</p>
+          </div>
+
+          <HoverTip text="QO（クオリファイングオファー）：バード権を持つ選手の契約切れ時に所属チームが1年契約を提示する権利。QO延長で選手はRFA（制限付きFA）となり、他チームのオファーに対してマッチング（上書き契約）できる権利が発生します。">
+            <div className="bg-stone-950 border border-stone-800 rounded-lg p-3 text-xs text-stone-400 text-center cursor-help">
+              ℹ️ QOとは？ マウスオーバーで詳細
+            </div>
+          </HoverTip>
+
+          <div className="space-y-3">
+            {qoCandidates.map((p, i) => {
+              const qoAmount = calcQualifyingOffer(p);
+              return (
+                <div key={i} className="bg-stone-950 border border-stone-800 rounded-xl p-4 flex items-center justify-between">
+                  <div>
+                    <span className="text-white font-bold text-lg">{p.name}</span>
+                    <div className="flex items-center gap-3 mt-1 text-base">
+                      <span className="text-stone-500 font-mono">{p.position}</span>
+                      <span className="text-amber-400 font-mono font-black">Rating {p.rating}</span>
+                      <span className="text-stone-500">Age {p.age}</span>
+                      <span className="text-purple-400 font-mono text-sm">{p.birdRights === 'Full' ? '🐦 Full Bird' : '🐤 Early Bird'}</span>
+                    </div>
+                    <div className="text-xs text-stone-500 mt-1 font-mono">
+                      前年給与: ${(p.salary / 1000000).toFixed(1)}M → QO: <span className="text-cyan-400">${(qoAmount / 1000000).toFixed(1)}M</span>/年
+                      {p.birdRights === 'Full' && <span className="text-emerald-400 ml-2">※ 最大5年契約可</span>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleQODecision(p, true)} className="bg-emerald-950 border border-emerald-700 text-emerald-400 hover:bg-emerald-900 font-mono font-black px-4 py-2.5 rounded-lg text-sm transition-all">
+                      QO延長 → RFA化
+                    </button>
+                    <button onClick={() => handleQODecision(p, false)} className="bg-red-950 border border-red-700 text-red-400 hover:bg-red-900 font-mono font-black px-4 py-2.5 rounded-lg text-sm transition-all">
+                      見送り → FA
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {qoCandidates.length === 0 && (
+            <div className="text-center space-y-4 py-8">
+              <div className="text-emerald-400 font-mono font-black text-2xl">✓ QO決定完了</div>
+              {rfaPlayers.length > 0 && <p className="text-stone-400 text-sm">RFA選手: {rfaPlayers.length}人</p>}
+              <button onClick={handleQOComplete} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">
+                {rfaPlayers.length > 0 ? 'RFA解決へ進む →' : 'DRAFT へ進む 🏀'}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════ */
+  /* ═══ RENDER: RFA RESOLUTION ═══          */
+  /* ═══════════════════════════════════════ */
+  if (phase === 'rfaResolution') {
+    const offersByPlayer = {};
+    rfaOffers.forEach(offer => {
+      if (!offersByPlayer[offer.playerId]) offersByPlayer[offer.playerId] = [];
+      offersByPlayer[offer.playerId].push(offer);
+    });
+
+    return (
+      <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
+        <ToastContainer toasts={toasts} />
+        <div className="w-full max-w-3xl space-y-4 bg-[#110f0e] border border-stone-800 rounded-3xl p-10">
+          <div className="text-center space-y-2">
+            <span className="text-xl font-mono font-black text-purple-400 uppercase tracking-widest">🤝 RFA MATCHING</span>
+            <h2 className="text-4xl font-black text-white">マッチングオファー</h2>
+            <p className="text-sm text-stone-400">RFA選手に対する他チームのオファーを確認し、マッチ（上書き契約）するか判断してください</p>
+          </div>
+
+          <HoverTip text="マッチング：RFA選手に他チームがオファーを出した場合、所属チームがその条件を受け入れて選手を残留させる権利。マッチすればその選手は自チームに残留し、見放せばオファー元チームへ移動します。">
+            <div className="bg-stone-950 border border-stone-800 rounded-lg p-3 text-xs text-stone-400 text-center cursor-help">
+              ℹ️ マッチングとは？ マウスオーバーで詳細
+            </div>
+          </HoverTip>
+
+          <div className="space-y-4">
+            {rfaPlayers.map((player) => {
+              const playerOffers = (offersByPlayer[player.id] || []).sort((a, b) => (b.salary * b.years) - (a.salary * a.years));
+              if (playerOffers.length === 0) return null;
+              const bestOffer = playerOffers[0];
+
+              return (
+                <div key={player.id} className="bg-stone-950 border border-stone-800 rounded-xl p-5 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <span className="text-white font-bold text-lg">{player.name}</span>
+                    <span className="text-amber-400 font-mono font-black">R{player.rating}</span>
+                    <span className="text-stone-500 font-mono">{player.position}</span>
+                    <span className="text-purple-400 font-mono text-sm">{player.birdRights === 'Full' ? '🐦 Full Bird' : '🐤 Early Bird'}</span>
+                  </div>
+
+                  <div className="bg-[#1a1816] rounded-lg p-3 space-y-1">
+                    <div className="text-xs text-stone-500 font-mono">最高オファー</div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-white font-bold">{bestOffer.team}</span>
+                      <span className="text-cyan-400 font-mono font-black">${(bestOffer.salary / 1000000).toFixed(1)}M × {bestOffer.years}yr</span>
+                      <span className="text-stone-500 font-mono text-xs">(総額 ${(bestOffer.salary * bestOffer.years / 1000000).toFixed(1)}M)</span>
+                    </div>
+                    {playerOffers.length > 1 && (
+                      <div className="text-xs text-stone-600 mt-1">他 {playerOffers.length - 1} 件のオファーあり</div>
+                    )}
+                  </div>
+
+                  {player.birdRights === 'Full' && (
+                    <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-lg p-2 text-xs text-emerald-400 font-mono">
+                      🐦 Full Bird権: 最大5年のマッチングが可能。他チームは最大4年まで。
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button onClick={() => handleRFAMatch(bestOffer)} className="flex-1 bg-emerald-950 border border-emerald-700 text-emerald-400 hover:bg-emerald-900 font-mono font-black px-4 py-3 rounded-lg text-sm transition-all">
+                      🤝 マッチ（${(bestOffer.salary / 1000000).toFixed(1)}M × {bestOffer.years}yr で残留）
+                    </button>
+                    <button onClick={() => handleRFADecline(bestOffer)} className="flex-1 bg-red-950 border border-red-700 text-red-400 hover:bg-red-900 font-mono font-black px-4 py-3 rounded-lg text-sm transition-all">
+                      🏃 見放し（{bestOffer.team}へ）
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {rfaPlayers.length === 0 && (
+            <div className="text-center space-y-4 py-8">
+              <div className="text-emerald-400 font-mono font-black text-2xl">✓ RFA解決完了</div>
+              <button onClick={handleRFAComplete} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-4 rounded-xl text-xl tracking-widest transition-all">
+                DRAFT へ進む 🏀
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
