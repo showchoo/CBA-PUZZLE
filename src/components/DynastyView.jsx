@@ -654,7 +654,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     );
   }
 
-  // ═══ REROLL PHASE ═══
+
+    // ═══ REROLL PHASE ═══
   if (phase === 'reroll') {
     return (
       <div className="min-h-screen bg-[#0c0a09] text-white px-6 py-4 font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black justify-center items-center">
@@ -665,13 +666,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <h2 className="text-3xl font-black text-white">あなたの王朝を築け</h2>
             <p className="text-sm text-stone-400">満足のいくロスターが組めたら「START」を押してください</p>
           </div>
-          <div className="flex gap-3 justify-center mb-4">
-            <button onClick={doReroll} className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-6 py-2.5 rounded-xl text-sm hover:bg-stone-850 transition-all">🔄 REROLL</button>
-            <button onClick={() => { playClickSound(); setPhase('manage'); }} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black px-8 py-2.5 rounded-xl text-sm transition-all">START DYNASTY 💪</button>
-            <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-500 font-mono font-black px-4 py-2.5 rounded-xl text-sm hover:text-stone-300 transition-all">← 戻る</button>
-          </div>
-          <RosterTable title="YOUR ROSTER" players={roster} onActionClick={() => {}} actionLabel="—" totalSalary={totalCapHit} dynastyMode />
-          {/* ★修正: Cap Hitにキャップ上限とSalaryMeterを追加 */}
           <div className="space-y-3">
             <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 font-mono text-sm text-stone-400 flex gap-6">
               <span>Total Rating: <span className="text-white font-black text-lg">{totalOvr}</span></span>
@@ -680,10 +674,17 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             </div>
             <SalaryMeter totalSalary={totalCapHit} capLevel={DYN_CAP} taxLevel={DYN_TAX} firstApron={DYN_APRON1} secondApron={DYN_APRON2} />
           </div>
+          <div className="flex gap-3 justify-center mb-4">
+            <button onClick={doReroll} className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-6 py-2.5 rounded-xl text-sm hover:bg-stone-850 transition-all">🔄 REROLL</button>
+            <button onClick={() => { playClickSound(); setPhase('manage'); }} className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 font-mono font-black px-8 py-2.5 rounded-xl text-sm transition-all">START DYNASTY 💪</button>
+            <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-500 font-mono font-black px-4 py-2.5 rounded-xl text-sm hover:text-stone-300 transition-all">← 戻る</button>
+          </div>
+          <RosterTable title="YOUR ROSTER" players={roster} onActionClick={() => {}} actionLabel="—" totalSalary={totalCapHit} dynastyMode />
         </div>
       </div>
     );
   }
+
 
   // ═══ MANAGE PHASE ═══
   if (phase === 'manage') {
