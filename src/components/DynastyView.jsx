@@ -85,8 +85,8 @@ function ConfettiOverlay({ active }) {
   );
 }
 
-// ★修正: GM SCORE カウンターコンポーネント
-function AnimatedScore({ target, playClickSound }) {
+// ★修正: GM SCORE カウンターコンポーネント（animate プロップ追加）
+function AnimatedScore({ target, playClickSound, animate = true }) {
   const [display, setDisplay] = useState(0);
   const prevRef = useRef(0);
   const timerRef = useRef(null);
@@ -96,8 +96,8 @@ function AnimatedScore({ target, playClickSound }) {
     const end = target;
     prevRef.current = end;
 
-    // 10pt未満の変化は即時表示（アニメーションしない）
-    if (Math.abs(end - start) < 10) {
+    // ★修正: animate=false または 10pt未満の変化は即時表示
+    if (!animate || Math.abs(end - start) < 10) {
       setDisplay(end);
       return;
     }
@@ -121,7 +121,7 @@ function AnimatedScore({ target, playClickSound }) {
     }, 50);
 
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [target]);
+  }, [target, animate]);
 
   useEffect(() => {
     setDisplay(target);
@@ -195,6 +195,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const toastCounter = useRef(0);
+
+  // ★修正: GM SCORE アニメーション制御
+  const [gmAnimating, setGmAnimating] = useState(false);
 
   const totalCapHit = calcCapHit(roster, deadCap);
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
@@ -320,6 +323,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   useEffect(() => { doReroll(); }, []);
 
+  // ★修正: gmAnimating をリセット
   function doReroll() {
     playClickSound();
     setRoster(genRoster());
@@ -332,6 +336,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setSeason(1);
     setPhase('reroll');
     setTradeMode(false);
+    setGmAnimating(false);
   }
 
   function handleSignRequest(player) {
@@ -559,6 +564,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setPicksLeft(p => p - 1);
   }
 
+  // ★修正: 新シーズン開始時にGM SCOREアニメーションON
   function handleDraftComplete() {
     playClickSound();
     const newSeason = season + 1;
@@ -571,12 +577,15 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     }
     playEpicSound();
     triggerConfetti();
+    setGmAnimating(true);
     addToast('epic', '➡️', `SEASON ${newSeason}`, '新シーズン開始！', 3500);
     setFreeAgents(genFA(8));
     setSeason(newSeason);
     setPhase('manage');
+    setTimeout(() => setGmAnimating(false), 3000);
   }
 
+  // ★修正: Header で animate={gmAnimating} を使用
   const Header = () => (
     <header className="w-full max-w-7xl mx-auto mb-3 flex justify-between items-center shrink-0">
       <div className="flex items-center gap-3">
@@ -589,7 +598,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       <div className="flex items-center gap-3">
         <span className="text-xs font-mono text-stone-500">GM SCORE</span>
         <span className="text-2xl font-mono font-black text-amber-400">
-          <AnimatedScore target={calcGMScore()} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} />
+          <AnimatedScore target={calcGMScore()} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} animate={gmAnimating} />
         </span>
         <span className="text-xs font-mono text-stone-600">pts</span>
         <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2 rounded-lg transition-all text-sm ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
@@ -1100,7 +1109,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4">
             <div className="text-xs text-stone-500 font-mono">GM SCORE</div>
             <div className="text-4xl font-black text-yellow-400 font-mono">
-              <AnimatedScore target={score} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} />
+              <AnimatedScore target={score} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} animate={true} />
               <span className="text-lg text-stone-500 ml-1">pts</span>
             </div>
           </div>
