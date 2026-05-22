@@ -642,7 +642,7 @@ export default function App() {
             </div>
           </header>
           <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
-            <div className="w-full"><LeaderboardPage currentStageId={currentStage?.id || 1} /></div>
+            <div className="w-full"><LeaderboardPage /></div>
           </main>
         </div>
       )}
