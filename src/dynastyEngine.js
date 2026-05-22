@@ -75,8 +75,8 @@ function rollInjury() {
 
 // ═══ ユーティリティ ═══
 function randomName() {
-  const first = ['James', 'Marcus', 'Kevin', 'DeAndre', 'Jaylen', 'Trae', 'Anthony', 'Darius', 'Zion', 'Luka', 'Ja', 'Shai', 'Kyrie', 'Victor', 'Chet', 'Lauri', 'Tyler', 'Jalen', 'Brandon', 'Donovan', 'Jayson', 'Kawhi', 'Paul', 'Rudy', 'Nikola', 'Joel', 'Giannis', 'Damian', 'Stephen', 'LeBron', 'Anthony', 'Devin', 'Bam', 'Jimmy', 'Pascal', 'Scottie', 'Alperen', 'Keyonte', 'Dyson', 'Alex', 'Cam', 'Jabari', 'Tari', 'Keegan', 'Amen', 'Ausar', 'Brandon', 'Jarrett', 'Evan', 'Tyrese', 'Desmond', 'Cade', 'Franz', 'Paolo', 'Walker', 'Dereck', 'Jalen', 'Mark', 'Tyson', 'Tre', 'Dejounte', 'Miles', 'Anfernee', 'Herb', 'Trey', 'Aaron', 'Michael', 'Isaiah', 'Donte', 'Julius', 'Mikal', 'Collin', 'Jarred', 'Deni', 'Corey', 'Obi', 'Quentin', 'Ayo', 'Jalen', 'Andrew', 'Moses', 'Keldon', 'Devin', 'Alec', 'Pat', 'Buddy', 'Harrison', 'Kyle', 'PJ', 'Bones', 'Christian', 'Nassir', 'Coby', 'Patrick', 'Daniel', 'Jordan', 'Grant', 'Austin', 'Max', 'Rui', 'Josh', 'Caleb', 'Drew', 'Kris', 'Jett', 'Matas', 'Zaccharie', 'Donovan', 'Reed', 'Dalton'];
-  const last = ['Johnson', 'Williams', 'Brown', 'Davis', 'Wilson', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Thompson', 'Young', 'Walker', 'Robinson', 'Clark', 'Allen', 'Wright', 'Mitchell', 'Carter', 'Green', 'Edwards', 'Collins', 'Stewart', 'Morris', 'Rogers', 'Reed', 'Cook', 'Morgan', 'Bell', 'Murphy', 'Bailey', 'Rivera', 'Cooper', 'Richardson', 'Howard', 'Ward', 'Peterson', 'Gray', 'James', 'Watson', 'Brooks', 'Sanders', 'Price', 'Bennett', 'Wood', 'Barnes', 'Ross', 'Henderson', 'Coleman', 'Jenkins', 'Perry', 'Powell', 'Long', 'Patterson', 'Hughes', 'Flores', 'Washington', 'Butler', 'Simmons', 'Foster', 'Gonzalez', 'Bryant', 'Russell', 'Griffin', 'Diaz', 'Hayes', 'Myers', 'Ford', 'Hamilton', 'Graham', 'Sullivan', 'Wallace', 'Woods', 'Cole', 'West', 'Jordan', 'Owens', 'Reynolds', 'Fisher', 'Ellis', 'Harrison', 'Gibson', 'McDonald', 'Cruz', 'Marshall', 'Freeman', 'Wells', 'Webb', 'Simpson', 'Stevens', 'Tucker', 'Porter', 'Hunter', 'Hicks', 'Crawford', 'Henry', 'Boyd', 'Mason', 'Morales', 'Kennedy', 'Warren', 'Dixon', 'Ramos', 'Reyes', 'Burns', 'Gordon', 'Shaw', 'Holmes', 'Rice', 'Robertson', 'Hunt', 'Black', 'Daniels', 'Palmer', 'Mills', 'Nichols', 'Grant', 'Knight', 'Ferguson', 'Rose', 'Stone', 'Hawkins', 'Dunn', 'Perkins', 'Hudson', 'Spencer', 'Gardens', 'Stephens', 'Payne', 'Pierce', 'Berry', 'Matthews', 'Arnold', 'Wagner', 'Willis', 'Ray', 'Watkins', 'Olson', 'Carroll', 'Duncan', 'Snyder', 'Hart', 'Cunningham', 'Haliburton', 'Maxey', 'Bane', 'Mobley', 'Barnes', 'Sengun', 'George', 'Miller', 'Wallace', 'Thompson', 'Henderson', 'Wembanyama', 'Holmgren', 'Ivey', 'Murray', 'Mathurin', 'Smith', 'Duren', 'Davis', 'Griffin', 'Howard', 'Sochan', 'Daniels', 'Agbaji', 'Eason', 'Dieng', 'Duren', 'Jones', 'Nembhard'];
+  const first = ['James', 'Marcus', 'Kevin', 'DeAndre', 'Jaylen', 'Trae', 'Anthony', 'Darius', 'Zion', 'Luka', 'Ja', 'Shai', 'Kyrie', 'Victor', 'Chet', 'Lauri', 'Tyler', 'Jalen', 'Brandon', 'Donovan', 'Jayson', 'Kawhi', 'Paul', 'Rudy', 'Nikola', 'Joel', 'Giannis', 'Damian', 'Stephen', 'LeBron', 'Devin', 'Bam', 'Jimmy', 'Pascal', 'Scottie', 'Alperen', 'Keyonte', 'Dyson', 'Alex', 'Cam', 'Jabari', 'Tari', 'Keegan', 'Amen', 'Ausar', 'Jarrett', 'Evan', 'Tyrese', 'Desmond', 'Cade', 'Franz', 'Paolo', 'Walker', 'Dereck', 'Mark', 'Tyson', 'Tre', 'Dejounte', 'Miles', 'Anfernee', 'Herb', 'Trey', 'Aaron', 'Michael', 'Isaiah', 'Donte', 'Julius', 'Mikal', 'Collin', 'Deni', 'Corey', 'Obi', 'Quentin', 'Ayo', 'Andrew', 'Moses', 'Keldon', 'Alec', 'Pat', 'Buddy', 'Harrison', 'Kyle', 'PJ', 'Bones', 'Christian', 'Nassir', 'Coby', 'Patrick', 'Daniel', 'Jordan', 'Grant', 'Austin', 'Max', 'Rui', 'Josh', 'Caleb', 'Drew', 'Kris', 'Jett', 'Matas', 'Zaccharie', 'Reed', 'Dalton', 'Brandon', 'Jarred', 'Jalen'];
+  const last = ['Johnson', 'Williams', 'Brown', 'Davis', 'Wilson', 'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Thompson', 'Young', 'Walker', 'Robinson', 'Clark', 'Allen', 'Wright', 'Mitchell', 'Carter', 'Green', 'Edwards', 'Collins', 'Stewart', 'Morris', 'Rogers', 'Reed', 'Cook', 'Morgan', 'Bell', 'Murphy', 'Bailey', 'Rivera', 'Cooper', 'Richardson', 'Howard', 'Ward', 'Peterson', 'Gray', 'James', 'Watson', 'Brooks', 'Sanders', 'Price', 'Bennett', 'Wood', 'Barnes', 'Ross', 'Henderson', 'Coleman', 'Jenkins', 'Perry', 'Powell', 'Long', 'Patterson', 'Hughes', 'Flores', 'Washington', 'Butler', 'Simmons', 'Foster', 'Gonzalez', 'Bryant', 'Russell', 'Griffin', 'Diaz', 'Hayes', 'Myers', 'Ford', 'Hamilton', 'Graham', 'Sullivan', 'Wallace', 'Woods', 'Cole', 'West', 'Jordan', 'Owens', 'Reynolds', 'Fisher', 'Ellis', 'Harrison', 'Gibson', 'McDonald', 'Cruz', 'Marshall', 'Freeman', 'Wells', 'Webb', 'Simpson', 'Stevens', 'Tucker', 'Porter', 'Hunter', 'Hicks', 'Crawford', 'Henry', 'Boyd', 'Mason', 'Morales', 'Kennedy', 'Warren', 'Dixon', 'Ramos', 'Reyes', 'Burns', 'Gordon', 'Shaw', 'Holmes', 'Rice', 'Robertson', 'Hunt', 'Black', 'Daniels', 'Palmer', 'Mills', 'Nichols', 'Grant', 'Knight', 'Ferguson', 'Rose', 'Stone', 'Hawkins', 'Dunn', 'Perkins', 'Hudson', 'Spencer', 'Stephens', 'Payne', 'Pierce', 'Berry', 'Matthews', 'Arnold', 'Wagner', 'Willis', 'Ray', 'Watkins', 'Olson', 'Carroll', 'Duncan', 'Snyder', 'Hart', 'Cunningham', 'Haliburton', 'Maxey', 'Bane', 'Mobley', 'Sengun', 'George', 'Miller', 'Henderson', 'Wembanyama', 'Holmgren', 'Ivey', 'Murray', 'Mathurin', 'Smith', 'Duren', 'Griffin', 'Sochan', 'Agbaji', 'Eason', 'Dieng', 'Nembhard'];
   return first[Math.floor(Math.random() * first.length)] + ' ' + last[Math.floor(Math.random() * last.length)];
 }
 
@@ -85,7 +85,6 @@ function generatePlayer(overrideRating) {
   const age = 19 + Math.floor(Math.random() * 17);
   const position = POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
 
-  // ★追加: 成長ポテンシャル
   let pot;
   if (age <= 23) {
     pot = Math.min(99, rating + 10 + Math.floor(Math.random() * 21));
@@ -153,7 +152,6 @@ export function genDraft(count) {
     p.salary = 1500000 + Math.floor(Math.random() * 2500000);
     p.salary = Math.round(p.salary / 100000) * 100000;
     p.contractYears = 3 + Math.floor(Math.random() * 2);
-    // ★追加: 30%の確率で高ポテンシャル候補を生成
     if (Math.random() < 0.3) {
       p.pot = Math.min(99, p.rating + 25 + Math.floor(Math.random() * 15));
     }
@@ -211,7 +209,6 @@ export function advanceSeason(roster, currentInjuries = []) {
     } else if (source === 'trade') {
       change = -Math.floor(Math.random() * 3);
     } else {
-      // ★修正: Potに基づく成長ロジック
       const canGrow = player.pot && player.rating < player.pot;
       if (canGrow && Math.random() < 0.25) {
         const maxGrowth = Math.min(5, player.pot - player.rating);
@@ -306,16 +303,13 @@ export function canSignFA(player, years, totalCapHit = 0, faSignedThisSeason = 0
   if (totalCapHit > DYN_APRON1 && years > 3) {
     return { allowed: false, reason: '第1エプロン超過中は最大3年契約のみ' };
   }
-
   if (player.rating >= 85 && years === 1) {
     return { allowed: false, reason: 'スター級選手（85+）は1年契約を拒否します' };
   }
-
   const limit = getFALimit(totalCapHit);
   if (faSignedThisSeason >= limit) {
     return { allowed: false, reason: `FA契約上限（${limit}人）に達しました` };
   }
-
   return { allowed: true };
 }
 
@@ -457,4 +451,71 @@ const MANDATE_POOL = [
 
 export function generateMandate() {
   return MANDATE_POOL[Math.floor(Math.random() * MANDATE_POOL.length)];
+}
+
+// ═══ トレード市場ピック生成 ═══
+const TRADE_TEAMS = ['Warriors', 'Lakers', 'Celtics', 'Heat', 'Nuggets', 'Sixers', 'Suns', 'Bucks', 'Thunder', 'Grizzlies'];
+
+export function genTradeMarketPicks() {
+  const picks = [];
+  const count = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    const year = 1 + Math.floor(Math.random() * 3);
+    const round = Math.random() > 0.35 ? 1 : 2;
+    const from = TRADE_TEAMS[Math.floor(Math.random() * TRADE_TEAMS.length)];
+    picks.push({
+      id: 'mpick_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      year,
+      round,
+      from,
+      own: false,
+    });
+  }
+  return picks.sort((a, b) => a.year - b.year || a.round - b.round);
+}
+
+// ═══ トレード市場選手生成（55-85） ═══
+export function genTradeMarketPlayers(count) {
+  const players = [];
+  for (let i = 0; i < count; i++) {
+    const rating = 55 + Math.floor(Math.random() * 31);
+    const p = generatePlayer(rating);
+    p.faStatus = 'None';
+    p.source = 'trade';
+    players.push(p);
+  }
+  return players.sort((a, b) => b.rating - a.rating);
+}
+
+// ═══ ステピアンルール検証 ═══
+export function validateStepienRule(currentPicks, outgoingPicks) {
+  const outgoingIds = new Set(outgoingPicks.filter(p => p.round === 1).map(p => p.id));
+  const remainingYears = currentPicks
+    .filter(p => p.round === 1 && !outgoingIds.has(p.id))
+    .map(p => p.year);
+
+  const years = [1, 2, 3];
+  const hasPick = years.map(y => remainingYears.includes(y));
+
+  for (let i = 0; i < years.length - 1; i++) {
+    if (!hasPick[i] && !hasPick[i + 1]) {
+      return {
+        valid: false,
+        reason: `Y${years[i]}とY${years[i + 1]}の1巡目ピックを同時に放出できません`,
+      };
+    }
+  }
+  return { valid: true };
+}
+
+// ═══ ハードキャップ検証 ═══
+export function validateHardCap(newCapHit, hardCapped) {
+  if (!hardCapped) return { valid: true };
+  if (newCapHit > DYN_APRON1) {
+    return {
+      valid: false,
+      reason: `Cap Hit $${(newCapHit / 1000000).toFixed(1)}M > 第1エプロン $${(DYN_APRON1 / 1000000).toFixed(1)}M`,
+    };
+  }
+  return { valid: true };
 }
