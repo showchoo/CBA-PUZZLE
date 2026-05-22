@@ -84,7 +84,7 @@ function generatePlayer(overrideRating) {
   const isRookie = age <= 23;
   const baseSalary = isRookie
     ? 500000 + Math.floor(Math.random() * 2500000)
-    : 500000 + Math.floor((rating / 100) * 16000000) + Math.floor(Math.random() * 3000000);
+    : 1000000 + Math.floor((rating / 100) * 35000000) + Math.floor(Math.random() * 4000000);
   const roundedSalary = Math.round(baseSalary / 100000) * 100000;
   const years = isRookie ? (2 + Math.floor(Math.random() * 3)) : (1 + Math.floor(Math.random() * 5));
   const hasOption = Math.random() < 0.15;
