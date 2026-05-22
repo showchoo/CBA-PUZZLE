@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import StageStartScreen from "./components/StageStartScreen";
 import LeaderboardPage from "./components/LeaderboardPage";
 import DynastyView from "./components/DynastyView";
-import { CBACoreEngine } from "./logic/cbaEngine";
+import { CBACoreEngine } from "./data/cbaEngine";
 import stagesData from "./data/stages.json";
 
 const STAGE_IDS = [
