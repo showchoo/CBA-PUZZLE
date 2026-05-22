@@ -11,7 +11,7 @@
       "maxSalary": 136000000,
       "minTotalRating": 430,
       "mustHaveStar": false,
-      "minPlayers": 14
+      "minPlayers": 8
     },
     "features": {
       "deadCap": false,
@@ -36,7 +36,9 @@
       { "id": "fa1_3", "name": "実力派ウイング", "rating": 73, "salary": 6000000, "experience": 5, "contractYears": 2, "contractType": "regular", "birdRights": "None", "faStatus": "UFA", "optionType": null },
       { "id": "fa1_4", "name": "掘り出し物センター", "rating": 72, "salary": 5000000, "experience": 4, "contractYears": 2, "contractType": "regular", "birdRights": "None", "faStatus": "UFA", "optionType": null },
       { "id": "fa1_5", "name": "お買い得司令塔", "rating": 71, "salary": 3500000, "experience": 3, "contractYears": 2, "contractType": "regular", "birdRights": "None", "faStatus": "UFA", "optionType": null },
-      { "id": "fa1_6", "name": "ハッスル系フォワード", "rating": 69, "salary": 2000000, "experience": 2, "contractYears": 1, "contractType": "regular", "birdRights": "None", "faStatus": "UFA", "optionType": null }
+      { "id": "fa1_6", "name": "ハッスル系フォワード", "rating": 69, "salary": 2000000, "experience": 2, "contractYears": 1, "contractType": "regular", "birdRights": "None", "faStatus": "UFA", "optionType": null },
+      { "id": "fa1_7", "name": "守備固めビッグマン", "rating": 66, "salary": 1500000, "experience": 2, "contractYears": 1, "contractType": "regular", "birdRights": "None", "faStatus": "UFA", "optionType": null },
+      { "id": "fa1_8", "name": "経験豊富な控え衛", "rating": 65, "salary": 1200000, "experience": 5, "contractYears": 1, "contractType": "regular", "birdRights": "None", "faStatus": "UFA", "optionType": null }
     ]
   },
   {
