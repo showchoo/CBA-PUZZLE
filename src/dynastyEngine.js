@@ -84,6 +84,17 @@ function generatePlayer(overrideRating) {
   const rating = overrideRating ?? (40 + Math.floor(Math.random() * 60));
   const age = 19 + Math.floor(Math.random() * 17);
   const position = POSITIONS[Math.floor(Math.random() * POSITIONS.length)];
+
+  // ★追加: 成長ポテンシャル
+  let pot;
+  if (age <= 23) {
+    pot = Math.min(99, rating + 10 + Math.floor(Math.random() * 21));
+  } else if (age <= 28) {
+    pot = Math.min(99, rating + Math.floor(Math.random() * 11));
+  } else {
+    pot = rating;
+  }
+
   const isRookie = age <= 23;
   const baseSalary = isRookie
     ? 500000 + Math.floor(Math.random() * 2500000)
@@ -96,6 +107,7 @@ function generatePlayer(overrideRating) {
     id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
     name: randomName(),
     position,
+    pot,
     rating,
     age,
     salary: roundedSalary,
@@ -131,7 +143,7 @@ export function genFA(count) {
   return players;
 }
 
-// ═══ ドラフト生成（Rating 50-90） ═══
+// ═══ ドラフト生成（Rating 50-90、30%高Pot） ═══
 export function genDraft(count) {
   const players = [];
   for (let i = 0; i < count; i++) {
@@ -141,6 +153,10 @@ export function genDraft(count) {
     p.salary = 1500000 + Math.floor(Math.random() * 2500000);
     p.salary = Math.round(p.salary / 100000) * 100000;
     p.contractYears = 3 + Math.floor(Math.random() * 2);
+    // ★追加: 30%の確率で高ポテンシャル候補を生成
+    if (Math.random() < 0.3) {
+      p.pot = Math.min(99, p.rating + 25 + Math.floor(Math.random() * 15));
+    }
     p.source = 'draft';
     players.push(p);
   }
@@ -170,7 +186,7 @@ export function advanceDeadCap(details) {
   return { details: updated, total: updated.reduce((s, d) => s + d.amount, 0) };
 }
 
-// ═══ シーズン進行（怪我対応版） ═══
+// ═══ シーズン進行（Pot成長 + 怪我対応版） ═══
 export function advanceSeason(roster, currentInjuries = []) {
   const summaries = [];
   const surviving = [];
@@ -195,8 +211,11 @@ export function advanceSeason(roster, currentInjuries = []) {
     } else if (source === 'trade') {
       change = -Math.floor(Math.random() * 3);
     } else {
-      if (Math.random() < 0.15) {
-        change = 1 + Math.floor(Math.random() * 3);
+      // ★修正: Potに基づく成長ロジック
+      const canGrow = player.pot && player.rating < player.pot;
+      if (canGrow && Math.random() < 0.25) {
+        const maxGrowth = Math.min(5, player.pot - player.rating);
+        change = 1 + Math.floor(Math.random() * maxGrowth);
       } else if (Math.random() < 0.1) {
         change = -(3 + Math.floor(Math.random() * 3));
       } else {
@@ -425,4 +444,17 @@ export function calcRosterBalance(roster) {
   const missing = POSITIONS.filter(pos => filled[pos] === 0);
   const penaltyPct = missing.length * 15;
   return { filled, missing, penaltyPct };
+}
+
+// ═══ オーナー要請生成 ═══
+const MANDATE_POOL = [
+  { id: 'win', name: '🏆 優勝せよ', desc: '勝率60%以上で優勝', successBonus: 500, failPenalty: -200 },
+  { id: 'playoff', name: '🏀 プレーオフに進め', desc: '勝率40%以上', successBonus: 300, failPenalty: -100 },
+  { id: 'cap', name: '💰 キャップ以内に戻せ', desc: 'Cap Hitを$136M以内に', successBonus: 300, failPenalty: 0 },
+  { id: 'stars', name: '⭐ スターを3人集めろ', desc: 'Rating 80+を3人以上確保', successBonus: 300, failPenalty: -100 },
+  { id: 'balance', name: '⚖️ ロスターを均衡させろ', desc: '全5ポジションに1人以上配置', successBonus: 250, failPenalty: 0 },
+];
+
+export function generateMandate() {
+  return MANDATE_POOL[Math.floor(Math.random() * MANDATE_POOL.length)];
 }
