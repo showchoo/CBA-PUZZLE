@@ -6,6 +6,7 @@ import {
   checkSurvival, calcCapHit, canSignFA, adjustSalaryForYears,
   getMLEAmount, calcRepeaterTax, calcStretch, validateTrade,
   isSupermaxEligible, isGilbertArenasRestricted, getFALimit, calcSeasonBonus, calcGMScore,
+  calcSeasonRecord,
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2, PICKS_PER_DRAFT,
   FA_BASE_LIMIT, FA_APRON1_LIMIT,
   BONUS_RATING80_GM_SCORE, BONUS_SEASON_50, BONUS_SEASON_100
@@ -252,6 +253,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [faSignedThisSeason, setFaSignedThisSeason] = useState(0);
   const [showBonusPanel, setShowBonusPanel] = useState(false);
   const [injuredList, setInjuredList] = useState([]);
+  const [seasonRecord, setSeasonRecord] = useState(null);          // ★追加
+  const [totalRecordBonus, setTotalRecordBonus] = useState(0);    // ★追加
 
   const totalCapHit = calcCapHit(roster, deadCap);
   const totalOvr = roster.reduce((s, p) => s + p.rating, 0);
@@ -262,8 +265,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const effectiveRoster = roster.filter(p => !injuredIds.has(p.id));
   const effectiveOvr = effectiveRoster.reduce((s, p) => s + p.rating, 0);
 
+  // ★修正: totalRecordBonus を加算
   function gmScoreCalc() {
-    return calcGMScore(season, effectiveOvr, totalCapHit, effectiveRoster);
+    return calcGMScore(season, effectiveOvr, totalCapHit, effectiveRoster) + totalRecordBonus;
   }
 
   const mleAmount = getMLEAmount(totalCapHit);
@@ -311,6 +315,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   useEffect(() => { doReroll(); }, []);
 
+  // ★修正: seasonRecord, totalRecordBonus をリセット
   function doReroll() {
     playClickSound();
     setRoster(genRoster());
@@ -321,6 +326,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setSeason(1); setPhase('reroll'); setTradeMode(false);
     setGmAnimating(false); setFaSignedThisSeason(0);
     setInjuredList([]);
+    setSeasonRecord(null);
+    setTotalRecordBonus(0);
   }
 
   function handleSignRequest(player) {
@@ -435,8 +442,12 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     addToast('trade', '🤝', 'トレード成立!', `${tradeOffer.map(p => p.name).join(', ')} → ${tradeTarget.name}`, 4500);
   }
 
+  // ★修正: シーズン勝敗計算を追加
   function handleNextSeason() {
     playClickSound();
+    const record = calcSeasonRecord(effectiveOvr, minOvr);
+    setSeasonRecord(record);
+    setTotalRecordBonus(prev => prev + record.gmBonus);
     const result = advanceSeason(roster, injuredList);
     const deadResult = advanceDeadCap(deadCapDetails);
     setSummaries(result.summaries);
@@ -452,12 +463,17 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
       playInjurySound();
       addToast('warning', '🏥', `${inj.playerName}: ${inj.name}`, `${sevLabel[inj.severity]} | -${inj.ratingLoss} Rating | ${inj.seasonsLeft}シーズン欠場`, 5000);
     });
+    if (record.gmBonus > 0) {
+      addToast('epic', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result} → GM SCORE +${record.gmBonus}`, 5000);
+    } else {
+      addToast('warning', '🏀', `シーズン成績: ${record.wins}勝${record.losses}敗`, `${record.result}`, 4000);
+    }
     setPhase('seasonEnd');
   }
 
   function handleToDraft() { playClickSound(); if (optionPlayers.length > 0) { setPhase('optionDecision'); return; } startDraft(); }
 
-  // ★修正: Y1ピック数に応じて指名可能人数を決定（0なら指名不可）
+  // ★修正: Y1ピック数に応じて指名可能人数を決定
   function startDraft() {
     const year1Picks = draftPicks.filter(pk => pk.year === 1).length;
     setDraftProspects(genDraft(10));
@@ -795,6 +811,19 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <span className="text-xl font-mono font-black text-amber-400 uppercase tracking-widest">SEASON {season} COMPLETE</span>
             <h2 className="text-5xl font-black text-white">シーズン終了レポート</h2>
           </div>
+          {/* ★追加: シーズン成績カード */}
+          {seasonRecord && (
+            <div className="bg-stone-950 border border-stone-800 rounded-xl p-6 text-center space-y-2">
+              <div className="text-2xl font-mono font-black text-white">{seasonRecord.wins}勝 {seasonRecord.losses}敗</div>
+              <div className="text-lg text-stone-400 font-mono">勝率 {seasonRecord.winRate}%</div>
+              <div className={'text-2xl font-black font-mono ' + (seasonRecord.gmBonus >= 300 ? 'text-amber-400' : seasonRecord.gmBonus > 0 ? 'text-cyan-400' : 'text-stone-500')}>
+                {seasonRecord.result}
+              </div>
+              {seasonRecord.gmBonus > 0 && (
+                <div className="text-sm text-emerald-400 font-mono">GM SCORE +{seasonRecord.gmBonus}</div>
+              )}
+            </div>
+          )}
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-6 space-y-3">
             <h3 className="text-xl font-mono font-black text-cyan-400 uppercase">選手の経年変化</h3>
             <div className="space-y-2 max-h-80 overflow-y-auto">
