@@ -11,9 +11,8 @@ const MAX_PX_PER_M = 2.5;
 const MIN_H_BASE = 14;
 const SEC_PER_SEASON = 30;
 const TICK = 50;
-const LABEL_COL_W = 48;
-const SIDEBAR_W = 192;
-
+const LABEL_COL_W = 36;
+const SIDEBAR_W = 160;
 
 const CSS_BLOCK = (
   <style>{`
@@ -28,36 +27,32 @@ const CSS_BLOCK = (
     .tw-wave { animation: twWave 4s linear infinite; }
     .tw-pulse { animation: twPulse 2s ease-in-out infinite; }
     .tw-glow { animation: twGlow 2s ease-in-out infinite; }
-    .strip-born { animation: stripBorn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    .strip-born { animation: stripBorn 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards; }
     .strip-dissolve { animation: stripDissolve 0.8s ease-in forwards; pointer-events: none; }
     .strip-stretch { animation: stripStretch 1s ease-out; }
     .strip-shrink { animation: stripShrink 0.7s ease-out; }
-    .wt-grain::after {
-      content: ''; position: fixed; inset: 0;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-      pointer-events: none; z-index: 9999; opacity: 0.3;
-    }
+    .wt-grain::after { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); pointer-events: none; z-index: 9999; opacity: 0.3; }
     .wt-scroll::-webkit-scrollbar { display: none; }
     .wt-scroll { scrollbar-width: none; }
-    .wt-sl { font-size: 0.5rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #525c6e; }
-    .wt-dv { width: 1px; height: 14px; background: rgba(255,255,255,0.06); flex-shrink: 0; }
+    .wt-sl { font-size: 0.45rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #525c6e; }
+    .wt-dv { width: 1px; height: 12px; background: rgba(255,255,255,0.06); flex-shrink: 0; }
   `}</style>
 );
 
 function Toast({ toasts }) {
   return (
-    <div className="fixed top-3 left-3 z-[100] space-y-1.5 pointer-events-none" style={{ maxWidth: 340 }}>
+    <div className="fixed top-2 left-2 z-[100] space-y-1 pointer-events-none" style={{ maxWidth: 300 }}>
       {toasts.map(t => (
         <div key={t.id} className="pointer-events-auto" style={{ animation: 'twIn 0.4s ease forwards' }}>
-          <div className={'border rounded-lg px-3 py-2 shadow-2xl backdrop-blur-md ' +
+          <div className={'border rounded-lg px-2.5 py-1.5 shadow-2xl backdrop-blur-md ' +
             (t.type === 'success' ? 'bg-emerald-950/90 border-emerald-600/40' :
              t.type === 'warning' ? 'bg-red-950/90 border-red-600/40' :
              'bg-cyan-950/90 border-cyan-600/40')}>
-            <div className="flex items-center gap-2">
-              <span className="text-xs">{t.icon}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[0.6rem]">{t.icon}</span>
               <div>
-                <div className={'text-[0.65rem] font-bold ' + (t.type === 'success' ? 'text-emerald-400' : t.type === 'warning' ? 'text-red-400' : 'text-cyan-400')} style={{ fontFamily: "'Syne'" }}>{t.title}</div>
-                {t.msg && <div className="text-[0.55rem] text-stone-400" style={{ fontFamily: "'DM Mono'" }}>{t.msg}</div>}
+                <div className={'text-[0.6rem] font-bold ' + (t.type === 'success' ? 'text-emerald-400' : t.type === 'warning' ? 'text-red-400' : 'text-cyan-400')} style={{ fontFamily: "'Syne'" }}>{t.title}</div>
+                {t.msg && <div className="text-[0.5rem] text-stone-400" style={{ fontFamily: "'DM Mono'" }}>{t.msg}</div>}
               </div>
             </div>
           </div>
@@ -78,35 +73,34 @@ function SignModal({ player, totalCapHit, faSigned, faLimit, mleUsed, mleAmount,
   const display = { fontFamily: "'Syne'" };
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9998]" onClick={onCancel}>
-      <div className="bg-[#0e1218] border border-stone-700/50 rounded-xl p-5 w-full max-w-xs space-y-3 shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="bg-[#0e1218] border border-stone-700/50 rounded-xl p-4 w-full max-w-[280px] space-y-2.5 shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="text-center">
           <h3 className="text-sm font-bold" style={{ ...display, color: tier.color }}>{player.name}</h3>
-          <div className="text-[0.6rem] text-stone-400" style={mono}>{player.position} · <span style={{ color: tier.color }}>R{player.rating}</span> · Age {player.age}</div>
+          <div className="text-[0.55rem] text-stone-400" style={mono}>{player.position} · <span style={{ color: tier.color }}>R{player.rating}</span> · Age {player.age}</div>
         </div>
         <div>
-          <label className="wt-sl block mb-1">契約年数</label>
+          <label className="wt-sl block mb-0.5">契約年数</label>
           <div className="grid grid-cols-5 gap-1">
             {[1, 2, 3, 4, 5].map(y => (
               <button key={y} onClick={() => setYears(y)}
-                className={'py-1 rounded border text-[0.6rem] font-bold transition-all ' +
-                  (years === y ? 'bg-cyan-950 border-cyan-500 text-cyan-400' : 'bg-stone-900 border-stone-800 text-stone-500 hover:bg-stone-800')}
+                className={'py-1 rounded border text-[0.55rem] font-bold transition-all ' + (years === y ? 'bg-cyan-950 border-cyan-500 text-cyan-400' : 'bg-stone-900 border-stone-800 text-stone-500 hover:bg-stone-800')}
                 style={mono}>{y}</button>
             ))}
           </div>
         </div>
         {mleAmount > 0 && !mleUsed && (
-          <label className="flex items-center gap-1.5 text-[0.6rem] text-cyan-400 cursor-pointer" style={mono}>
+          <label className="flex items-center gap-1 text-[0.55rem] text-cyan-400 cursor-pointer" style={mono}>
             <input type="checkbox" checked={useMLE} onChange={e => setUseMLE(e.target.checked)} className="accent-cyan-500 w-3 h-3" />
             MLE (${(Math.min(sal, mleAmount) / 1e6).toFixed(1)}M)
           </label>
         )}
-        <div className="rounded-lg p-2.5 text-[0.6rem] space-y-1" style={{ background: '#080b10', border: '1px solid rgba(255,255,255,0.04)', ...mono }}>
+        <div className="rounded-lg p-2 text-[0.55rem] space-y-0.5" style={{ background: '#080b10', border: '1px solid rgba(255,255,255,0.04)', ...mono }}>
           <div className="flex justify-between"><span className="text-stone-600">年俸</span><span className="text-white font-bold">${(sal / 1e6).toFixed(1)}M</span></div>
           <div className="flex justify-between"><span className="text-stone-600">Cap後</span><span className={'font-bold ' + (after <= DYN_CAP ? 'text-emerald-400' : 'text-red-400')}>${(after / 1e6).toFixed(1)}M</span></div>
         </div>
-        <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 bg-stone-900 border border-stone-800 text-stone-400 font-bold py-1.5 rounded-lg text-[0.6rem]" style={mono}>キャンセル</button>
-          <button onClick={() => onConfirm(years, useMLE)} disabled={!ok} className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 disabled:from-stone-800 disabled:text-stone-600 text-stone-950 font-bold py-1.5 rounded-lg text-[0.6rem]" style={mono}>契約</button>
+        <div className="flex gap-1.5">
+          <button onClick={onCancel} className="flex-1 bg-stone-900 border border-stone-800 text-stone-400 font-bold py-1 rounded text-[0.55rem]" style={mono}>キャンセル</button>
+          <button onClick={() => onConfirm(years, useMLE)} disabled={!ok} className="flex-1 bg-gradient-to-r from-cyan-500 to-blue-600 disabled:from-stone-800 disabled:text-stone-600 text-stone-950 font-bold py-1 rounded text-[0.55rem]" style={mono}>契約</button>
         </div>
       </div>
     </div>
@@ -128,39 +122,39 @@ function DraftOverlay({ prospects, picksLeft, onDraft, onSkip, onContinue, seaso
   const display = { fontFamily: "'Syne'" };
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-[#0e1218] border border-cyan-800/40 rounded-xl p-5 w-full max-w-lg max-h-[70vh] overflow-y-auto shadow-2xl space-y-3">
+      <div className="bg-[#0e1218] border border-cyan-800/40 rounded-xl p-4 w-full max-w-md max-h-[70vh] overflow-y-auto shadow-2xl space-y-2.5">
         <div className="text-center">
-          <span className="text-[0.6rem] font-bold text-cyan-400 uppercase tracking-[0.15em]" style={display}>💧 SEASON {season} DRAFT</span>
-          <p className="text-[0.6rem] text-stone-400 mt-0.5" style={mono}>残り: <span className="text-cyan-400 font-bold">{picksLeft}</span></p>
+          <span className="text-[0.55rem] font-bold text-cyan-400 uppercase tracking-[0.15em]" style={display}>💧 SEASON {season} DRAFT</span>
+          <p className="text-[0.55rem] text-stone-400 mt-0.5" style={mono}>残り: <span className="text-cyan-400 font-bold">{picksLeft}</span></p>
         </div>
         {picksLeft > 0 ? (
           <div className="space-y-1">
             {prospects.map((p, i) => {
               const tier = getEffTier(p.rating, p.salary);
               return (
-                <div key={p.id} className="bg-stone-950 border border-stone-800/60 rounded-lg p-2 flex items-center justify-between hover:border-cyan-800/60 transition-colors">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-stone-700 text-[0.55rem] w-4 text-center shrink-0" style={mono}>#{i + 1}</span>
+                <div key={p.id} className="bg-stone-950 border border-stone-800/60 rounded-lg p-1.5 flex items-center justify-between hover:border-cyan-800/60 transition-colors">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-stone-700 text-[0.5rem] w-4 text-center shrink-0" style={mono}>#{i + 1}</span>
                     <div className="min-w-0">
-                      <div className="text-white font-bold text-xs truncate">{p.name}</div>
+                      <div className="text-white font-bold text-[0.6rem] truncate">{p.name}</div>
                       <div className="flex items-center gap-1 mt-px">
-                        <span className="text-[0.5rem] bg-stone-800/80 text-stone-400 px-0.5 rounded" style={mono}>{p.position}</span>
-                        <span className="text-[0.5rem] font-bold" style={{ ...mono, color: tier.color }}>R{p.rating}</span>
-                        <span className="text-[0.5rem] text-stone-600">A{p.age}</span>
-                        <span className="text-[0.5rem] font-bold" style={{ ...mono, color: tier.color }}>${(p.salary / 1e6).toFixed(1)}M</span>
+                        <span className="text-[0.45rem] bg-stone-800/80 text-stone-400 px-0.5 rounded" style={mono}>{p.position}</span>
+                        <span className="text-[0.45rem] font-bold" style={{ ...mono, color: tier.color }}>R{p.rating}</span>
+                        <span className="text-[0.45rem] text-stone-600">A{p.age}</span>
+                        <span className="text-[0.45rem] font-bold" style={{ ...mono, color: tier.color }}>${(p.salary / 1e6).toFixed(1)}M</span>
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => onDraft(p)} className="bg-cyan-950 border border-cyan-700 text-cyan-400 hover:bg-cyan-900 font-bold px-2.5 py-1 rounded text-[0.6rem] shrink-0 ml-2" style={mono}>DRAFT</button>
+                  <button onClick={() => onDraft(p)} className="bg-cyan-950 border border-cyan-700 text-cyan-400 hover:bg-cyan-900 font-bold px-2 py-0.5 rounded text-[0.55rem] shrink-0 ml-2" style={mono}>DRAFT</button>
                 </div>
               );
             })}
-            <button onClick={onSkip} className="w-full bg-stone-900 border border-stone-800 text-stone-600 font-bold py-1.5 rounded-lg text-[0.6rem] hover:text-stone-300 mt-1" style={mono}>スキップ →</button>
+            <button onClick={onSkip} className="w-full bg-stone-900 border border-stone-800 text-stone-600 font-bold py-1 rounded text-[0.55rem] hover:text-stone-300" style={mono}>スキップ →</button>
           </div>
         ) : (
-          <div className="text-center py-4 space-y-2">
-            <div className="text-emerald-400 font-bold text-sm" style={display}>✓ ドラフト完了</div>
-            <button onClick={onContinue} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-stone-950 font-bold py-2 rounded-lg text-[0.65rem]" style={mono}>シーズン再開 ▶</button>
+          <div className="text-center py-3 space-y-2">
+            <div className="text-emerald-400 font-bold text-xs" style={display}>✓ ドラフト完了</div>
+            <button onClick={onContinue} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-stone-950 font-bold py-1.5 rounded text-[0.6rem]" style={mono}>シーズン再開 ▶</button>
           </div>
         )}
       </div>
@@ -168,7 +162,6 @@ function DraftOverlay({ prospects, picksLeft, onDraft, onSkip, onContinue, seaso
   );
 }
 
-/* ═══════════════════════════════════════ */
 export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn, toggleBGM }) {
   const [phase, setPhase] = useState('reroll');
   const [currentSeason, setCurrentSeason] = useState(1.0);
@@ -237,9 +230,9 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const ratingLine = 380 + (sn - 1) * 8;
   const gmScore = calcGMScore(sn, totalRating, totalCapHit, roster);
 
-  const canvasH = Math.max(200, viewportH - 60);
-  const dynamicPxPerM = Math.max(0.5, Math.min(MAX_PX_PER_M, (canvasH - 50) / Math.max(1, DYN_APRON2 / 1e6)));
-  const dynamicMinH = Math.max(6, Math.min(MIN_H_BASE, canvasH / 30));
+  const canvasH = Math.max(180, viewportH - 24);
+  const dynamicPxPerM = Math.max(0.4, Math.min(MAX_PX_PER_M, (canvasH - 40) / Math.max(1, DYN_APRON2 / 1e6)));
+  const dynamicMinH = Math.max(5, Math.min(MIN_H_BASE, canvasH / 30));
 
   const allItems = [
     ...roster.map(p => ({ ...p, isDC: false, effSal: p.salary })),
@@ -266,7 +259,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     sn + 2
   );
   const tlWidth = maxSn * seasonW;
-  const waterH = Math.min(canvasH - 8, (totalCapHit / 1e6) * dynamicPxPerM);
+  const waterH = Math.min(canvasH - 6, (totalCapHit / 1e6) * dynamicPxPerM);
   const capLineY = (DYN_CAP / 1e6) * dynamicPxPerM;
 
   useEffect(() => { rRef.current = roster; }, [roster]);
@@ -342,7 +335,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   }
   function startGame() { playClickSound(); setSpeed(1); setPhase('manage'); }
 
-    function handleSeasonBoundary(newSn) {
+  function handleSeasonBoundary(newSn) {
     setSpeed(0);
     const curRoster = rRef.current;
     const curDC = dcRef.current;
@@ -357,7 +350,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setRoster(result.surviving);
     const preservedDC = deadResult.details.map(d => {
       const orig = curDC.find(o =>
-        o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', '')
+        o.name === d.name ||
+        o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', '')
       );
       return {
         ...d,
@@ -368,17 +362,13 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     });
     setDeadCapDetails(preservedDC);
     setTaxHistory(prev => [...prev, curCapHit > DYN_TAX]);
-    setMleUsed(false);
-    setFaSignedThisSeason(0);
-    setHardCapped(false);
-    setContextMenu(null);
+    setMleUsed(false); setFaSignedThisSeason(0); setHardCapped(false); setContextMenu(null);
     const survival = checkSurvival(result.surviving, newSn + 1, []);
     if (!survival.alive) { playError(); setPhase('gameOver'); return; }
     if (record.gmBonus > 0) addToast('success', '🏀', `S${newSn - 1}: ${record.wins}W-${record.losses}L`, `${record.result} +${record.gmBonus}`, 4000);
     else addToast('info', '🏀', `S${newSn - 1}: ${record.wins}W-${record.losses}L`, record.result, 3000);
     setShowSummary(true);
   }
-
 
   function handleSummaryContinue() {
     setShowSummary(false);
@@ -454,7 +444,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   const SpeedBtn = ({ v, label }) => (
     <button onClick={() => { playClickSound(); setSpeed(v); }}
-      className={'px-1.5 py-0.5 rounded text-[0.55rem] font-bold transition-all border ' +
+      className={'px-1.5 py-px rounded text-[0.5rem] font-bold transition-all border ' +
         (speed === v ? 'bg-cyan-950 border-cyan-500 text-cyan-400' : 'bg-stone-900/80 border-stone-800 text-stone-500 hover:text-stone-300')}
       style={mono}>{label}</button>
   );
@@ -488,18 +478,15 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               <div className="max-h-[400px] overflow-y-auto wt-scroll">
                 <table className="w-full" style={mono}>
                   <thead className="sticky top-0 bg-[#0c1018]"><tr className="text-stone-600 text-[0.55rem]"><th className="text-left px-3 py-1.5">Player</th><th className="text-center px-1.5 py-1.5">Pos</th><th className="text-center px-1.5 py-1.5">Rtg</th><th className="text-center px-1.5 py-1.5">Age</th><th className="text-right px-3 py-1.5">Salary</th><th className="text-right px-3 py-1.5">Ctr</th></tr></thead>
-                  <tbody>
-                    {roster.map((p, i) => { const tier = getEffTier(p.rating, p.salary); return (
-                      <tr key={p.id} className="border-t border-white/[0.03] hover:bg-white/[0.02]" style={{ animation: `twIn 0.3s ease ${i * 40}ms both` }}>
-                        <td className="px-3 py-1.5"><span className="text-white font-semibold text-[0.65rem]">{p.name}</span></td>
-                        <td className="text-center px-1.5 py-1.5"><span className="text-[0.5rem] bg-stone-800/80 text-stone-400 px-0.5 rounded">{p.position}</span></td>
-                        <td className="text-center px-1.5 py-1.5"><span className="font-bold text-[0.65rem]" style={{ color: tier.color }}>{p.rating}</span></td>
-                        <td className="text-center px-1.5 py-1.5 text-stone-500 text-[0.6rem]">{p.age}</td>
-                        <td className="text-right px-3 py-1.5 text-stone-300 text-[0.6rem]">${(p.salary / 1e6).toFixed(1)}M</td>
-                        <td className="text-right px-3 py-1.5 text-stone-600 text-[0.6rem]">{p.contractYears}yr</td>
-                      </tr>
-                    ); })}
-                  </tbody>
+                  <tbody>{roster.map((p, i) => { const tier = getEffTier(p.rating, p.salary); return (
+                    <tr key={p.id} className="border-t border-white/[0.03] hover:bg-white/[0.02]" style={{ animation: `twIn 0.3s ease ${i * 40}ms both` }}>
+                      <td className="px-3 py-1.5"><span className="text-white font-semibold text-[0.65rem]">{p.name}</span></td>
+                      <td className="text-center px-1.5 py-1.5"><span className="text-[0.5rem] bg-stone-800/80 text-stone-400 px-0.5 rounded">{p.position}</span></td>
+                      <td className="text-center px-1.5 py-1.5"><span className="font-bold text-[0.65rem]" style={{ color: tier.color }}>{p.rating}</span></td>
+                      <td className="text-center px-1.5 py-1.5 text-stone-500 text-[0.6rem]">{p.age}</td>
+                      <td className="text-right px-3 py-1.5 text-stone-300 text-[0.6rem]">${(p.salary / 1e6).toFixed(1)}M</td>
+                      <td className="text-right px-3 py-1.5 text-stone-600 text-[0.6rem]">{p.contractYears}yr</td>
+                    </tr>); })}</tbody>
                 </table>
               </div>
             </div>
@@ -522,8 +509,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                     <span className="font-bold text-[0.55rem] w-2.5 shrink-0" style={{ color: colors[t] }}>{t}</span>
                     <div className="flex-1 bg-stone-900 rounded-full h-1 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${roster.length > 0 ? Math.min(100, count / roster.length * 100) : 0}%`, background: colors[t] }} /></div>
                     <span className="text-[0.5rem] text-stone-600 w-2.5 text-right" style={mono}>{count}</span>
-                  </div>
-                ); })}
+                  </div>); })}
               </div>
             </div>
           </div>
@@ -547,201 +533,191 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
         {contextMenu && (<>
           <div className="fixed inset-0 z-[200]" onClick={closeContextMenu} onContextMenu={(e) => { e.preventDefault(); closeContextMenu(); }} />
-          <div className="fixed z-[201] bg-[#0e1218] border border-stone-700/60 rounded-lg shadow-2xl py-0.5 min-w-[140px]"
-            style={{ left: Math.min(contextMenu.x, window.innerWidth - 160), top: Math.min(contextMenu.y, window.innerHeight - 160) }}>
-            <div className="px-2.5 py-1 border-b border-white/[0.04]">
-              <div className="text-white font-semibold text-[0.6rem]">{contextMenu.player.name}</div>
-              <div className="text-stone-500 text-[0.5rem]" style={mono}>{contextMenu.player.position} · R{contextMenu.player.rating} · ${(contextMenu.player.salary / 1e6).toFixed(1)}M</div>
+          <div className="fixed z-[201] bg-[#0e1218] border border-stone-700/60 rounded-lg shadow-2xl py-0.5 min-w-[130px]"
+            style={{ left: Math.min(contextMenu.x, window.innerWidth - 150), top: Math.min(contextMenu.y, window.innerHeight - 150), fontSize: '0.55rem' }}>
+            <div className="px-2 py-1 border-b border-white/[0.04]">
+              <div className="text-white font-semibold">{contextMenu.player.name}</div>
+              <div className="text-stone-500 text-[0.45rem]" style={mono}>{contextMenu.player.position} · R{contextMenu.player.rating} · ${(contextMenu.player.salary / 1e6).toFixed(1)}M</div>
             </div>
-            <button onClick={() => handleWaive(contextMenu.player)} className="w-full text-left px-2.5 py-1 text-[0.6rem] text-amber-300 hover:bg-amber-950/40 flex items-center gap-1.5">💀 Waive</button>
-            {contextMenu.player.contractYears > 1 && <button onClick={() => handleBuyout(contextMenu.player)} className="w-full text-left px-2.5 py-1 text-[0.6rem] text-purple-300 hover:bg-purple-950/40 flex items-center gap-1.5">🤝 Buyout</button>}
-            {contextMenu.player.contractYears > 1 && <button onClick={() => handleStretch(contextMenu.player)} className="w-full text-left px-2.5 py-1 text-[0.6rem] text-emerald-300 hover:bg-emerald-950/40 flex items-center gap-1.5">⏳ Stretch</button>}
+            <button onClick={() => handleWaive(contextMenu.player)} className="w-full text-left px-2 py-1 text-amber-300 hover:bg-amber-950/40 flex items-center gap-1">💀 Waive</button>
+            {contextMenu.player.contractYears > 1 && <button onClick={() => handleBuyout(contextMenu.player)} className="w-full text-left px-2 py-1 text-purple-300 hover:bg-purple-950/40 flex items-center gap-1">🤝 Buyout</button>}
+            {contextMenu.player.contractYears > 1 && <button onClick={() => handleStretch(contextMenu.player)} className="w-full text-left px-2 py-1 text-emerald-300 hover:bg-emerald-950/40 flex items-center gap-1">⏳ Stretch</button>}
           </div>
         </>)}
 
         {showSummary && (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-[#0e1218] border border-stone-700/50 rounded-xl p-5 w-full max-w-sm shadow-2xl space-y-3">
+            <div className="bg-[#0e1218] border border-stone-700/50 rounded-xl p-4 w-full max-w-[280px] shadow-2xl space-y-2.5">
               <div className="text-center">
-                <span className="text-[0.55rem] font-bold text-cyan-400 uppercase tracking-[0.15em]" style={display}>Season {sn - 1} Report</span>
-                {seasonRecord && <div><div className="text-2xl font-extrabold" style={display}>{seasonRecord.wins}W-{seasonRecord.losses}L</div><div className={'text-sm font-bold ' + (seasonRecord.gmBonus > 0 ? 'text-emerald-400' : 'text-stone-500')} style={mono}>{seasonRecord.result} {seasonRecord.gmBonus > 0 && `+${seasonRecord.gmBonus}`}</div></div>}
+                <span className="text-[0.5rem] font-bold text-cyan-400 uppercase tracking-[0.15em]" style={display}>Season {sn - 1} Report</span>
+                {seasonRecord && <div><div className="text-xl font-extrabold" style={display}>{seasonRecord.wins}W-{seasonRecord.losses}L</div><div className={'text-xs font-bold ' + (seasonRecord.gmBonus > 0 ? 'text-emerald-400' : 'text-stone-500')} style={mono}>{seasonRecord.result} {seasonRecord.gmBonus > 0 && `+${seasonRecord.gmBonus}`}</div></div>}
               </div>
-              <div className="rounded-lg p-2 max-h-36 overflow-y-auto wt-scroll space-y-0.5" style={{ background: '#080b10' }}>
+              <div className="rounded-lg p-2 max-h-32 overflow-y-auto wt-scroll space-y-px" style={{ background: '#080b10' }}>
                 {summaries.map((s, i) => (
-                  <div key={i} className="flex justify-between text-[0.6rem] py-1 border-b border-white/[0.03] last:border-0">
+                  <div key={i} className="flex justify-between text-[0.55rem] py-0.5 border-b border-white/[0.03] last:border-0">
                     <span className="text-white">{s.name}</span>
-                    <span style={mono}><span className="text-stone-500">{s.oldRating}</span><span className="text-stone-700 mx-0.5">→</span><span className={s.change <= -3 ? 'text-red-400 font-bold' : 'text-amber-400 font-bold'}>{s.newRating || 'RET'}</span>{s.change !== 'RETIRE' && <span className="text-red-500 ml-0.5 text-[0.5rem]">({s.change})</span>}</span>
+                    <span style={mono}><span className="text-stone-500">{s.oldRating}</span><span className="text-stone-700 mx-0.5">→</span><span className={s.change <= -3 ? 'text-red-400 font-bold' : 'text-amber-400 font-bold'}>{s.newRating || 'RET'}</span>{s.change !== 'RETIRE' && <span className="text-red-500 ml-0.5 text-[0.45rem]">({s.change})</span>}</span>
                   </div>
                 ))}
               </div>
-              <button onClick={handleSummaryContinue} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-stone-950 font-bold py-2 rounded-lg text-[0.6rem]" style={mono}>Continue ▶</button>
+              <button onClick={handleSummaryContinue} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-stone-950 font-bold py-1.5 rounded-lg text-[0.55rem]" style={mono}>Continue ▶</button>
             </div>
           </div>
         )}
 
         {showDraft && <DraftOverlay prospects={draftProspects} picksLeft={picksLeft} onDraft={handleDraft} onSkip={handleDraftSkip} onContinue={handleDraftComplete} season={sn} />}
 
-        {/* HEADER — 1行 */}
-        <header className="px-3 py-0.5 flex items-center justify-between border-b border-white/[0.04] shrink-0 bg-[#080b12]/80" style={{ minHeight: 24 }}>
-          <div className="flex items-center gap-2">
-            <button onClick={() => { playClickSound(); setSpeed(0); onBack(); }} className="text-stone-600 hover:text-stone-300 text-[0.65rem] px-1 rounded hover:bg-stone-800/50">🏠</button>
-            <h1 className="text-[0.65rem] font-extrabold tracking-wider text-cyan-400" style={display}>WATER TOWER</h1>
-            <div className="wt-dv" />
-            <span className="text-[0.65rem] font-bold text-white" style={mono}>S{sn}</span>
-            <span className="text-[0.5rem] text-stone-600" style={mono}>({(currentSeason % 1 * 100).toFixed(0)}%)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-px bg-stone-900/60 rounded p-px"><SpeedBtn v={0} label="⏸" /><SpeedBtn v={1} label="1x" /><SpeedBtn v={2} label="2x" /><SpeedBtn v={3} label="3x" /></div>
-            <div className="wt-dv" />
-            <span className="wt-sl">GM</span>
-            <span className="text-[0.65rem] font-bold text-amber-400" style={mono}>{gmScore}</span>
-            <button onClick={() => { playClickSound(); toggleBGM(); }} className={'text-[0.65rem] px-0.5 ' + (isBgmOn ? 'text-emerald-400' : 'text-stone-600')}>{isBgmOn ? '🔊' : '🔇'}</button>
-          </div>
+        {/* ═══ SINGLE HEADER LINE — everything merged ═══ */}
+        <header className="px-2 flex items-center gap-2 border-b border-white/[0.04] shrink-0 bg-[#080b12]/80" style={{ height: 20 }}>
+          <button onClick={() => { playClickSound(); setSpeed(0); onBack(); }} className="text-stone-600 hover:text-stone-300 text-[0.55rem] px-0.5">🏠</button>
+          <span className="text-[0.55rem] font-extrabold tracking-wider text-cyan-400" style={display}>WATER TOWER</span>
+          <div className="wt-dv" />
+          <span className="text-[0.6rem] font-bold text-white" style={mono}>S{sn}</span>
+          <span className="text-[0.45rem] text-stone-600" style={mono}>({(currentSeason % 1 * 100).toFixed(0)}%)</span>
+          <div className="wt-dv" />
+          <div className="flex items-center gap-px"><SpeedBtn v={0} label="⏸" /><SpeedBtn v={1} label="1x" /><SpeedBtn v={2} label="2x" /><SpeedBtn v={3} label="3x" /></div>
+          <div className="wt-dv" />
+          <span className="wt-sl">GM</span>
+          <span className="text-[0.55rem] font-bold text-amber-400" style={mono}>{gmScore}</span>
+          <div className="wt-dv" />
+          <span className="wt-sl">★</span>
+          <span className={'text-[0.55rem] font-bold ' + (totalRating >= ratingLine ? 'text-emerald-400' : 'text-red-400')} style={mono}>{totalRating}<span className="text-stone-700">/{ratingLine}</span></span>
+          <div className="wt-dv" />
+          <span className="wt-sl">$</span>
+          <span className={'text-[0.55rem] font-bold ' + (totalCapHit <= DYN_CAP ? 'text-cyan-400' : 'text-amber-400')} style={mono}>${(totalCapHit / 1e6).toFixed(1)}M<span className="text-stone-700">/${(DYN_CAP / 1e6).toFixed(0)}M</span></span>
+          <div className="wt-dv" />
+          <span className="text-white font-bold text-[0.55rem]" style={mono}>{roster.length}人</span>
+          <div className="wt-dv" />
+          <span className="wt-sl">FA</span>
+          <span className="text-white font-bold text-[0.55rem]" style={mono}>{faLimit - faSignedThisSeason}/{faLimit}</span>
+          {dc > 0 && <><div className="wt-dv" /><span className="text-red-400 font-bold text-[0.5rem]" style={mono}>DC ${(dc / 1e6).toFixed(1)}M</span></>}
+          <div className="ml-auto" />
+          <span className="text-stone-700 text-[0.35rem]" style={mono}>Space:停止 右Click:操作</span>
+          <button onClick={() => { playClickSound(); toggleBGM(); }} className={'text-[0.55rem] px-0.5 ' + (isBgmOn ? 'text-emerald-400' : 'text-stone-600')}>{isBgmOn ? '🔊' : '🔇'}</button>
         </header>
 
-        {/* MAIN */}
+        {/* ═══ MAIN — canvas + sidebar ═══ */}
         <main className="flex-1 flex overflow-hidden min-h-0">
-          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-            {/* Season bar — 1行 */}
-            <div className="flex shrink-0 border-b border-white/[0.03] overflow-hidden" style={{ height: 16 }}
-              ref={el => { if (el && contRef.current) { contRef.current.addEventListener('scroll', () => { el.scrollLeft = contRef.current?.scrollLeft || 0; }); } }}>
-              <div style={{ width: LABEL_COL_W }} className="shrink-0" />
-              <div style={{ width: tlWidth, position: 'relative' }}>
-                {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
-                  <div key={s} className="absolute top-0 h-full flex items-center justify-center"
-                    style={{ left: (s - 1) * seasonW, width: seasonW, fontSize: '0.5rem', color: s === sn ? '#22d3ee' : '#2d3038', fontWeight: s === sn ? 800 : 400, borderRight: '1px solid rgba(255,255,255,0.02)', ...mono }}>S{s}</div>
-                ))}
+          <div className="flex-1 flex min-h-0">
+            {/* Label col */}
+            <div style={{ width: LABEL_COL_W }} className="shrink-0 relative bg-[#0a0e16] border-r border-white/[0.03] overflow-hidden">
+              <div className="absolute left-0 right-0" style={{ bottom: ratingLine * dynamicPxPerM }}>
+                <div className="border-t border-dashed border-amber-500/25 tw-pulse" />
+                <span className="absolute left-0.5 -top-2.5 text-[0.4rem] font-bold text-amber-400 bg-amber-950/50 px-0.5 rounded whitespace-nowrap" style={mono}>★{ratingLine}</span>
+              </div>
+              <div className="absolute left-0 right-0" style={{ bottom: capLineY }}>
+                <div className="border-t border-dashed opacity-20" style={{ borderColor: '#dc2626' }} />
+                <span className="absolute left-0.5 -top-2.5 text-[0.4rem] text-red-400 bg-[#0a0e16]/80 px-0.5 rounded whitespace-nowrap" style={mono}>${(DYN_CAP / 1e6).toFixed(0)}M</span>
               </div>
             </div>
 
             {/* Canvas */}
-            <div className="flex-1 flex min-h-0">
-              {/* Label col */}
-              <div style={{ width: LABEL_COL_W }} className="shrink-0 relative bg-[#0a0e16] border-r border-white/[0.03] overflow-hidden">
-                <div className="absolute left-0 right-0" style={{ bottom: ratingLine * dynamicPxPerM }}>
-                  <div className="border-t border-dashed border-amber-500/25 tw-pulse" />
-                  <span className="absolute left-0.5 -top-3 text-[0.45rem] font-bold text-amber-400 bg-amber-950/50 px-0.5 rounded whitespace-nowrap" style={mono}>★{ratingLine}</span>
-                </div>
-                <div className="absolute left-0 right-0" style={{ bottom: capLineY }}>
-                  <div className="border-t border-dashed opacity-25" style={{ borderColor: '#dc2626' }} />
-                  <span className="absolute left-0.5 -top-3 text-[0.45rem] text-red-400 bg-[#0a0e16]/80 px-0.5 rounded whitespace-nowrap" style={mono}>${(DYN_CAP / 1e6).toFixed(0)}M</span>
-                </div>
-              </div>
+            <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden wt-scroll"
+              style={{ cursor: dragRef.current.active ? 'grabbing' : 'grab' }}
+              onWheel={handleUserInteract} onMouseDown={handleDragStart} onTouchStart={handleUserInteract} onTouchEnd={handleUserRelease} onContextMenu={e => e.preventDefault()}>
+              <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0a0e16', userSelect: 'none', paddingLeft: 4, paddingRight: 4, overflow: 'hidden' }}>
 
-              {/* Scroll area */}
-              <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden wt-scroll"
-                style={{ cursor: dragRef.current.active ? 'grabbing' : 'grab' }}
-                onWheel={handleUserInteract} onMouseDown={handleDragStart} onTouchStart={handleUserInteract} onTouchEnd={handleUserRelease} onContextMenu={e => e.preventDefault()}>
-                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0a0e16', userSelect: 'none', paddingLeft: 4, paddingRight: 4, overflow: 'hidden' }}>
+                {/* Season dividers + labels (drawn on canvas) */}
+                {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
+                  <React.Fragment key={s}>
+                    <div className="absolute top-0 bottom-0" style={{ left: (s - 1) * seasonW, width: 1, background: 'rgba(255,255,255,0.02)' }} />
+                    <div className="absolute pointer-events-none" style={{ left: (s - 1) * seasonW, top: 1, width: seasonW, textAlign: 'center', fontSize: '0.45rem', color: s === sn ? '#22d3ee' : '#22262e', fontWeight: s === sn ? 800 : 400, ...mono }}>S{s}</div>
+                  </React.Fragment>
+                ))}
 
-                  {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * seasonW, width: 1, background: 'rgba(255,255,255,0.02)' }} />)}
+                {/* Past overlay */}
+                <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 0, width: Math.max(0, (currentSeason - 1) * seasonW), background: 'rgba(0,0,0,0.15)', zIndex: 4 }} />
 
-                  <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 0, width: Math.max(0, (currentSeason - 1) * seasonW), background: 'rgba(0,0,0,0.15)', zIndex: 4 }} />
+                {/* Water */}
+                <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.22), rgba(6,120,180,0.02))', zIndex: 1 }} />
+                <WaterWave bottom={waterH} />
 
-                  <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.25), rgba(6,120,180,0.02))', zIndex: 1 }} />
-                  <WaterWave bottom={waterH} />
+                {/* Cap line */}
+                <div className="absolute left-0 right-0 border-t border-dashed opacity-20 pointer-events-none" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }} />
+                {/* Rating line */}
+                <div className="absolute left-0 right-0 border-t border-dashed border-amber-500/20 tw-pulse pointer-events-none" style={{ bottom: ratingLine * dynamicPxPerM, zIndex: 3 }} />
 
-                  <div className="absolute left-0 right-0 border-t border-dashed opacity-25 pointer-events-none" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }} />
-                  <div className="absolute left-0 right-0 border-t border-dashed border-amber-500/25 tw-pulse pointer-events-none" style={{ bottom: ratingLine * dynamicPxPerM, zIndex: 3 }} />
-
-                  {stacked.map(item => {
-                    const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
-                    const startSn = Math.max(currentSeason, item.signedSeason || 1);
-                    const left = (startSn - 1) * seasonW + 6;
-                    const w = Math.max(0, (endSn - startSn) * seasonW - 6);
-                    const tier = item.tier || getEffTier(item.rating, item.salary);
-                    const isCtxTarget = contextMenu && contextMenu.player.id === item.id;
-                    const animClass = animatingStrips[item.id] === 'dissolve' ? ' strip-dissolve' : animatingStrips[item.id] === 'stretch' ? ' strip-stretch' : animatingStrips[item.id] === 'shrink' ? ' strip-shrink' : animatingStrips[item.id] === 'born' ? ' strip-born' : '';
-                    if (w <= 0) return null;
-                    return (
-                      <div key={item.id} onContextMenu={e => { if (!item.isDC) handleStripContextMenu(e, item); }}
-                        className={'absolute rounded transition-all duration-500' + (item.isDC ? '' : ' cursor-pointer') + (isCtxTarget ? ' tw-glow' : '') + animClass}
-                        style={{
-                          left, width: w, bottom: item.sBot, height: item.sH, borderRadius: 3,
-                          borderLeft: `3px solid ${item.isDC ? '#ef4444' : tier.color}`,
-                          backgroundColor: isCtxTarget ? `${tier.color}25` : item.isDC ? 'rgba(239,68,68,0.1)' : `${tier.color}0d`,
-                          opacity: item.isDC ? 0.6 : 1,
-                          backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(239,68,68,0.06) 6px, rgba(239,68,68,0.06) 12px)' : 'none',
-                          zIndex: isCtxTarget ? 10 : item.isDC ? 1 : 2, userSelect: 'none',
-                        }}>
-                        <div className="flex items-center justify-between px-2 h-full overflow-hidden">
-                          <div className="flex items-center gap-1 min-w-0">
-                            <span className="text-white font-semibold truncate" style={{ fontSize: item.sH < 12 ? '0.4rem' : '0.55rem' }}>{item.name}</span>
-                            {!item.isDC && <span className="text-[0.4rem] bg-stone-800/80 text-stone-400 px-0.5 rounded shrink-0" style={mono}>{item.position}</span>}
-                            {item.isDC && <span className="text-[0.4rem] bg-red-950/80 text-red-400 px-0.5 rounded shrink-0" style={mono}>DC</span>}
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {!item.isDC && <span className="font-bold" style={{ color: tier.color, fontSize: item.sH < 12 ? '0.4rem' : '0.55rem', ...mono }}>{item.rating}</span>}
-                            <span className="text-stone-500" style={{ fontSize: '0.45rem', ...mono }}>${(item.effSal / 1e6).toFixed(1)}M</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  <div className="absolute top-0 bottom-0 tw-glow pointer-events-none" style={{ left: (currentSeason - 1) * seasonW - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Status bar — 1行 */}
-            <div className="flex items-center gap-3 px-3 border-t border-white/[0.04] shrink-0" style={{ height: 20, background: '#0a0e16' }}>
-              <span className="wt-sl">RTG</span>
-              <span className={'font-bold text-[0.6rem] ' + (totalRating >= ratingLine ? 'text-emerald-400' : 'text-red-400')} style={mono}>{totalRating}<span className="text-stone-700">/{ratingLine}</span></span>
-              <div className="wt-dv" />
-              <span className="wt-sl">CAP</span>
-              <span className={'font-bold text-[0.6rem] ' + (totalCapHit <= DYN_CAP ? 'text-cyan-400' : 'text-amber-400')} style={mono}>${(totalCapHit / 1e6).toFixed(1)}M<span className="text-stone-700">/${(DYN_CAP / 1e6).toFixed(0)}M</span></span>
-              <div className="wt-dv" />
-              <span className="text-white font-bold text-[0.6rem]" style={mono}>{roster.length}人</span>
-              <div className="wt-dv" />
-              <span className="wt-sl">FA</span>
-              <span className="text-white font-bold text-[0.6rem]" style={mono}>{faLimit - faSignedThisSeason}/{faLimit}</span>
-              {dc > 0 && <><div className="wt-dv" /><span className="text-red-400 font-bold text-[0.55rem]" style={mono}>DC ${(dc / 1e6).toFixed(1)}M</span></>}
-              <span className="text-stone-700 text-[0.4rem] ml-auto" style={mono}>Space:停止 · 右Click:操作</span>
-            </div>
-          </div>
-
-          {/* SIDEBAR */}
-          <div className="w-48 flex flex-col shrink-0 border-l border-white/[0.04] bg-[#080b12] overflow-hidden">
-            {totalRating < ratingLine && (
-              <div className="bg-red-950/30 border-b border-red-900/30 px-2 py-1 animate-pulse shrink-0">
-                <div className="text-red-400 font-bold text-[0.5rem]" style={mono}>🚨 不足: {ratingLine - totalRating}pt</div>
-              </div>
-            )}
-
-            <div className="px-2 py-1.5 space-y-1 border-b border-white/[0.03] shrink-0">
-              <div className="wt-sl">ステータス</div>
-              <div className="flex justify-between"><span className="text-[0.5rem] text-stone-500">Rating</span><span className={'font-bold text-[0.65rem] ' + (totalRating >= ratingLine ? 'text-emerald-400' : 'text-red-400')} style={mono}>{totalRating}<span className="text-stone-700">/{ratingLine}</span></span></div>
-              <div className="flex justify-between"><span className="text-[0.5rem] text-stone-500">Cap</span><span className={'font-bold text-[0.65rem] ' + (totalCapHit <= DYN_CAP ? 'text-cyan-400' : 'text-red-400')} style={mono}>${(totalCapHit / 1e6).toFixed(1)}M</span></div>
-              {dc > 0 && <div className="flex justify-between"><span className="text-[0.5rem] text-red-500">DC</span><span className="text-red-400 font-bold text-[0.55rem]" style={mono}>${(dc / 1e6).toFixed(1)}M</span></div>}
-            </div>
-
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              <div className="flex justify-between items-center px-2 pt-1.5 pb-0.5 shrink-0">
-                <h3 className="wt-sl text-cyan-400">🏪 FA市場</h3>
-                <button onClick={() => { playClickSound(); refreshFAInternal(); }} className="text-[0.5rem] text-stone-600 hover:text-stone-300 bg-stone-900 px-1 rounded" style={mono}>🔄</button>
-              </div>
-              <div className="flex-1 overflow-y-auto wt-scroll px-2 pb-2 space-y-1">
-                {freeAgents.map(p => {
-                  const tier = getEffTier(p.rating, p.salary);
+                {/* Strips */}
+                {stacked.map(item => {
+                  const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
+                  const startSn = Math.max(currentSeason, item.signedSeason || 1);
+                  const left = (startSn - 1) * seasonW + 6;
+                  const w = Math.max(0, (endSn - startSn) * seasonW - 6);
+                  const tier = item.tier || getEffTier(item.rating, item.salary);
+                  const isCtxTarget = contextMenu && contextMenu.player.id === item.id;
+                  const animClass = animatingStrips[item.id] === 'dissolve' ? ' strip-dissolve' : animatingStrips[item.id] === 'stretch' ? ' strip-stretch' : animatingStrips[item.id] === 'shrink' ? ' strip-shrink' : animatingStrips[item.id] === 'born' ? ' strip-born' : '';
+                  if (w <= 0) return null;
                   return (
-                    <div key={p.id} className="bg-[#0c1018] border border-white/[0.04] rounded p-1.5 hover:border-white/[0.08] transition-colors">
-                      <div className="flex items-start justify-between gap-1">
-                        <div className="min-w-0">
-                          <div className="text-white font-semibold text-[0.6rem] truncate">{p.name}</div>
-                          <div className="text-stone-500 text-[0.5rem]" style={mono}>{p.position} · ${(p.salary / 1e6).toFixed(1)}M · {p.contractYears}yr</div>
+                    <div key={item.id} onContextMenu={e => { if (!item.isDC) handleStripContextMenu(e, item); }}
+                      className={'absolute transition-all duration-500' + (item.isDC ? '' : ' cursor-pointer') + (isCtxTarget ? ' tw-glow' : '') + animClass}
+                      style={{
+                        left, width: w, bottom: item.sBot, height: item.sH, borderRadius: 2,
+                        borderLeft: `3px solid ${item.isDC ? '#ef4444' : tier.color}`,
+                        backgroundColor: isCtxTarget ? `${tier.color}25` : item.isDC ? 'rgba(239,68,68,0.1)' : `${tier.color}0d`,
+                        opacity: item.isDC ? 0.6 : 1,
+                        backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(239,68,68,0.06) 5px, rgba(239,68,68,0.06) 10px)' : 'none',
+                        zIndex: isCtxTarget ? 10 : item.isDC ? 1 : 2, userSelect: 'none',
+                      }}>
+                      <div className="flex items-center justify-between px-1.5 h-full overflow-hidden">
+                        <div className="flex items-center gap-0.5 min-w-0">
+                          <span className="text-white font-semibold truncate" style={{ fontSize: item.sH < 10 ? '0.35rem' : item.sH < 16 ? '0.4rem' : '0.5rem' }}>{item.name}</span>
+                          {!item.isDC && <span className="text-[0.35rem] bg-stone-800/80 text-stone-400 px-0.5 rounded shrink-0" style={mono}>{item.position}</span>}
+                          {item.isDC && <span className="text-[0.35rem] bg-red-950/80 text-red-400 px-0.5 rounded shrink-0" style={mono}>DC</span>}
                         </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <span className="font-bold text-[0.6rem]" style={{ color: tier.color, ...mono }}>{p.rating}</span>
-                          <button onClick={() => handleSignRequest(p)} disabled={faSignedThisSeason >= faLimit}
-                            className="text-[0.55rem] bg-cyan-950/50 border border-cyan-800/50 text-cyan-300 px-1 py-px rounded font-bold hover:bg-cyan-900/60 disabled:opacity-25 disabled:cursor-not-allowed" style={mono}>＋</button>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {!item.isDC && <span className="font-bold" style={{ color: tier.color, fontSize: item.sH < 10 ? '0.35rem' : '0.45rem', ...mono }}>{item.rating}</span>}
+                          <span className="text-stone-500" style={{ fontSize: '0.35rem', ...mono }}>${(item.effSal / 1e6).toFixed(1)}M</span>
                         </div>
                       </div>
                     </div>
                   );
                 })}
-                {freeAgents.length === 0 && <p className="text-stone-700 text-[0.5rem] text-center py-4" style={mono}>FA選手なし</p>}
+
+                {/* Cursor */}
+                <div className="absolute top-0 bottom-0 tw-glow pointer-events-none" style={{ left: (currentSeason - 1) * seasonW - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ SIDEBAR — compact ═══ */}
+          <div style={{ width: SIDEBAR_W }} className="shrink-0 flex flex-col border-l border-white/[0.04] bg-[#080b12] overflow-hidden">
+            {totalRating < ratingLine && (
+              <div className="bg-red-950/30 border-b border-red-900/30 px-1.5 py-0.5 animate-pulse shrink-0">
+                <div className="text-red-400 font-bold text-[0.45rem]" style={mono}>🚨 不足 {ratingLine - totalRating}pt</div>
+              </div>
+            )}
+
+            <div className="px-1.5 py-1 space-y-0.5 border-b border-white/[0.03] shrink-0 text-[0.5rem]" style={mono}>
+              <div className="flex justify-between"><span className="wt-sl">★ Rating</span><span className={'font-bold ' + (totalRating >= ratingLine ? 'text-emerald-400' : 'text-red-400')}>{totalRating}<span className="text-stone-700">/{ratingLine}</span></span></div>
+              <div className="flex justify-between"><span className="wt-sl">$ Cap</span><span className={'font-bold ' + (totalCapHit <= DYN_CAP ? 'text-cyan-400' : 'text-red-400')}>${(totalCapHit / 1e6).toFixed(1)}M</span></div>
+              {dc > 0 && <div className="flex justify-between"><span className="wt-sl text-red-500">DC</span><span className="text-red-400 font-bold">${(dc / 1e6).toFixed(1)}M</span></div>}
+            </div>
+
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex justify-between items-center px-1.5 pt-1 pb-0.5 shrink-0">
+                <h3 className="wt-sl text-cyan-400">🏪 FA市場</h3>
+                <button onClick={() => { playClickSound(); refreshFAInternal(); }} className="text-[0.4rem] text-stone-600 hover:text-stone-300 bg-stone-900 px-1 rounded" style={mono}>🔄</button>
+              </div>
+              <div className="flex-1 overflow-y-auto wt-scroll px-1.5 pb-1 space-y-0.5">
+                {freeAgents.map(p => {
+                  const tier = getEffTier(p.rating, p.salary);
+                  return (
+                    <div key={p.id} className="bg-[#0c1018] border border-white/[0.04] rounded p-1 hover:border-white/[0.08] transition-colors">
+                      <div className="flex items-center justify-between gap-0.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-white font-semibold text-[0.5rem] truncate">{p.name}</div>
+                          <div className="text-stone-500 text-[0.4rem]" style={mono}>{p.position} · ${(p.salary / 1e6).toFixed(1)}M · {p.contractYears}yr</div>
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <span className="font-bold text-[0.5rem]" style={{ color: tier.color, ...mono }}>{p.rating}</span>
+                          <button onClick={() => handleSignRequest(p)} disabled={faSignedThisSeason >= faLimit}
+                            className="text-[0.5rem] bg-cyan-950/50 border border-cyan-800/50 text-cyan-300 px-1 py-px rounded font-bold hover:bg-cyan-900/60 disabled:opacity-25 disabled:cursor-not-allowed" style={mono}>＋</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {freeAgents.length === 0 && <p className="text-stone-700 text-[0.45rem] text-center py-3" style={mono}>FAなし</p>}
               </div>
             </div>
           </div>
