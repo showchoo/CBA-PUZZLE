@@ -688,7 +688,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 onWheel={handleUserInteract} onMouseDown={handleDragStart}
                 onTouchStart={handleUserInteract} onTouchEnd={handleUserRelease}
                 onContextMenu={(e) => e.preventDefault()}>
-                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none', paddingLeft: 20, paddingRight: 20, overflow: 'hidden' }}>
+                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none', paddingLeft: 4, paddingRight: 4, overflow: 'hidden' }}>
                   {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                     <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
                   ))}
@@ -700,7 +700,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   {stacked.map(item => {
                     const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
                     const startSn = Math.max(currentSeason, item.signedSeason || 1);
-                    const left = (startSn - 1) * SEASON_W + 24;
+                    const left = (startSn - 1) * SEASON_W + 8;
                     const w = Math.max(0, (endSn - startSn) * SEASON_W - 8);
                     const tier = item.tier || getEffTier(item.rating, item.salary);
                     const isCtxTarget = contextMenu && contextMenu.player.id === item.id;
