@@ -335,7 +335,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
     /* デッドキャップのID・signedSeason・contractEndSeasonを保持 */
     const preservedDC = deadResult.details.map(d => {
-      const orig = curDC.find(o => o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', '');
+      const orig = curDC.find(o => o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', ''));
       return {
         ...d,
         id: d.id || orig?.id || ('dc_lost_' + Date.now() + '_' + Math.random()),
