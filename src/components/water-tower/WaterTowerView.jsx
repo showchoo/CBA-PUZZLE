@@ -599,7 +599,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
         <main className="flex-1 flex overflow-hidden min-h-0">
           {/* Timeline */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex flex-col shrink-0" style={{ width: SEASON_W * 2 }}>
             {/* Season labels */}
             <div className="h-8 flex shrink-0 border-b border-stone-900 overflow-hidden" ref={el => {
               if (el && contRef.current) el.scrollLeft = contRef.current.scrollLeft;
