@@ -90,7 +90,7 @@ function ConfettiOverlay({ active }) {
   );
 }
 
-/* ═══ AnimatedScore ★ 修正済み ═══ */
+/* ═══ AnimatedScore ═══ */
 function AnimatedScore({ target, playClickSound, animate = true }) {
   const [display, setDisplay] = useState(0);
   const [flash, setFlash] = useState(false);
@@ -320,7 +320,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const toastCounter = useRef(0);
-  const [gmAnimating, setGmAnimating] = useState(true); // ★ trueで初期化
+  const [gmAnimating, setGmAnimating] = useState(true);
   const [faSignedThisSeason, setFaSignedThisSeason] = useState(0);
   const [showBonusPanel, setShowBonusPanel] = useState(false);
   const [injuredList, setInjuredList] = useState([]);
@@ -379,23 +379,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const nextSeasonMinOvr = 380 + season * 8;
   const survivalMargin = effectiveOvr - nextSeasonMinOvr;
 
-  /* ★ GM SCORE変化検知 — 10pt以上の変化があった時だけアニメーション再発火 */
-  const prevGmScoreRef = useRef(-1);
-  useEffect(() => {
-    const current = gmScoreCalc();
-    if (prevGmScoreRef.current === -1) {
-      prevGmScoreRef.current = current;
-      return;
-    }
-    if (Math.abs(current - prevGmScoreRef.current) >= 10) {
-      setGmAnimating(false);
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => setGmAnimating(true));
-      });
-    }
-    prevGmScoreRef.current = current;
-  }, [totalRecordBonus, totalMandateBonus, effectiveOvr, totalCapHit, season]);
-
   /* ── toast helpers ── */
   const addToast = useCallback((type, icon, title, message, duration = 3000) => {
     const id = ++toastCounter.current;
@@ -438,6 +421,14 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   /* ═══ HANDLERS ═══                        */
   /* ═══════════════════════════════════════ */
 
+  /* ★修正: GM SCOREアニメーション再発火（明示的に呼ぶ関数） */
+  function flashGmScore() {
+    setGmAnimating(false);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setGmAnimating(true));
+    });
+  }
+
   function doReroll() {
     playClickSound();
     setRoster(genRoster());
@@ -446,7 +437,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setDraftPicks(genDraftPicks());
     setTaxHistory([]); setMleUsed(false);
     setSeason(1); setPhase('reroll'); setTradeMode(false);
-    setGmAnimating(true); // ★ trueを維持
+    setGmAnimating(true);
     setFaSignedThisSeason(0);
     setInjuredList([]);
     setSeasonRecord(null);
@@ -880,6 +871,9 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
     checkChallengeResults();
 
+    /* ★修正: GM SCOREアニメーション発火（シーズン終了時のみ） */
+    flashGmScore();
+
     if (streamSettings.dramaticMode) {
       setDramaticSeasonResult({ record, mResult });
     } else {
@@ -1265,10 +1259,10 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           </div>
 
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-3 text-xs font-mono text-stone-400 space-y-0.5">
-            <p>• <HoverTip text="給与マッチング：トレードでは送出側と獲得側の給与差を一定範囲内に制限。獲得額は送出額の75%〜125%+$100K。"><span className="text-stone-300 cursor-help">給与マッチング</span></HoverTip>: 獲得額は送出額の75%〜125%+$100K（両側に選手がいる場合のみ）</p>
-            <p>• <HoverTip text="ステピアンルール：連続する2年の1巡目ピックが両方空いてはならない。獲得ピックもカウントに含まれる。"><span className="text-stone-300 cursor-help">ステピアンルール</span></HoverTip>: 連続する2年の1巡目ピックが両方空いてはならない（獲得ピックも考慮）</p>
-            <p>• <HoverTip text="ピック価値：1巡目は高価値（来年75/2年後55/3年後40）、2巡目は低価値（来年20/2年後15/3年後10）。①獲得ピック合計が送出の1.5倍+15ptを超えると拒否、②枚数は送出+2枚まで、③1巡目の枚数は送出+1枚まで。"><span className="text-stone-300 cursor-help">ピック価値バランス</span></HoverTip>: ①合計値が送出×1.5+15ptを超えると拒否 ②枚数は送出+2枚まで ③1巡目枚数は送出+1枚まで</p>
-            {hardCapped && <p className="text-red-400">• 🔒 <HoverTip text="ハードキャップ：MLEやサイン＆トレード使用で発動。第1エプロン（$178.1M）を超える如何なる手段でも補強不可。"><span className="text-red-300 cursor-help">ハードキャップ中</span></HoverTip>: トレード後のCap Hitが第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}Mを超えてはならない</p>}
+            <p>• <HoverTip text="給与マッチング：獲得額は送出額の75%〜125%+$100K。"><span className="text-stone-300 cursor-help">給与マッチング</span></HoverTip>: 獲得額は送出額の75%〜125%+$100K（両側に選手がいる場合のみ）</p>
+            <p>• <HoverTip text="ステピアンルール：連続する2年の1巡目ピックが両方空いてはならない。"><span className="text-stone-300 cursor-help">ステピアンルール</span></HoverTip>: 連続する2年の1巡目ピックが両方空いてはならない（獲得ピックも考慮）</p>
+            <p>• <HoverTip text="ピック価値バランス"><span className="text-stone-300 cursor-help">ピック価値バランス</span></HoverTip>: ①合計値が送出×1.5+15ptを超えると拒否 ②枚数は送出+2枚まで ③1巡目枚数は送出+1枚まで</p>
+            {hardCapped && <p className="text-red-400">• 🔒 <HoverTip text="ハードキャップ中"><span className="text-red-300 cursor-help">ハードキャップ中</span></HoverTip>: トレード後のCap Hitが第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}Mを超えてはならない</p>}
             <p>• ピックのみのトレード（選手を含まない）は給与マッチング不要</p>
             <p>• シーズンあたり最大{TRADE_LIMIT}回まで</p>
           </div>
@@ -1328,7 +1322,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                 <div className="space-y-2 text-sm">
                   {salaryValid && (
                     <div>
-                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="給与マッチング：獲得額は送出額の75%〜125%+$100K。"><span className="cursor-help">給与マッチング</span></HoverTip></div>
+                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="給与マッチング"><span className="cursor-help">給与マッチング</span></HoverTip></div>
                       <div className="text-xs text-stone-400">送出: ${(salaryValid.outgoing / 1000000).toFixed(1)}M → 範囲: ${(salaryValid.minIncoming / 1000000).toFixed(1)}M〜${(salaryValid.maxIncoming / 1000000).toFixed(1)}M</div>
                       <div className="text-xs text-stone-400">獲得: ${(salaryValid.incoming / 1000000).toFixed(1)}M</div>
                       <div className={salaryValid.allowed ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
@@ -1339,7 +1333,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
                   {(outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) && (
                     <div>
-                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ステピアンルール：連続する2年の1巡目ピックが両方空いてはならない。獲得ピックもカウントに含まれる。"><span className="cursor-help">ステピアンルール</span></HoverTip></div>
+                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ステピアンルール"><span className="cursor-help">ステピアンルール</span></HoverTip></div>
                       <div className={stepienValid.valid ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
                         {stepienValid.valid ? '✓ 適合' : `✗ ${stepienValid.reason}`}
                       </div>
@@ -1352,7 +1346,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                     const pv = validatePickBalance(outK, inK);
                     return (
                       <div>
-                        <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ピック価値：①獲得ピック合計が送出の1.5倍+15ptを超えると拒否、②枚数は送出+2枚まで、③1巡目の枚数は送出+1枚まで。"><span className="cursor-help">ピック価値バランス</span></HoverTip></div>
+                        <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ピック価値バランス"><span className="cursor-help">ピック価値バランス</span></HoverTip></div>
                         <div className="text-xs text-stone-400">
                           送出: <span className="text-red-400 font-mono">{outVal}</span>pt ({outK.length}枚) → 獲得: <span className="text-cyan-400 font-mono">{inVal}</span>pt ({inK.length}枚)
                           <span className="text-stone-600 ml-1">(上限{Math.floor(outVal * 1.5 + 15)}pt / {outK.length + 2}枚)</span>
@@ -1366,7 +1360,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
                   {hardCapped && (
                     <div>
-                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ハードキャップ：第1エプロン（$178.1M）を超える如何なる手段でも補強不可。"><span className="cursor-help">ハードキャップ</span></HoverTip></div>
+                      <div className="text-stone-500 text-xs font-mono mb-0.5"><HoverTip text="ハードキャップ"><span className="cursor-help">ハードキャップ</span></HoverTip></div>
                       <div className={hardCapValid.valid ? 'text-emerald-400 font-black text-xs' : 'text-red-400 font-black text-xs'}>
                         {hardCapValid.valid ? '✓ 第1エプロン内' : `✗ ${hardCapValid.reason}`}
                       </div>
@@ -1533,7 +1527,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
 
                   <div className="bg-stone-950 px-4 py-2.5 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <HoverTip text="キャップヒット：チームの年俸総額。サラリーキャップ（$136M）以内が基本。超過するとFA契約制限やトレード条件が厳しくなる。">
+                    <HoverTip text="キャップヒット：チームの年俸総額。サラリーキャップ（$136M）以内が基本。">
                       <span className="text-stone-400 font-sans font-black text-sm">📊 Cap Hit:</span>
                     </HoverTip>
                     <span className={totalCapHit <= DYN_CAP ? 'text-emerald-400 font-black text-3xl' : totalCapHit <= DYN_TAX ? 'text-amber-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>
@@ -1543,7 +1537,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
                   {hardCapped && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
-                      <HoverTip text="ハードキャップ：MLE使用やサイン＆トレードで発動。第1エプロン（$178.1M）を超える如何なる手段でも補強が不可能に。翌シーズンで解除。">
+                      <HoverTip text="ハードキャップ：MLE使用やサイン＆トレードで発動。">
                         <span className="text-red-400 font-sans font-black text-sm">🔒 ハードキャップ:</span>
                       </HoverTip>
                       <span className="text-red-400 font-black text-sm">第1エプロン ${(DYN_APRON1 / 1000000).toFixed(1)}M拘束中</span>
@@ -1579,7 +1573,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   )}
 
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850 flex justify-between items-center">
-                    <HoverTip text="FA契約制限：キャップ以内で最大2人/年。第1エプロン超過で最大1人/年（3年まで）。第2エプロン超過でFA契約禁止（ドラフトとトレードのみ）。">
+                    <HoverTip text="FA契約制限：キャップ以内で最大2人/年。">
                       <span className="text-stone-400 font-sans font-black text-sm">✍️ FA残り枠:</span>
                     </HoverTip>
                     <span className={faSignedThisSeason >= faLimit ? 'text-red-400 font-black text-lg' : 'text-emerald-400 font-black text-lg'}>{faLimit - faSignedThisSeason} / {faLimit}人</span>
@@ -1594,7 +1588,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
                   {mleAmount > 0 && (
                     <div className="bg-stone-950 px-4 py-2 rounded-xl border border-cyan-900/50 flex justify-between items-center">
-                      <HoverTip text="Mid-Level Exception：キャップ超過チームにも使える例外枠。キャップ以下≈$12.4M、1st Apron超え≈$5M、2nd Apron超えで没収。使用で第1エプロンハードキャップ。毎シーズン1回。">
+                      <HoverTip text="Mid-Level Exception：キャップ超過チームにも使える例外枠。">
                         <span className="text-cyan-400 font-sans font-black text-sm">📋 MLE残額:</span>
                       </HoverTip>
                       <span className={mleUsed ? 'text-stone-500 font-black text-lg' : 'text-cyan-400 font-black text-lg'}>{mleUsed ? '使用済み' : `$$$${(mleAmount / 1000000).toFixed(1)}M`}</span>
@@ -1603,7 +1597,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
                   {repeaterSeasons >= 2 && (
                     <div className="bg-red-950/30 px-4 py-2 rounded-xl border border-red-900/50 flex justify-between items-center">
-                      <HoverTip text="リピータータックス：過去3シーズン中2回以上タックス超過したチームに適用される追加罰金。">
+                      <HoverTip text="リピータータックス：過去3シーズン中2回以上タックス超過したチームに適用。">
                         <span className="text-red-400 font-sans font-black text-sm">⚠️ Repeater:</span>
                       </HoverTip>
                       <span className="text-red-400 font-black text-sm">{repeaterSeasons}/3 seasons</span>
@@ -1621,7 +1615,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   {deadCap > 0 && (
                     <div className="bg-stone-950 px-4 py-2 rounded-xl border border-red-900/50">
                       <div className="flex justify-between items-center">
-                        <HoverTip text="デッドキャップ：放出した選手の残り契約がキャップに残る金額。ウェイブ100%、バイアウト50〜70%、ストレッチで長期分割。">
+                        <HoverTip text="デッドキャップ：放出した選手の残り契約がキャップに残る金額。">
                           <span className="text-red-400 font-sans font-black text-sm">💀 Dead Cap:</span>
                         </HoverTip>
                         <span className="text-red-400 font-black text-xl">${(deadCap / 1000000).toFixed(1)}M</span>
@@ -1665,7 +1659,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
                   </div>
 
                   <div className="bg-stone-950 px-4 py-2 rounded-xl border border-stone-850">
-                    <HoverTip text="ドラフトピック：新人選手を指名する権利。Y=年、R=巡目。トレードで獲得・放出可能。ステピアンルール: 連続する2年の1巡目ピックの同時放出は禁止。">
+                    <HoverTip text="ドラフトピック：新人選手を指名する権利。Y=年、R=巡目。">
                       <span className="text-stone-400 font-sans font-black text-sm">🏀 Draft Picks:</span>
                     </HoverTip>
                     <div className="flex flex-wrap gap-1 mt-1">
@@ -1778,7 +1772,6 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               {expiredPlayers.some(p => p.birdRights && p.birdRights !== 'None') && (
                 <p className="text-xs text-stone-500 mt-2 pt-2 border-t border-stone-800">
                   🐦 バード権を持つ選手は次の画面でQO（1年契約の仮オファー）を延長してRFA化できます。
-                  RFA化すると他チームのオファーに対してマッチング（上書き契約）して残留させる権利が得られます。
                 </p>
               )}
             </div>
@@ -1894,7 +1887,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4 space-y-2 text-xs">
             <h4 className="text-purple-400 font-mono font-black">🐦 バード権とは？</h4>
             <div className="text-stone-400 space-y-1">
-              <p>同じチームに長く所属している選手に与えられる権利。契約切れになっても自チームが有利な条件で再契約できます。</p>
+              <p>同じチームに長く所属している選手に与えられる権利。</p>
               <div className="flex gap-4 mt-2">
                 <div className="flex-1 bg-emerald-950/30 border border-emerald-800/50 rounded-lg p-2">
                   <p className="text-emerald-400 font-bold">🐦 Full Bird</p>
@@ -1986,15 +1979,12 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
               </p>
               <div className="bg-stone-950/60 rounded-lg p-3 space-y-1">
                 <p className="text-emerald-400 font-bold">🤝 マッチする →</p>
-                <p className="text-stone-400">他チームが出した条件（年俸・年数）をそのまま受け入れて、選手を<span className="text-white font-bold">自チームに残留</span>させます。キャップ超過中でもマッチ可能です（バード権の最大のメリット）。</p>
+                <p className="text-stone-400">他チームの条件をそのまま受け入れて、選手を<span className="text-white font-bold">自チームに残留</span>。キャップ超過中でもマッチ可能。</p>
               </div>
               <div className="bg-stone-950/60 rounded-lg p-3 space-y-1">
                 <p className="text-red-400 font-bold">🏃 見放す →</p>
-                <p className="text-stone-400">マッチング権を放棄し、選手はオファーを出した<span className="text-white font-bold">他チームへ移動</span>します。</p>
+                <p className="text-stone-400">マッチング権を放棄。選手は<span className="text-white font-bold">他チームへ移動</span>。</p>
               </div>
-              <p className="text-stone-500 text-xs mt-2">
-                💡 例: あなたの選手に他チームが「年俸$20M × 3年」をオファー → マッチすれば同じ条件で残留、見放せば他チームへ。
-              </p>
             </div>
           </div>
 
@@ -2002,9 +1992,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
             <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-4 text-xs space-y-1">
               <h4 className="text-emerald-400 font-mono font-black">🐦 Full Bird権の戦術的メリット</h4>
               <p className="text-stone-400">
-                Full Bird権を持つ選手はマッチング時に<span className="text-white font-bold">最大5年</span>の契約を提示できます。
-                他チームは最大4年までなので、<span className="text-emerald-400">1年長い契約で選手を囲い込む</span>ことができます。
-                また、キャップ超過中でもマッチできるため、主力選手の放出を防ぐ最後の砦となります。
+                Full Bird権ではマッチング時に<span className="text-white font-bold">最大5年</span>の契約を提示可能。
+                他チームは最大4年までなので、長期契約で囲い込める。
               </p>
             </div>
           )}
@@ -2038,7 +2027,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
                   {player.birdRights === 'Full' && bestOffer.years < 5 && (
                     <div className="bg-emerald-950/30 border border-emerald-800/50 rounded-lg p-2 text-xs text-emerald-400 font-mono">
-                      🐦 Full Bird権: あなたは最大5年のマッチングが可能（{bestOffer.team}は最大{bestOffer.years}年）。長期契約で囲い込む選択肢あり。
+                      🐦 あなたは最大5年のマッチングが可能（{bestOffer.team}は最大{bestOffer.years}年）。
                     </div>
                   )}
 
