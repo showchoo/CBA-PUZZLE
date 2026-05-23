@@ -102,15 +102,6 @@ function WaterWave({ bottom }) {
   );
 }
 
-/* ═══ Cap Marker ═══ */
-function CapMarker({ label, value, dashColor }) {
-  return (
-    <div className="absolute left-0 right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(value), borderColor: dashColor }}>
-      <span className="absolute left-3 -top-5 text-sm font-mono text-stone-500 bg-[#0c0f16]/80 px-1 rounded">{label} ${(value / 1e6).toFixed(0)}M</span>
-    </div>
-  );
-}
-
 /* ═══ Season Summary Modal ═══ */
 function SeasonSummary({ season, record, summaries, onContinue }) {
   return (
@@ -693,32 +684,51 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
         <main className="flex-1 flex overflow-hidden px-5 py-4 gap-4 min-h-0">
           {/* ══ Tower Area ══ */}
           <div className="flex-1 flex flex-col min-w-0 gap-3">
-            <div className="flex-1 relative rounded-xl border border-stone-800/50 bg-[#0c0f16] overflow-hidden">
-              <div className="absolute inset-0 opacity-[0.03]" style={{
-                backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(6,182,212,0.4) 49px,rgba(6,182,212,0.4) 50px),repeating-linear-gradient(90deg,transparent,transparent 49px,rgba(6,182,212,0.4) 49px,rgba(6,182,212,0.4) 50px)',
-              }} />
-              <div className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out"
-                style={{ height: tower.waterPx, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))' }} />
-              <WaterWave bottom={tower.waterPx} />
-              <CapMarker label="CAP" value={DYN_CAP} dashColor="#6b7280" />
-              <CapMarker label="TAX" value={DYN_TAX} dashColor="#b45309" />
-              <CapMarker label="APRON1" value={DYN_APRON1} dashColor="#c2410c" />
-              <CapMarker label="APRON2" value={DYN_APRON2} dashColor="#dc2626" />
-              <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/50 tw-pulse" style={{ bottom: tower.ratingLinePx }}>
-                <span className="absolute right-3 -top-7 text-base font-mono text-amber-400 bg-amber-950/80 px-2 py-0.5 rounded">
-                  ★ Rating {tower.ratingLine}
-                </span>
+            <div className="flex-1 flex min-h-0">
+              {/* ★ 左のラベル列（タワーの外側） */}
+              <div className="w-28 shrink-0 flex flex-col justify-end relative pr-2">
+                <div className="absolute right-0 border-t-2 border-amber-500/50 tw-pulse" style={{ bottom: tower.ratingLinePx, left: 0 }}>
+                  <span className="text-sm font-mono text-amber-400 bg-amber-950/80 px-1.5 py-0.5 rounded whitespace-nowrap">★ Rating {tower.ratingLine}</span>
+                </div>
+                <div className="absolute right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_CAP), borderColor: '#6b7280', left: 0 }}>
+                  <span className="text-xs font-mono text-stone-500 bg-[#0c0f16]/80 px-1 rounded whitespace-nowrap">CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
+                </div>
+                <div className="absolute right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_TAX), borderColor: '#b45309', left: 0 }}>
+                  <span className="text-xs font-mono text-stone-500 bg-[#0c0f16]/80 px-1 rounded whitespace-nowrap">TAX ${(DYN_TAX / 1e6).toFixed(0)}M</span>
+                </div>
+                <div className="absolute right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_APRON1), borderColor: '#c2410c', left: 0 }}>
+                  <span className="text-xs font-mono text-stone-500 bg-[#0c0f16]/80 px-1 rounded whitespace-nowrap">APRON1 ${(DYN_APRON1 / 1e6).toFixed(0)}M</span>
+                </div>
+                <div className="absolute right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_APRON2), borderColor: '#dc2626', left: 0 }}>
+                  <span className="text-xs font-mono text-stone-500 bg-[#0c0f16]/80 px-1 rounded whitespace-nowrap">APRON2 ${(DYN_APRON2 / 1e6).toFixed(0)}M</span>
+                </div>
               </div>
-              {tower.blocks.map(b => (
-                <Block key={b.id} block={b} isSelected={selectedBlockId === b.id}
-                  isSubmerged={tower.waterPx > b.yTop}
-                  onClick={() => setSelectedBlockId(selectedBlockId === b.id ? null : b.id)} />
-              ))}
-              {tower.blocks.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center text-stone-600 font-mono text-xl">選手がいません</div>
-              )}
+              {/* ★ タワー本体 */}
+              <div className="flex-1 relative rounded-xl border border-stone-800/50 bg-[#0c0f16] overflow-hidden">
+                <div className="absolute inset-0 opacity-[0.03]" style={{
+                  backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(6,182,212,0.4) 49px,rgba(6,182,212,0.4) 50px),repeating-linear-gradient(90deg,transparent,transparent 49px,rgba(6,182,212,0.4) 49px,rgba(6,182,212,0.4) 50px)',
+                }} />
+                <div className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out"
+                  style={{ height: tower.waterPx, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))' }} />
+                <WaterWave bottom={tower.waterPx} />
+                {/* ラインのみ（ラベルは左外に移動済み） */}
+                <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/50 tw-pulse" style={{ bottom: tower.ratingLinePx }} />
+                <div className="absolute left-0 right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_CAP), borderColor: '#6b7280' }} />
+                <div className="absolute left-0 right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_TAX), borderColor: '#b45309' }} />
+                <div className="absolute left-0 right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_APRON1), borderColor: '#c2410c' }} />
+                <div className="absolute left-0 right-0 border-t border-dashed opacity-30" style={{ bottom: capLinePx(DYN_APRON2), borderColor: '#dc2626' }} />
+                {/* ブロック */}
+                {tower.blocks.map(b => (
+                  <Block key={b.id} block={b} isSelected={selectedBlockId === b.id}
+                    isSubmerged={tower.waterPx > b.yTop}
+                    onClick={() => setSelectedBlockId(selectedBlockId === b.id ? null : b.id)} />
+                ))}
+                {tower.blocks.length === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center text-stone-600 font-mono text-xl">選手がいません</div>
+                )}
+              </div>
             </div>
-            {/* ★ Status bar - tower外に移動 */}
+            {/* Status bar - tower外 */}
             <div className="flex items-center gap-8 px-5 py-3 bg-[#0e1218] border border-stone-800/50 rounded-xl text-lg font-mono shrink-0">
               <span>Rating: <span className={tower.isAboveLine ? 'text-emerald-400 font-black text-2xl' : 'text-red-400 font-black text-2xl'}>{tower.totalRating}</span><span className="text-stone-700">/{tower.ratingLine}</span></span>
               <span>Cap: <span className={tower.isUnderCap ? 'text-cyan-400 font-black text-2xl' : 'text-amber-400 font-black text-2xl'}>${(tower.totalCapHit / 1e6).toFixed(1)}M</span></span>
@@ -735,14 +745,12 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
           {/* ══ Side Panel ══ */}
           <div className="w-96 flex flex-col gap-3 shrink-0 overflow-hidden">
-            {/* Warning */}
             {!tower.isAboveLine && (
               <div className="bg-red-950/40 border border-red-700 rounded-xl p-4 animate-pulse shrink-0">
                 <div className="text-red-400 font-mono font-black text-lg">🚨 Rating ライン下回り！</div>
                 <div className="text-base text-red-300 mt-1">不足: {tower.ratingLine - tower.totalRating}pt</div>
               </div>
             )}
-            {/* Status */}
             <div className="bg-[#0e1218] border border-stone-800/50 rounded-xl p-4 space-y-2 text-base font-mono shrink-0">
               <div className="flex justify-between"><span className="text-stone-500">Rating</span><span className={tower.isAboveLine ? 'text-emerald-400 font-black text-xl' : 'text-red-400 font-black text-xl'}>{tower.totalRating} <span className="text-stone-700">/ {tower.ratingLine}</span></span></div>
               <div className="flex justify-between"><span className="text-stone-500">Cap Hit</span><span className={tower.isUnderCap ? 'text-cyan-400 font-black text-xl' : 'text-amber-400 font-black text-xl'}>${(tower.totalCapHit / 1e6).toFixed(1)}M <span className="text-stone-700">/ ${(DYN_CAP / 1e6).toFixed(0)}M</span></span></div>
@@ -751,7 +759,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               <div className="flex justify-between"><span className="text-stone-500">トレード</span><span className={tradesUsedThisSeason >= TRADE_LIMIT ? 'text-red-400 font-black' : 'text-white font-black'}>{TRADE_LIMIT - tradesUsedThisSeason}/{TRADE_LIMIT}</span></div>
               {mleAmount > 0 && <div className="flex justify-between"><span className="text-cyan-600">MLE</span><span className={mleUsed ? 'text-stone-600' : 'text-cyan-400 font-black'}>{mleUsed ? '使用済' : `$${(mleAmount / 1e6).toFixed(1)}M`}</span></div>}
             </div>
-            {/* FA Market */}
             <div className="bg-[#0e1218] border border-stone-800/50 rounded-xl flex-1 flex flex-col min-h-0 overflow-hidden">
               <div className="flex justify-between items-center px-4 pt-4 pb-2 shrink-0">
                 <h3 className="text-sm font-mono font-black text-cyan-400 uppercase tracking-wider">🏪 FA市場</h3>
