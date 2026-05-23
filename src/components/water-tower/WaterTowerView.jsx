@@ -284,7 +284,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   useEffect(() => {
     if (contRef.current && phase === 'manage' && !userScrolling) {
       isProgrammaticScroll.current = true;
-      const t = (currentSeason - 1) * SEASON_W;
+      const t = (currentSeason - 1) * SEASON_W - contRef.current.clientWidth / 2 + SEASON_W / 2;
       contRef.current.scrollLeft = Math.max(0, t);
       requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
     }
