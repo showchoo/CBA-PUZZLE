@@ -157,6 +157,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const [taxHistory, setTaxHistory] = useState([]);
   const [hardCapped, setHardCapped] = useState(false);
   const [userScrolling, setUserScrolling] = useState(false);
+  const [animatingStrips, setAnimatingStrips] = useState({});
   const toastId = useRef(0);
   const timerRef = useRef(null);
   const lastBRef = useRef(1);
@@ -179,17 +180,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const sn = Math.floor(currentSeason);
   const ratingLine = 380 + (sn - 1) * 8;
   const gmScore = calcGMScore(sn, totalRating, totalCapHit, roster);
-  const canvasH = Math.max(450, (DYN_APRON2 / 1e6) * PX_PER_M + 80);
-  const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * PX_PER_M);
-  const capLineY = (DYN_CAP / 1e6) * PX_PER_M;
-
-  /* ── Dynamic timeline width ── */
-  const maxSn = Math.max(
-    ...roster.map(p => (p.signedSeason || 1) + p.contractYears + 1),
-    ...deadCapDetails.map(d => (d.signedSeason || 1) + (d.yearsLeft || d.contractYears || 1) + 1),
-    sn + 2
-  );
-  const tlWidth = maxSn * SEASON_W;
 
   /* ── Stacking ── */
   const allItems = [
@@ -217,6 +207,19 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     cumH += h + 2;
     return { ...item, sBot: b, sH: h };
   });
+
+  /* ── Dynamic timeline width ── */
+  const maxSn = Math.max(
+    ...roster.map(p => (p.signedSeason || 1) + p.contractYears + 1),
+    ...deadCapDetails.map(d => (d.signedSeason || 1) + (d.yearsLeft || d.contractYears || 1) + 1),
+    sn + 2
+  );
+  const tlWidth = maxSn * SEASON_W;
+
+  /* ── Canvas dimensions (after stacking) ── */
+  const canvasH = Math.max(500, (DYN_APRON2 / 1e6) * PX_PER_M + 80 + cumH + 40);
+  const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * PX_PER_M);
+  const capLineY = (DYN_CAP / 1e6) * PX_PER_M;
 
   /* ── Ref sync ── */
   useEffect(() => { rRef.current = roster; }, [roster]);
@@ -299,9 +302,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   const handleUserRelease = useCallback(() => {
     if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-    scrollTimeoutRef.current = setTimeout(() => {
-      setUserScrolling(false);
-    }, 3000);
+    scrollTimeoutRef.current = setTimeout(() => { setUserScrolling(false); }, 3000);
   }, []);
 
   const handleDragStart = useCallback((e) => {
@@ -328,10 +329,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     const up = () => handleDragEnd();
     window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', up);
-    return () => {
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('mouseup', up);
-    };
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
   }, [handleDragMove, handleDragEnd]);
 
   /* ═══ Keyboard ═══ */
@@ -356,16 +354,12 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setDeadCapDetails([]);
     setDraftPicks(genDraftPicks());
     setTaxHistory([]); setMleUsed(false); setFaSignedThisSeason(0);
-    setHardCapped(false); setContextMenu(null);
+    setHardCapped(false); setContextMenu(null); setAnimatingStrips({});
     setCurrentSeason(1.0); csRef.current = 1.0; lastBRef.current = 1;
     setSpeed(0); setPhase('reroll');
   }
 
-  function startGame() {
-    playClickSound();
-    setSpeed(1);
-    setPhase('manage');
-  }
+  function startGame() { playClickSound(); setSpeed(1); setPhase('manage'); }
 
   function handleSeasonBoundary(newSn) {
     setSpeed(0);
@@ -374,35 +368,23 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     const curRating = curRoster.reduce((s, p) => s + (Number(p.rating) || 0), 0);
     const curCapHit = calcCapHit(curRoster, curDC.reduce((s, d) => s + d.amount, 0));
     const prevRL = 380 + (newSn - 2) * 8;
-
     const record = calcSeasonRecord(curRating, prevRL);
     setSeasonRecord(record);
-
     const result = advanceSeason(curRoster, []);
     const deadResult = advanceDeadCap(curDC);
     setSummaries(result.summaries);
     setRoster(result.surviving);
-
     const preservedDC = deadResult.details.map(d => {
       const orig = curDC.find(o => o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', ''));
-      return {
-        ...d,
-        id: d.id || orig?.id || ('dc_lost_' + Date.now() + '_' + Math.random()),
-        signedSeason: d.signedSeason || orig?.signedSeason || 1,
-        contractEndSeason: d.contractEndSeason || orig?.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || 1),
-      };
+      return { ...d, id: d.id || orig?.id || ('dc_lost_' + Date.now() + '_' + Math.random()), signedSeason: d.signedSeason || orig?.signedSeason || 1, contractEndSeason: d.contractEndSeason || orig?.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || 1) };
     });
     setDeadCapDetails(preservedDC);
-
     setTaxHistory(prev => [...prev, curCapHit > DYN_TAX]);
     setMleUsed(false); setFaSignedThisSeason(0); setHardCapped(false); setContextMenu(null);
-
     const survival = checkSurvival(result.surviving, newSn + 1, []);
     if (!survival.alive) { playError(); setPhase('gameOver'); return; }
-
     if (record.gmBonus > 0) addToast('success', '🏀', `S${newSn - 1}: ${record.wins}W-${record.losses}L`, `${record.result} +${record.gmBonus}`, 4000);
     else addToast('info', '🏀', `S${newSn - 1}: ${record.wins}W-${record.losses}L`, record.result, 3000);
-
     setShowSummary(true);
   }
 
@@ -427,18 +409,15 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setRoster(r => [...r, signed]);
     setDraftProspects(dp => dp.filter(p => p.id !== prospect.id));
     setPicksLeft(p => p - 1);
+    setAnimatingStrips(prev => ({ ...prev, [prospect.id]: 'born' }));
+    setTimeout(() => { setAnimatingStrips(prev => { const next = { ...prev }; delete next[prospect.id]; return next; }); }, 800);
     addToast('success', '🏀', `Draft: ${prospect.name}`, `R${prospect.rating} · $${(prospect.salary / 1e6).toFixed(1)}M`, 3000);
   }
 
-  function handleDraftSkip() {
-    playClickSound();
-    setPicksLeft(0);
-    setDraftProspects([]);
-  }
+  function handleDraftSkip() { playClickSound(); setPicksLeft(0); setDraftProspects([]); }
 
   function handleDraftComplete() {
-    playClickSound();
-    setShowDraft(false);
+    playClickSound(); setShowDraft(false);
     setDraftPicks(picks => {
       const u = picks.map(pk => ({ ...pk, year: pk.year - 1 })).filter(pk => pk.year >= 1);
       const my = u.length > 0 ? Math.max(...u.map(pk => pk.year)) : 0;
@@ -446,43 +425,29 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
       if (Math.random() > 0.5) u.push({ id: 'np2_' + Date.now(), year: my + 1, round: 2, own: true });
       return u;
     });
-    refreshFAInternal();
-    setSpeed(1);
-    playEpic();
+    refreshFAInternal(); setSpeed(1); playEpic();
     addToast('success', '➡️', `SEASON {Math.floor(currentSeason)}`, '新シーズン開始！', 3000);
   }
 
   /* ═══ Context Menu ═══ */
   function handleStripContextMenu(e, player) {
-    e.preventDefault();
-    e.stopPropagation();
-    playClickSound();
-    setSpeed(0);
+    e.preventDefault(); e.stopPropagation(); playClickSound(); setSpeed(0);
     setContextMenu({ x: e.clientX, y: e.clientY, player });
   }
 
-  function closeContextMenu() {
-    setContextMenu(null);
-    setSpeed(1);
-  }
+  function closeContextMenu() { setContextMenu(null); setSpeed(1); }
 
   function handleWaive(player) {
     playClickSound();
-    setDeadCapDetails(prev => [...prev, {
-      id: 'dc_' + player.id + '_' + Date.now(),
-      name: player.name,
-      amount: player.salary,
-      yearsLeft: player.contractYears,
-      contractYears: player.contractYears,
-      signedSeason: player.signedSeason,
-      contractEndSeason: player.contractEndSeason,
-      type: 'Waive'
-    }]);
-    setRoster(r => r.filter(p => p.id !== player.id));
-    setContextMenu(null);
-    playRelease();
-    addToast('warning', '💀', `Waive: ${player.name}`, `$$$${(player.salary / 1e6).toFixed(1)}M × ${player.contractYears}yr Dead Cap`, 3500);
-    setTimeout(() => { refreshFAInternal(); setSpeed(1); }, 500);
+    setAnimatingStrips(prev => ({ ...prev, [player.id]: 'dissolve' }));
+    setTimeout(() => {
+      setDeadCapDetails(prev => [...prev, { id: 'dc_' + player.id + '_' + Date.now(), name: player.name, amount: player.salary, yearsLeft: player.contractYears, contractYears: player.contractYears, signedSeason: player.signedSeason, contractEndSeason: player.contractEndSeason, type: 'Waive' }]);
+      setRoster(r => r.filter(p => p.id !== player.id));
+      setContextMenu(null);
+      playRelease();
+      addToast('warning', '💀', `Waive: ${player.name}`, `$$$${(player.salary / 1e6).toFixed(1)}M × ${player.contractYears}yr Dead Cap`, 3500);
+      setTimeout(() => { refreshFAInternal(); setSpeed(1); }, 500);
+    }, 900);
   }
 
   function handleBuyout(player) {
@@ -491,37 +456,27 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     if (Math.random() * 100 < chance) {
       const pct = 50 + Math.floor(Math.random() * 21);
       const dead = Math.floor(player.salary * pct / 100);
-      setDeadCapDetails(prev => [...prev, {
-        id: 'dc_' + player.id + '_' + Date.now(),
-        name: player.name + ' (B/O)',
-        amount: dead,
-        yearsLeft: player.contractYears,
-        contractYears: player.contractYears,
-        signedSeason: player.signedSeason,
-        contractEndSeason: player.contractEndSeason,
-        type: 'Buyout'
-      }]);
+      setAnimatingStrips(prev => ({ ...prev, [player.id]: 'shrink' }));
+      setDeadCapDetails(prev => [...prev, { id: 'dc_' + player.id + '_' + Date.now(), name: player.name + ' (B/O)', amount: dead, yearsLeft: player.contractYears, contractYears: player.contractYears, signedSeason: player.signedSeason, contractEndSeason: player.contractEndSeason, type: 'Buyout' }]);
       setRoster(r => r.filter(p => p.id !== player.id));
-      setContextMenu(null);
-      playBuyout();
+      setContextMenu(null); playBuyout();
       addToast('success', '🤝', `Buyout: ${player.name}`, `${pct}%に軽減`, 3500);
       setTimeout(() => { refreshFAInternal(); setSpeed(1); }, 500);
-    } else {
-      playError();
-      addToast('warning', '❌', 'Buyout拒否', `${player.name} (${chance}%)`, 3000);
-    }
+    } else { playError(); addToast('warning', '❌', 'Buyout拒否', `${player.name} (${chance}%)`, 3000); }
   }
 
   function handleStretch(player) {
     playClickSound();
-    const curS = Math.floor(currentSeason);
-    const newYears = player.contractYears * 2 + 1;
-    const newSal = Math.floor(player.salary * player.contractYears / newYears);
-    setRoster(r => r.map(p => p.id !== player.id ? p : { ...p, salary: newSal, contractYears: newYears, contractEndSeason: curS + newYears }));
-    setContextMenu(null);
-    playInflate();
-    addToast('info', '⏳', `Stretch: ${player.name}`, `${newYears}yr @ $${(newSal / 1e6).toFixed(1)}M`, 3500);
-    setTimeout(() => setSpeed(1), 500);
+    setAnimatingStrips(prev => ({ ...prev, [player.id]: 'stretch' }));
+    setTimeout(() => {
+      const curS = Math.floor(currentSeason);
+      const newYears = player.contractYears * 2 + 1;
+      const newSal = Math.floor(player.salary * player.contractYears / newYears);
+      setRoster(r => r.map(p => p.id !== player.id ? p : { ...p, salary: newSal, contractYears: newYears, contractEndSeason: curS + newYears }));
+      setContextMenu(null); playInflate();
+      addToast('info', '⏳', `Stretch: ${player.name}`, `${newYears}yr @ $${(newSal / 1e6).toFixed(1)}M`, 3500);
+      setTimeout(() => setSpeed(1), 500);
+    }, 1200);
   }
 
   function handleSignRequest(player) { playClickSound(); setSpeed(0); setSigningPlayer(player); }
@@ -539,10 +494,10 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setRoster(r => [...r, signed]);
     setFaSignedThisSeason(c => c + 1);
     if (useMLE) { setMleUsed(true); if (totalCapHit > DYN_CAP) setHardCapped(true); }
-    playSuccess();
-    addToast('success', '✍️', `{p.name} 契約`, `R${p.rating} · $$$${(sal / 1e6).toFixed(1)}M/yr`, 3000);
-    setSigningPlayer(null);
-    setSpeed(1);
+    setAnimatingStrips(prev => ({ ...prev, [p.id]: 'born' }));
+    setTimeout(() => { setAnimatingStrips(prev => { const next = { ...prev }; delete next[p.id]; return next; }); }, 800);
+    playSuccess(); addToast('success', '✍️', `{p.name} 契約`, `R${p.rating} · $$$${(sal / 1e6).toFixed(1)}M/yr`, 3000);
+    setSigningPlayer(null); setSpeed(1);
   }
 
   /* ═══════════════════════════════════════ */
@@ -554,9 +509,17 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
       @keyframes twWave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
       @keyframes twPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
       @keyframes twGlow { 0%, 100% { box-shadow: 0 0 8px rgba(34,211,238,0.3); } 50% { box-shadow: 0 0 20px rgba(34,211,238,0.6); } }
+      @keyframes stripBorn { 0% { opacity: 0; transform: scaleY(0) translateY(20px); filter: brightness(2); } 60% { opacity: 1; transform: scaleY(1.15) translateY(-4px); filter: brightness(1.5); } 80% { transform: scaleY(0.95) translateY(2px); } 100% { opacity: 1; transform: scaleY(1) translateY(0); filter: brightness(1); } }
+      @keyframes stripDissolve { 0% { opacity: 1; transform: scaleY(1); filter: brightness(1); } 30% { filter: brightness(2) saturate(0.3); transform: scaleY(1.1); } 100% { opacity: 0; transform: scaleY(0.3) translateX(40px); filter: brightness(3) saturate(0); } }
+      @keyframes stripStretch { 0% { filter: brightness(1); } 20% { filter: brightness(2) hue-rotate(40deg); transform: scaleX(1.3); } 50% { filter: brightness(1.8) hue-rotate(20deg); } 100% { filter: brightness(1) hue-rotate(0deg); transform: scaleX(1); } }
+      @keyframes stripShrink { 0% { filter: brightness(1); } 30% { filter: brightness(2.5) saturate(0.2); transform: scaleX(0.7); } 60% { filter: brightness(2); } 100% { filter: brightness(1); transform: scaleX(1); } }
       .tw-wave { animation: twWave 4s linear infinite; }
       .tw-pulse { animation: twPulse 2s ease-in-out infinite; }
       .tw-glow { animation: twGlow 2s ease-in-out infinite; }
+      .strip-born { animation: stripBorn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+      .strip-dissolve { animation: stripDissolve 0.9s ease-in forwards; pointer-events: none; }
+      .strip-stretch { animation: stripStretch 1.2s ease-out; }
+      .strip-shrink { animation: stripShrink 0.8s ease-out; }
     `}</style>
   );
 
@@ -572,7 +535,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   if (phase === 'reroll') {
     const rerollRating = roster.reduce((s, p) => s + (Number(p.rating) || 0), 0);
     const rerollCapHit = calcCapHit(roster, 0);
-
     return (
       <div className="min-h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col">
         {CSS}
@@ -593,27 +555,15 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
           </div>
           <div className="flex gap-5 w-full max-w-6xl">
             <div className="flex-1 bg-[#0e1218] border border-stone-800/50 rounded-xl overflow-hidden">
-              <div className="px-5 py-3 border-b border-stone-800/50">
-                <h3 className="text-base font-mono font-black text-stone-400 uppercase tracking-wider">ロスター</h3>
-              </div>
+              <div className="px-5 py-3 border-b border-stone-800/50"><h3 className="text-base font-mono font-black text-stone-400 uppercase tracking-wider">ロスター</h3></div>
               <div className="max-h-[420px] overflow-y-auto">
                 <table className="w-full text-base">
-                  <thead className="sticky top-0 bg-[#0e1218]">
-                    <tr className="text-stone-600 font-mono text-sm">
-                      <th className="text-left px-5 py-2">Player</th>
-                      <th className="text-center px-3 py-2">Pos</th>
-                      <th className="text-center px-3 py-2">Rtg</th>
-                      <th className="text-center px-3 py-2">Age</th>
-                      <th className="text-right px-5 py-2">Salary</th>
-                      <th className="text-right px-5 py-2">Contract</th>
-                    </tr>
-                  </thead>
+                  <thead className="sticky top-0 bg-[#0e1218]"><tr className="text-stone-600 font-mono text-sm"><th className="text-left px-5 py-2">Player</th><th className="text-center px-3 py-2">Pos</th><th className="text-center px-3 py-2">Rtg</th><th className="text-center px-3 py-2">Age</th><th className="text-right px-5 py-2">Salary</th><th className="text-right px-5 py-2">Contract</th></tr></thead>
                   <tbody>
                     {roster.map((p, i) => {
                       const tier = getEffTier(p.rating, p.salary);
                       return (
-                        <tr key={p.id} className="border-t border-stone-900 hover:bg-stone-950/50 transition-colors"
-                          style={{ animation: `twIn 0.3s ease ${i * 40}ms both` }}>
+                        <tr key={p.id} className="border-t border-stone-900 hover:bg-stone-950/50 transition-colors" style={{ animation: `twIn 0.3s ease ${i * 40}ms both` }}>
                           <td className="px-5 py-2"><span className="text-white font-bold">{p.name}</span></td>
                           <td className="text-center px-3 py-2"><span className="text-xs bg-stone-800/80 text-stone-400 px-1.5 py-0.5 rounded font-mono">{p.position}</span></td>
                           <td className="text-center px-3 py-2"><span className="font-mono font-black" style={{ color: tier.color }}>{p.rating}</span></td>
@@ -637,13 +587,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   </div>
                   {stacked.filter(s => !s.isDC).map((item, i) => {
                     const tier = item.tier || getEffTier(item.rating, item.salary);
-                    return (
-                      <div key={item.id} className="absolute rounded-sm" style={{
-                        left: 12 + i * 48, width: 40, bottom: item.sBot * 0.35, height: Math.max(6, item.sH * 0.35),
-                        borderLeft: `3px solid ${tier.color}`, backgroundColor: `${tier.color}18`,
-                        animation: `twIn 0.3s ease ${i * 40}ms both`
-                      }} />
-                    );
+                    return (<div key={item.id} className="absolute rounded-sm" style={{ left: 12 + i * 48, width: 40, bottom: item.sBot * 0.35, height: Math.max(6, item.sH * 0.35), borderLeft: `3px solid ${tier.color}`, backgroundColor: `${tier.color}18`, animation: `twIn 0.3s ease ${i * 40}ms both` }} />);
                   })}
                 </div>
               </div>
@@ -655,9 +599,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   return (
                     <div key={t} className="flex items-center gap-2">
                       <span className="font-mono font-black text-sm w-4" style={{ color: colors[t] }}>{t}</span>
-                      <div className="flex-1 bg-stone-900 rounded-full h-2 overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${roster.length > 0 ? Math.min(100, count / roster.length * 100) : 0}%`, background: colors[t] }} />
-                      </div>
+                      <div className="flex-1 bg-stone-900 rounded-full h-2 overflow-hidden"><div className="h-full rounded-full transition-all" style={{ width: `${roster.length > 0 ? Math.min(100, count / roster.length * 100) : 0}%`, background: colors[t] }} /></div>
                       <span className="font-mono text-sm text-stone-500 w-4 text-right">{count}</span>
                     </div>
                   );
@@ -682,37 +624,15 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
         {CSS}
         <Toast toasts={toasts} />
         {signingPlayer && <SignModal player={signingPlayer} totalCapHit={totalCapHit} faSigned={faSignedThisSeason} faLimit={faLimit} mleUsed={mleUsed} mleAmount={mleAmount} hardCapped={hardCapped} onConfirm={handleConfirmSign} onCancel={() => { setSigningPlayer(null); setSpeed(1); }} />}
-
-        {/* Context Menu */}
-        {contextMenu && (
-          <>
-            <div className="fixed inset-0 z-[200]" onClick={closeContextMenu} onContextMenu={(e) => { e.preventDefault(); closeContextMenu(); }} />
-            <div className="fixed z-[201] bg-[#0e1218] border border-stone-700 rounded-xl shadow-2xl py-2 min-w-[180px]"
-              style={{ left: Math.min(contextMenu.x, window.innerWidth - 200), top: Math.min(contextMenu.y, window.innerHeight - 220) }}>
-              <div className="px-4 py-2 border-b border-stone-800">
-                <div className="text-white font-bold text-base">{contextMenu.player.name}</div>
-                <div className="text-stone-500 font-mono text-sm">{contextMenu.player.position} · R{contextMenu.player.rating} · ${(contextMenu.player.salary / 1e6).toFixed(1)}M</div>
-              </div>
-              <button onClick={() => handleWaive(contextMenu.player)}
-                className="w-full text-left px-4 py-2.5 text-base font-mono text-amber-300 hover:bg-amber-950/50 flex items-center gap-3 transition-colors">
-                <span>💀</span> Waive
-              </button>
-              {contextMenu.player.contractYears > 1 && (
-                <button onClick={() => handleBuyout(contextMenu.player)}
-                  className="w-full text-left px-4 py-2.5 text-base font-mono text-purple-300 hover:bg-purple-950/50 flex items-center gap-3 transition-colors">
-                  <span>🤝</span> Buyout
-                </button>
-              )}
-              {contextMenu.player.contractYears > 1 && (
-                <button onClick={() => handleStretch(contextMenu.player)}
-                  className="w-full text-left px-4 py-2.5 text-base font-mono text-emerald-300 hover:bg-emerald-950/50 flex items-center gap-3 transition-colors">
-                  <span>⏳</span> Stretch
-                </button>
-              )}
-            </div>
-          </>
-        )}
-
+        {contextMenu && (<>
+          <div className="fixed inset-0 z-[200]" onClick={closeContextMenu} onContextMenu={(e) => { e.preventDefault(); closeContextMenu(); }} />
+          <div className="fixed z-[201] bg-[#0e1218] border border-stone-700 rounded-xl shadow-2xl py-2 min-w-[180px]" style={{ left: Math.min(contextMenu.x, window.innerWidth - 200), top: Math.min(contextMenu.y, window.innerHeight - 220) }}>
+            <div className="px-4 py-2 border-b border-stone-800"><div className="text-white font-bold text-base">{contextMenu.player.name}</div><div className="text-stone-500 font-mono text-sm">{contextMenu.player.position} · R{contextMenu.player.rating} · ${(contextMenu.player.salary / 1e6).toFixed(1)}M</div></div>
+            <button onClick={() => handleWaive(contextMenu.player)} className="w-full text-left px-4 py-2.5 text-base font-mono text-amber-300 hover:bg-amber-950/50 flex items-center gap-3 transition-colors"><span>💀</span> Waive</button>
+            {contextMenu.player.contractYears > 1 && <button onClick={() => handleBuyout(contextMenu.player)} className="w-full text-left px-4 py-2.5 text-base font-mono text-purple-300 hover:bg-purple-950/50 flex items-center gap-3 transition-colors"><span>🤝</span> Buyout</button>}
+            {contextMenu.player.contractYears > 1 && <button onClick={() => handleStretch(contextMenu.player)} className="w-full text-left px-4 py-2.5 text-base font-mono text-emerald-300 hover:bg-emerald-950/50 flex items-center gap-3 transition-colors"><span>⏳</span> Stretch</button>}
+          </div>
+        </>)}
         {showSummary && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
             <div className="bg-[#0e1218] border border-stone-700 rounded-2xl p-8 w-full max-w-lg shadow-2xl space-y-4">
@@ -721,17 +641,13 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 {seasonRecord && <div className="space-y-1"><div className="text-3xl font-mono font-black">{seasonRecord.wins}W-{seasonRecord.losses}L</div><div className={'text-xl font-mono font-black ' + (seasonRecord.gmBonus > 0 ? 'text-emerald-400' : 'text-stone-500')}>{seasonRecord.result} {seasonRecord.gmBonus > 0 && `+${seasonRecord.gmBonus}`}</div></div>}
               </div>
               <div className="bg-stone-950 rounded-xl p-4 max-h-48 overflow-y-auto space-y-1">
-                {summaries.map((s, i) => (
-                  <div key={i} className="flex justify-between text-base py-1"><span className="text-white">{s.name}</span><span className="font-mono"><span className="text-stone-400">{s.oldRating}</span><span className="text-stone-600 mx-1">→</span><span className={s.change <= -3 ? 'text-red-400 font-black' : 'text-amber-400 font-black'}>{s.newRating || 'RET'}</span>{s.change !== 'RETIRE' && <span className="text-red-500 ml-1">({s.change})</span>}</span></div>
-                ))}
+                {summaries.map((s, i) => (<div key={i} className="flex justify-between text-base py-1"><span className="text-white">{s.name}</span><span className="font-mono"><span className="text-stone-400">{s.oldRating}</span><span className="text-stone-600 mx-1">→</span><span className={s.change <= -3 ? 'text-red-400 font-black' : 'text-amber-400 font-black'}>{s.newRating || 'RET'}</span>{s.change !== 'RETIRE' && <span className="text-red-500 ml-1">({s.change})</span>}</span></div>))}
               </div>
               <button onClick={handleSummaryContinue} className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-stone-950 font-mono font-black py-4 rounded-xl text-lg">Continue ▶</button>
             </div>
           </div>
         )}
         {showDraft && <DraftOverlay prospects={draftProspects} picksLeft={picksLeft} onDraft={handleDraft} onSkip={handleDraftSkip} onContinue={handleDraftComplete} season={sn} />}
-
-        {/* Header */}
         <header className="px-5 py-3 flex justify-between items-center border-b border-stone-800/50 shrink-0">
           <div className="flex items-center gap-4">
             <button onClick={() => { playClickSound(); setSpeed(0); onBack(); }} className="text-stone-500 hover:text-stone-300 font-mono text-lg px-2">🏠</button>
@@ -740,40 +656,23 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             <span className="text-sm font-mono text-stone-600">({(currentSeason % 1 * 100).toFixed(0)}%)</span>
           </div>
           <div className="flex items-center gap-3">
-            <SpeedBtn v={0} label="⏸" />
-            <SpeedBtn v={1} label="1x" />
-            <SpeedBtn v={2} label="2x" />
-            <SpeedBtn v={3} label="3x" />
+            <SpeedBtn v={0} label="⏸" /><SpeedBtn v={1} label="1x" /><SpeedBtn v={2} label="2x" /><SpeedBtn v={3} label="3x" />
             <span className="text-sm font-mono text-stone-600 ml-3">GM</span>
             <span className="text-xl font-mono font-black text-amber-400">{gmScore}</span>
             <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-2 py-1 rounded text-lg ' + (isBgmOn ? 'text-emerald-400' : 'text-stone-500')}>{isBgmOn ? '🔊' : '🔇'}</button>
           </div>
         </header>
-
         <main className="flex-1 flex overflow-hidden min-h-0 max-w-full">
-          {/* Timeline */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Season labels row */}
-            <div className="h-8 flex shrink-0 border-b border-stone-900 overflow-hidden" ref={el => {
-              if (el && contRef.current) {
-                const syncScroll = () => { el.scrollLeft = contRef.current?.scrollLeft || 0; };
-                contRef.current.addEventListener('scroll', syncScroll);
-              }
-            }}>
+            <div className="h-8 flex shrink-0 border-b border-stone-900 overflow-hidden" ref={el => { if (el && contRef.current) { const syncScroll = () => { el.scrollLeft = contRef.current?.scrollLeft || 0; }; contRef.current.addEventListener('scroll', syncScroll); } }}>
               <div className="w-28 shrink-0" />
               <div style={{ width: tlWidth, position: 'relative' }}>
                 {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
-                  <div key={s} className="absolute top-0 h-full flex items-center justify-center font-mono text-sm" style={{
-                    left: (s - 1) * SEASON_W, width: SEASON_W,
-                    color: s === sn ? '#22d3ee' : '#57534e', fontWeight: s === sn ? 900 : 400,
-                    borderRight: '1px solid #1c1917',
-                  }}>S{s}</div>
+                  <div key={s} className="absolute top-0 h-full flex items-center justify-center font-mono text-sm" style={{ left: (s - 1) * SEASON_W, width: SEASON_W, color: s === sn ? '#22d3ee' : '#57534e', fontWeight: s === sn ? 900 : 400, borderRight: '1px solid #1c1917' }}>S{s}</div>
                 ))}
               </div>
             </div>
-            {/* Canvas area: left labels + scrollable canvas */}
             <div className="flex-1 flex min-h-0">
-              {/* Left label column */}
               <div className="w-28 shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden">
                 <div className="absolute left-0 right-0" style={{ bottom: canvasH * 0.65 }}>
                   <div className="border-t-2 border-dashed border-amber-500/40 tw-pulse" />
@@ -784,43 +683,40 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   <span className="absolute left-2 -top-5 text-xs font-mono text-red-400 bg-[#0c0f16]/80 px-1 rounded whitespace-nowrap">CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
                 </div>
               </div>
-              {/* Scrollable canvas */}
               <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden"
                 style={{ scrollbarWidth: 'none', cursor: dragRef.current.active ? 'grabbing' : 'grab' }}
-                onWheel={handleUserInteract}
-                onMouseDown={handleDragStart}
-                onTouchStart={handleUserInteract}
-                onTouchEnd={handleUserRelease}
+                onWheel={handleUserInteract} onMouseDown={handleDragStart}
+                onTouchStart={handleUserInteract} onTouchEnd={handleUserRelease}
                 onContextMenu={(e) => e.preventDefault()}>
-                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none' }}>
-                  {/* Grid */}
+                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none', paddingLeft: 20, paddingRight: 20, overflow: 'hidden' }}>
                   {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                     <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
                   ))}
-                  {/* Past overlay */}
                   <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 0, width: Math.max(0, (currentSeason - 1) * SEASON_W), background: 'rgba(0,0,0,0.25)', zIndex: 4 }} />
-                  {/* Water */}
                   <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))', zIndex: 1 }} />
                   <WaterWave bottom={waterH} />
-                  {/* Cap line (line only) */}
                   <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40 pointer-events-none" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }} />
-                  {/* Rating line (line only) */}
                   <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse pointer-events-none" style={{ bottom: canvasH * 0.65, zIndex: 3 }} />
-                  {/* Strips */}
                   {stacked.map(item => {
                     const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
                     const startSn = Math.max(currentSeason, item.signedSeason || 1);
-                    const left = (startSn - 1) * SEASON_W + 4;
+                    const left = (startSn - 1) * SEASON_W + 24;
                     const w = Math.max(0, (endSn - startSn) * SEASON_W - 8);
                     const tier = item.tier || getEffTier(item.rating, item.salary);
                     const isCtxTarget = contextMenu && contextMenu.player.id === item.id;
+                    const animClass = animatingStrips[item.id] === 'dissolve' ? ' strip-dissolve' :
+                      animatingStrips[item.id] === 'stretch' ? ' strip-stretch' :
+                      animatingStrips[item.id] === 'shrink' ? ' strip-shrink' :
+                      animatingStrips[item.id] === 'born' ? ' strip-born' : '';
                     if (w <= 0) return null;
                     return (
                       <div key={item.id}
                         onContextMenu={(e) => { if (!item.isDC) handleStripContextMenu(e, item); }}
-                        className={'absolute rounded-lg transition-all duration-500 ' +
-                          (item.isDC ? '' : 'cursor-pointer') +
-                          (isCtxTarget ? ' tw-glow' : '')}
+                        className={'absolute rounded-lg transition-all duration-500' +
+                          (item.isDC ? '' : ' cursor-pointer') +
+                          (isCtxTarget ? ' tw-glow' : '') +
+                          (item.isDC && !animatingStrips[item.id] ? ' strip-born' : '') +
+                          animClass}
                         style={{
                           left, width: w, bottom: item.sBot, height: item.sH,
                           borderLeft: `5px solid ${item.isDC ? '#ef4444' : tier.color}`,
@@ -847,12 +743,10 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                       </div>
                     );
                   })}
-                  {/* Current season marker */}
                   <div className="absolute top-0 bottom-0 tw-glow pointer-events-none" style={{ left: (currentSeason - 1) * SEASON_W - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
                 </div>
               </div>
             </div>
-            {/* Bottom status */}
             <div className="flex items-center gap-8 px-5 py-2.5 bg-[#0e1218] border-t border-stone-800/50 text-lg font-mono shrink-0">
               <span>Rating: <span className={totalRating >= ratingLine ? 'text-emerald-400 font-black text-2xl' : 'text-red-400 font-black text-2xl'}>{totalRating}</span><span className="text-stone-700">/{ratingLine}</span></span>
               <span>Cap: <span className={totalCapHit <= DYN_CAP ? 'text-cyan-400 font-black text-2xl' : 'text-amber-400 font-black text-2xl'}>${(totalCapHit / 1e6).toFixed(1)}M</span><span className="text-stone-700">/${(DYN_CAP / 1e6).toFixed(0)}M</span></span>
@@ -863,13 +757,9 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               <span className="text-stone-600 text-sm ml-auto">Space: 一時停止 · 右クリック: 操作</span>
             </div>
           </div>
-
-          {/* Side Panel */}
           <div className="w-72 flex flex-col gap-2 shrink-0 border-l border-stone-800/50 bg-[#0a0d12] overflow-hidden overflow-y-auto">
             {totalRating < ratingLine && (
-              <div className="bg-red-950/40 border-b border-red-900/50 p-3 animate-pulse shrink-0">
-                <div className="text-red-400 font-mono font-black text-base">🚨 Rating不足: {ratingLine - totalRating}pt</div>
-              </div>
+              <div className="bg-red-950/40 border-b border-red-900/50 p-3 animate-pulse shrink-0"><div className="text-red-400 font-mono font-black text-base">🚨 Rating不足: {ratingLine - totalRating}pt</div></div>
             )}
             <div className="p-3 space-y-1.5 text-base font-mono shrink-0">
               <div className="flex justify-between"><span className="text-stone-500">Rating</span><span className={totalRating >= ratingLine ? 'text-emerald-400 font-black text-xl' : 'text-red-400 font-black text-xl'}>{totalRating} <span className="text-stone-700">/{ratingLine}</span></span></div>
@@ -886,14 +776,10 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   const tier = getEffTier(p.rating, p.salary);
                   return (
                     <div key={p.id} className="bg-stone-950/50 border border-stone-800/40 rounded-lg p-2.5 hover:border-stone-700 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <span className="text-white text-base font-bold truncate">{p.name}</span>
-                        <span className="font-mono font-black text-lg shrink-0 ml-2" style={{ color: tier.color }}>{p.rating}</span>
-                      </div>
+                      <div className="flex items-center justify-between"><span className="text-white text-base font-bold truncate">{p.name}</span><span className="font-mono font-black text-lg shrink-0 ml-2" style={{ color: tier.color }}>{p.rating}</span></div>
                       <div className="flex items-center justify-between mt-1">
                         <span className="text-stone-500 font-mono text-sm">{p.position} · ${(p.salary / 1e6).toFixed(1)}M · {p.contractYears}yr</span>
-                        <button onClick={() => handleSignRequest(p)} disabled={faSignedThisSeason >= faLimit}
-                          className="text-sm bg-cyan-950/60 border border-cyan-800 text-cyan-300 px-2 py-0.5 rounded font-mono hover:bg-cyan-900 disabled:opacity-30 disabled:cursor-not-allowed shrink-0 ml-2">＋</button>
+                        <button onClick={() => handleSignRequest(p)} disabled={faSignedThisSeason >= faLimit} className="text-sm bg-cyan-950/60 border border-cyan-800 text-cyan-300 px-2 py-0.5 rounded font-mono hover:bg-cyan-900 disabled:opacity-30 disabled:cursor-not-allowed shrink-0 ml-2">＋</button>
                       </div>
                     </div>
                   );
@@ -913,20 +799,14 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
       <div className="min-h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col items-center justify-center px-6">
         {CSS}
         <div className="w-full max-w-xl space-y-6 bg-[#0e1218] border border-red-900 rounded-2xl p-10 text-center">
-          <div className="space-y-2">
-            <span className="text-base font-mono font-black text-red-400 uppercase tracking-widest">TOWER COLLAPSED</span>
-            <h2 className="text-4xl font-black">タワー崩壊</h2>
-          </div>
+          <div className="space-y-2"><span className="text-base font-mono font-black text-red-400 uppercase tracking-widest">TOWER COLLAPSED</span><h2 className="text-4xl font-black">タワー崩壊</h2></div>
           <div className="bg-stone-950 rounded-xl p-6 space-y-3">
             <div className="text-lg text-stone-500 font-mono">存続期間</div>
             <div className="text-6xl font-black text-cyan-400 font-mono">{Math.max(0, sn - 1)}</div>
             <div className="text-lg text-stone-500">シーズン</div>
             <div className="text-red-400 text-base font-mono mt-3">Rating {totalRating} {'<'} Required {ratingLine}</div>
           </div>
-          <div className="bg-stone-950 rounded-xl p-5">
-            <div className="text-sm text-stone-600 font-mono">GM SCORE</div>
-            <div className="text-5xl font-black text-amber-400 font-mono">{gmScore}<span className="text-2xl text-stone-600 ml-2">pts</span></div>
-          </div>
+          <div className="bg-stone-950 rounded-xl p-5"><div className="text-sm text-stone-600 font-mono">GM SCORE</div><div className="text-5xl font-black text-amber-400 font-mono">{gmScore}<span className="text-2xl text-stone-600 ml-2">pts</span></div></div>
           <div className="flex gap-4 justify-center">
             <button onClick={() => { doReroll(); }} className="bg-gradient-to-r from-cyan-500 to-blue-600 text-stone-950 font-mono font-black px-8 py-4 rounded-xl text-lg">TRY AGAIN 🔄</button>
             <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-400 font-mono font-black px-6 py-4 rounded-xl text-lg hover:text-white">タイトルへ</button>
