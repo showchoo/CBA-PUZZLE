@@ -169,6 +169,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const dpRef = useRef([]);
   const scrollTimeoutRef = useRef(null);
   const isProgrammaticScroll = useRef(false);
+  const dragRef = useRef({ active: false, startX: 0, scrollStart: 0 });
 
   /* ── Derived ── */
   const dc = deadCapDetails.reduce((s, d) => s + d.amount, 0);
@@ -283,7 +284,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     }
   }, [currentSeason, phase, userScrolling]);
 
-  /* ═══ Scroll handler ═══ */
+  /* ═══ Scroll / Drag ═══ */
   const handleUserInteract = useCallback(() => {
     if (isProgrammaticScroll.current) return;
     setUserScrolling(true);
@@ -296,6 +297,37 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
       setUserScrolling(false);
     }, 3000);
   }, []);
+
+  const handleDragStart = useCallback((e) => {
+    if (e.button !== 0) return;
+    if (!contRef.current) return;
+    dragRef.current = { active: true, startX: e.clientX, scrollStart: contRef.current.scrollLeft };
+    handleUserInteract();
+  }, [handleUserInteract]);
+
+  const handleDragMove = useCallback((e) => {
+    if (!dragRef.current.active || !contRef.current) return;
+    const dx = e.clientX - dragRef.current.startX;
+    contRef.current.scrollLeft = dragRef.current.scrollStart - dx;
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    if (!dragRef.current.active) return;
+    dragRef.current.active = false;
+    handleUserRelease();
+  }, [handleUserRelease]);
+
+  /* ═══ Window mouse events for drag ═══ */
+  useEffect(() => {
+    const move = (e) => handleDragMove(e);
+    const up = () => handleDragEnd();
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+    };
+  }, [handleDragMove, handleDragEnd]);
 
   /* ═══ Keyboard ═══ */
   useEffect(() => {
@@ -642,7 +674,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   /* ═══ MANAGE ═══ */
   if (phase === 'manage') {
     return (
-      <div className="h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col overflow-hidden">
+      <div className="h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col overflow-hidden select-none">
         {CSS}
         <Toast toasts={toasts} />
         {signingPlayer && <SignModal player={signingPlayer} totalCapHit={totalCapHit} faSigned={faSignedThisSeason} faLimit={faLimit} mleUsed={mleUsed} mleAmount={mleAmount} hardCapped={hardCapped} onConfirm={handleConfirmSign} onCancel={() => { setSigningPlayer(null); setSpeed(1); }} />}
@@ -735,14 +767,14 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               </div>
             </div>
             {/* Canvas */}
-            <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none', cursor: 'grab' }}
+            <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden"
+              style={{ scrollbarWidth: 'none', cursor: dragRef.current.active ? 'grabbing' : 'grab' }}
               onWheel={handleUserInteract}
-              onMouseDown={(e) => { e.currentTarget.style.cursor = 'grabbing'; handleUserInteract(); }}
-              onMouseUp={(e) => { e.currentTarget.style.cursor = 'grab'; handleUserRelease(); }}
-              onMouseLeave={(e) => { e.currentTarget.style.cursor = 'grab'; handleUserRelease(); }}
+              onMouseDown={handleDragStart}
               onTouchStart={handleUserInteract}
-              onTouchEnd={handleUserRelease}>
-              <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16' }}>
+              onTouchEnd={handleUserRelease}
+              onContextMenu={(e) => e.preventDefault()}>
+              <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none' }}>
                 {/* Grid */}
                 {Array.from({ length: MAX_SN }, (_, i) => i + 1).map(s => (
                   <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
@@ -753,11 +785,11 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))', zIndex: 1 }} />
                 <WaterWave bottom={waterH} />
                 {/* Cap line */}
-                <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }}>
+                <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40 pointer-events-none" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }}>
                   <span className="absolute left-3 -top-6 text-sm font-mono text-red-400 bg-[#0c0f16]/80 px-1.5 rounded">CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
                 </div>
                 {/* Rating line label */}
-                <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: canvasH * 0.65, zIndex: 3 }}>
+                <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse pointer-events-none" style={{ bottom: canvasH * 0.65, zIndex: 3 }}>
                   <span className="absolute left-3 -top-6 text-sm font-mono text-amber-400 bg-[#0c0f16]/80 px-1.5 rounded">★ Rating {ratingLine}</span>
                 </div>
                 {/* Strips */}
@@ -767,22 +799,22 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   const left = (startSn - 1) * SEASON_W + 4;
                   const w = Math.max(0, (endSn - startSn) * SEASON_W - 8);
                   const tier = item.tier || getEffTier(item.rating, item.salary);
-                  const isContextMenuTarget = contextMenu && contextMenu.player.id === item.id;
+                  const isCtxTarget = contextMenu && contextMenu.player.id === item.id;
                   if (w <= 0) return null;
                   return (
                     <div key={item.id}
-                      onClick={() => {}}
-                      onContextMenu={(e) => !item.isDC && handleStripContextMenu(e, item)}
+                      onContextMenu={(e) => { if (!item.isDC) handleStripContextMenu(e, item); }}
                       className={'absolute rounded-lg transition-all duration-500 ' +
                         (item.isDC ? '' : 'cursor-pointer') +
-                        (isContextMenuTarget ? ' tw-glow' : '')}
+                        (isCtxTarget ? ' tw-glow' : '')}
                       style={{
                         left, width: w, bottom: item.sBot, height: item.sH,
                         borderLeft: `5px solid ${item.isDC ? '#ef4444' : tier.color}`,
-                        backgroundColor: isContextMenuTarget ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.15)' : `${tier.color}12`,
+                        backgroundColor: isCtxTarget ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.15)' : `${tier.color}12`,
                         opacity: item.isDC ? 0.7 : 1,
                         backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239,68,68,0.1) 8px, rgba(239,68,68,0.1) 16px)' : 'none',
-                        zIndex: isContextMenuTarget ? 10 : item.isDC ? 1 : 2,
+                        zIndex: isCtxTarget ? 10 : item.isDC ? 1 : 2,
+                        userSelect: 'none',
                       }}>
                       <div className="flex items-center justify-between px-4 h-full overflow-hidden">
                         <div className="flex items-center gap-2 min-w-0">
@@ -802,7 +834,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   );
                 })}
                 {/* Current season marker */}
-                <div className="absolute top-0 bottom-0 tw-glow" style={{ left: (currentSeason - 1) * SEASON_W - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
+                <div className="absolute top-0 bottom-0 tw-glow pointer-events-none" style={{ left: (currentSeason - 1) * SEASON_W - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
               </div>
             </div>
             {/* Bottom status */}
