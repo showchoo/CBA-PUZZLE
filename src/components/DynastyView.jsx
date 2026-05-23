@@ -91,46 +91,49 @@ function ConfettiOverlay({ active }) {
 }
 
 /* ═══ AnimatedScore ═══ */
-function AnimatedScore({ target, playClickSound, animate = true }) {
-  const [display, setDisplay] = useState(0);
+function AnimatedScore({ target, playClickSound, trigger = 0 }) {
+  const [display, setDisplay] = useState(target);
   const [flash, setFlash] = useState(false);
-  const prevRef = useRef(0);
+  const prevRef = useRef(target);
   const timerRef = useRef(null);
+  const triggerRef = useRef(0);
 
   useEffect(() => {
-    const start = prevRef.current;
-    const end = target;
-    prevRef.current = end;
+    // triggerが実際に増加した時だけアニメーション
+    if (trigger > 0 && trigger !== triggerRef.current) {
+      triggerRef.current = trigger;
+      const start = prevRef.current;
+      const end = target;
+      prevRef.current = end;
 
-    if (!animate || Math.abs(end - start) < 10) {
-      setDisplay(end);
-      return;
+      if (Math.abs(end - start) >= 10) {
+        const diff = end - start;
+        const steps = Math.min(Math.abs(diff), 40);
+        const stepSize = diff / steps;
+        let current = 0;
+
+        if (timerRef.current) clearInterval(timerRef.current);
+
+        setFlash(true);
+        setTimeout(() => setFlash(false), 600);
+
+        timerRef.current = setInterval(() => {
+          current++;
+          setDisplay(Math.round(start + stepSize * current));
+          try { playClickSound(); } catch (e) {}
+          if (current >= steps) {
+            clearInterval(timerRef.current);
+            setDisplay(end);
+          }
+        }, 50);
+        return () => { if (timerRef.current) clearInterval(timerRef.current); };
+      }
     }
 
-    const diff = end - start;
-    const steps = Math.min(Math.abs(diff), 40);
-    const stepSize = diff / steps;
-    let current = 0;
-
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    setFlash(true);
-    setTimeout(() => setFlash(false), 600);
-
-    timerRef.current = setInterval(() => {
-      current++;
-      setDisplay(Math.round(start + stepSize * current));
-      try { playClickSound(); } catch (e) {}
-      if (current >= steps) {
-        clearInterval(timerRef.current);
-        setDisplay(end);
-      }
-    }, 50);
-
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [target, animate]);
-
-  useEffect(() => { setDisplay(target); prevRef.current = target; }, []);
+    // trigger未変化 → アニメなしで静かに表示を更新
+    prevRef.current = target;
+    setDisplay(target);
+  }, [target, trigger]);
 
   return (
     <span style={{
@@ -320,7 +323,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
   const toastCounter = useRef(0);
-  const [gmAnimating, setGmAnimating] = useState(true);
+  const [gmAnimTrigger, setGmAnimTrigger] = useState(0);
   const [faSignedThisSeason, setFaSignedThisSeason] = useState(0);
   const [showBonusPanel, setShowBonusPanel] = useState(false);
   const [injuredList, setInjuredList] = useState([]);
@@ -421,12 +424,8 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
   /* ═══ HANDLERS ═══                        */
   /* ═══════════════════════════════════════ */
 
-  /* ★修正: GM SCOREアニメーション再発火（明示的に呼ぶ関数） */
   function flashGmScore() {
-    setGmAnimating(false);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => setGmAnimating(true));
-    });
+    setGmAnimTrigger(prev => prev + 1);
   }
 
   function doReroll() {
@@ -437,7 +436,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
     setDraftPicks(genDraftPicks());
     setTaxHistory([]); setMleUsed(false);
     setSeason(1); setPhase('reroll'); setTradeMode(false);
-    setGmAnimating(true);
+    setGmAnimTrigger(0);
     setFaSignedThisSeason(0);
     setInjuredList([]);
     setSeasonRecord(null);
@@ -871,7 +870,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
     checkChallengeResults();
 
-    /* ★修正: GM SCOREアニメーション発火（シーズン終了時のみ） */
+    /* GM SCOREアニメーション発火（シーズン終了時のみ） */
     flashGmScore();
 
     if (streamSettings.dramaticMode) {
@@ -993,7 +992,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
         <button onClick={() => { playClickSound(); setShowBonusPanel(true); }} className="px-2 py-1.5 text-xs font-mono text-amber-400 hover:text-amber-300 bg-amber-950/30 border border-amber-800/50 rounded-lg transition-all">📋 ボーナス一覧</button>
         <span className="text-xs font-mono text-stone-500">GM SCORE</span>
         <span className="text-2xl font-mono font-black text-amber-400">
-          <AnimatedScore target={gmScoreCalc()} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} animate={gmAnimating} />
+          <AnimatedScore target={gmScoreCalc()} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} trigger={gmAnimTrigger} />
         </span>
         <span className="text-xs font-mono text-stone-600">pts</span>
         <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-3 py-2 rounded-lg transition-all text-sm ' + (isBgmOn ? 'text-emerald-400 bg-emerald-950/40' : 'text-stone-500 hover:text-stone-300')}>{isBgmOn ? '🔊' : '🔇'}</button>
@@ -2122,7 +2121,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           <div className="bg-stone-950 border border-stone-800 rounded-xl p-4">
             <div className="text-xs text-stone-500 font-mono">GM SCORE</div>
             <div className="text-4xl font-black text-yellow-400 font-mono">
-              <AnimatedScore target={score} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} animate={true} />
+              <AnimatedScore target={score} playClickSound={() => { try { playTone(800, 0.02, 'square', 0.03); } catch(e){} }} trigger={1} />
               <span className="text-lg text-stone-500 ml-1">pts</span>
             </div>
           </div>
