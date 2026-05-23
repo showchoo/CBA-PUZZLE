@@ -522,45 +522,133 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     </button>
   );
 
-  /* ═══ REROLL ═══ */
+    /* ═══ REROLL ═══ */
   if (phase === 'reroll') {
+    const rerollRating = roster.reduce((s, p) => s + (Number(p.rating) || 0), 0);
+    const rerollCapHit = calcCapHit(roster, 0);
+
     return (
-      <div className="min-h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col items-center justify-center px-6 gap-6">
+      <div className="min-h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col">
         {CSS}
-        <div className="text-center space-y-2">
-          <h1 className="text-5xl font-black text-white">💧 WATER TOWER</h1>
-          <p className="text-xl text-stone-400">Cap（水面）を超えず、Rating を維持せよ。<br/>時間は自動で流れる。帯を操れ。</p>
+        {/* Header */}
+        <div className="px-6 py-4 flex items-center gap-4 shrink-0">
+          <button onClick={() => { playClickSound(); onBack(); }} className="text-stone-500 hover:text-stone-300 font-mono text-lg px-3 py-1">🏠</button>
+          <h1 className="text-3xl font-black font-mono text-cyan-400 tracking-wider">💧 WATER TOWER</h1>
         </div>
-        <div className="bg-[#0c0f16] border border-stone-800/50 rounded-xl p-4 w-full max-w-2xl" style={{ height: 300 }}>
-          <div className="relative w-full h-full overflow-hidden rounded-lg">
-            <div className="absolute bottom-0 left-0 right-0 bg-cyan-950/20" style={{ height: waterH * 0.5 }} />
-            <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: canvasH * 0.25 }}>
-              <span className="absolute right-2 -top-6 text-sm font-mono text-amber-400">Rating Line {ratingLine}</span>
-            </div>
-            {stacked.filter(s => !s.isDC).map((item, i) => {
-              const tier = item.tier || getEffTier(item.rating, item.salary);
-              return (
-                <div key={item.id} className="absolute rounded-md" style={{
-                  left: 20 + i * 60, width: 50, bottom: item.sBot * 0.4, height: Math.max(8, item.sH * 0.4),
-                  borderLeft: `3px solid ${tier.color}`, backgroundColor: `${tier.color}18`, animation: `twIn 0.3s ease ${i * 50}ms both`
-                }} />
-              );
-            })}
+
+        {/* Main */}
+        <div className="flex-1 flex flex-col items-center px-6 pb-6 gap-5 overflow-y-auto">
+          {/* Title */}
+          <div className="text-center space-y-2">
+            <h2 className="text-4xl font-black text-white">チームを選択</h2>
+            <p className="text-lg text-stone-400">気に入るロスターが出るまでリロール</p>
           </div>
-        </div>
-        <div className="bg-stone-950 border border-stone-800 rounded-xl px-8 py-4 font-mono text-xl text-stone-400 flex gap-8">
-          <span>Total: <span className="text-white font-black text-3xl">{totalRating}</span></span>
-          <span>Cap: <span className={totalCapHit <= DYN_CAP ? 'text-cyan-400 font-black text-3xl' : 'text-red-400 font-black text-3xl'}>${(totalCapHit / 1e6).toFixed(1)}M</span></span>
-          <span>Players: <span className="text-white font-black">{roster.length}</span></span>
-        </div>
-        <div className="flex gap-4">
-          <button onClick={doReroll} className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-8 py-3 rounded-xl text-lg hover:bg-stone-800 transition-all">🔄 REROLL</button>
-          <button onClick={startGame} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black px-10 py-3 rounded-xl text-lg transition-all">START ▶</button>
-          <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-500 font-mono font-black px-6 py-3 rounded-xl text-lg hover:text-stone-300">← 戻る</button>
+
+          {/* Stats bar */}
+          <div className="flex items-center gap-6 bg-stone-950 border border-stone-800 rounded-xl px-8 py-3 font-mono text-lg">
+            <span>Total: <span className="text-white font-black text-2xl">{rerollRating}</span></span>
+            <span>Cap: <span className={rerollCapHit <= DYN_CAP ? 'text-cyan-400 font-black text-2xl' : 'text-red-400 font-black text-2xl'}>${(rerollCapHit / 1e6).toFixed(1)}M</span></span>
+            <span>Players: <span className="text-white font-black text-2xl">{roster.length}</span></span>
+            <span>Rating Line: <span className="text-amber-400 font-black text-2xl">{380}</span></span>
+          </div>
+
+          {/* Two column: Roster + Tower preview */}
+          <div className="flex gap-5 w-full max-w-6xl">
+            {/* Roster list */}
+            <div className="flex-1 bg-[#0e1218] border border-stone-800/50 rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-stone-800/50">
+                <h3 className="text-base font-mono font-black text-stone-400 uppercase tracking-wider">ロスター</h3>
+              </div>
+              <div className="max-h-[420px] overflow-y-auto">
+                <table className="w-full text-base">
+                  <thead className="sticky top-0 bg-[#0e1218]">
+                    <tr className="text-stone-600 font-mono text-sm">
+                      <th className="text-left px-5 py-2">Player</th>
+                      <th className="text-center px-3 py-2">Pos</th>
+                      <th className="text-center px-3 py-2">Rtg</th>
+                      <th className="text-center px-3 py-2">Age</th>
+                      <th className="text-right px-5 py-2">Salary</th>
+                      <th className="text-right px-5 py-2">Contract</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roster.map((p, i) => {
+                      const tier = getEffTier(p.rating, p.salary);
+                      return (
+                        <tr key={p.id} className="border-t border-stone-900 hover:bg-stone-950/50 transition-colors"
+                          style={{ animation: `twIn 0.3s ease ${i * 40}ms both` }}>
+                          <td className="px-5 py-2">
+                            <span className="text-white font-bold">{p.name}</span>
+                          </td>
+                          <td className="text-center px-3 py-2">
+                            <span className="text-xs bg-stone-800/80 text-stone-400 px-1.5 py-0.5 rounded font-mono">{p.position}</span>
+                          </td>
+                          <td className="text-center px-3 py-2">
+                            <span className="font-mono font-black" style={{ color: tier.color }}>{p.rating}</span>
+                          </td>
+                          <td className="text-center px-3 py-2 text-stone-400 font-mono">{p.age}</td>
+                          <td className="text-right px-5 py-2 text-stone-300 font-mono">${(p.salary / 1e6).toFixed(1)}M</td>
+                          <td className="text-right px-5 py-2 text-stone-500 font-mono">{p.contractYears}yr</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Tower mini preview */}
+            <div className="w-64 shrink-0 space-y-4">
+              <div className="bg-[#0c0f16] border border-stone-800/50 rounded-xl p-4 h-[320px]">
+                <div className="relative w-full h-full overflow-hidden rounded-lg">
+                  <div className="absolute bottom-0 left-0 right-0 bg-cyan-950/20 transition-all" style={{ height: waterH * 0.5 }} />
+                  <WaterWave bottom={waterH * 0.5} />
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: canvasH * 0.25 }}>
+                    <span className="absolute right-2 -top-6 text-xs font-mono text-amber-400">Rating {380}</span>
+                  </div>
+                  {stacked.filter(s => !s.isDC).map((item, i) => {
+                    const tier = item.tier || getEffTier(item.rating, item.salary);
+                    return (
+                      <div key={item.id} className="absolute rounded-sm" style={{
+                        left: 12 + i * 48, width: 40, bottom: item.sBot * 0.35, height: Math.max(6, item.sH * 0.35),
+                        borderLeft: `3px solid ${tier.color}`, backgroundColor: `${tier.color}18`,
+                        animation: `twIn 0.3s ease ${i * 40}ms both`
+                      }} />
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Tier distribution */}
+              <div className="bg-[#0e1218] border border-stone-800/50 rounded-xl p-4 space-y-2">
+                <h4 className="text-sm font-mono font-black text-stone-500 uppercase">Tier分布</h4>
+                {['S', 'A', 'B', 'C', 'D'].map(t => {
+                  const count = roster.filter(p => getEffTier(p.rating, p.salary).label === t).length;
+                  const colors = { S: '#facc15', A: '#22d3ee', B: '#34d399', C: '#fb923c', D: '#ef4444' };
+                  return (
+                    <div key={t} className="flex items-center gap-2">
+                      <span className="font-mono font-black text-sm w-4" style={{ color: colors[t] }}>{t}</span>
+                      <div className="flex-1 bg-stone-900 rounded-full h-2 overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, count / roster.length * 100)}%`, background: colors[t] }} />
+                      </div>
+                      <span className="font-mono text-sm text-stone-500 w-4 text-right">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-4 pt-2">
+            <button onClick={doReroll} className="bg-stone-900 border border-stone-800 text-stone-300 font-mono font-black px-8 py-3 rounded-xl text-lg hover:bg-stone-800 transition-all">🔄 REROLL</button>
+            <button onClick={startGame} className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black px-10 py-3 rounded-xl text-lg transition-all">START ▶</button>
+            <button onClick={() => { playClickSound(); onBack(); }} className="bg-stone-900 border border-stone-800 text-stone-500 font-mono font-black px-6 py-3 rounded-xl text-lg hover:text-stone-300">← 戻る</button>
+          </div>
         </div>
       </div>
     );
   }
+
 
   /* ═══ MANAGE ═══ */
   if (phase === 'manage') {
