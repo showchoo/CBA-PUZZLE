@@ -209,11 +209,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     return { ...item, sBot: b, sH: h };
   });
 
-  const maxSn = Math.max(
-    ...roster.map(p => p.contractEndSeason || (p.signedSeason || 1) + p.contractYears),
-    ...deadCapDetails.map(d => (d.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || d.contractYears || 1))),
-    sn + 2
-  );
+  const maxSn = sn + 3;
   const tlWidth = maxSn * SEASON_W;
 
   /* ── Ref sync ── */
