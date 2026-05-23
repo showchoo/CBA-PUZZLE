@@ -13,7 +13,6 @@ const PX_PER_M = 2.5;
 const MIN_H = 28;
 const SEC_PER_SEASON = 30;
 const TICK = 50;
-const MAX_SN = 30;
 
 /* ═══ Toast ═══ */
 function Toast({ toasts }) {
@@ -183,7 +182,14 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const canvasH = Math.max(450, (DYN_APRON2 / 1e6) * PX_PER_M + 80);
   const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * PX_PER_M);
   const capLineY = (DYN_CAP / 1e6) * PX_PER_M;
-  const tlWidth = MAX_SN * SEASON_W;
+
+  /* ── Dynamic timeline width ── */
+  const maxSn = Math.max(
+    ...roster.map(p => (p.signedSeason || 1) + p.contractYears + 1),
+    ...deadCapDetails.map(d => (d.signedSeason || 1) + (d.yearsLeft || d.contractYears || 1) + 1),
+    sn + 2
+  );
+  const tlWidth = maxSn * SEASON_W;
 
   /* ── Stacking ── */
   const allItems = [
@@ -278,7 +284,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   useEffect(() => {
     if (contRef.current && phase === 'manage' && !userScrolling) {
       isProgrammaticScroll.current = true;
-      const t = (currentSeason - 1) * SEASON_W - contRef.current.clientWidth / 2 + SEASON_W / 2;
+      const t = (currentSeason - 1) * SEASON_W;
       contRef.current.scrollLeft = Math.max(0, t);
       requestAnimationFrame(() => { isProgrammaticScroll.current = false; });
     }
@@ -757,7 +763,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               }
             }}>
               <div style={{ width: tlWidth, position: 'relative' }}>
-                {Array.from({ length: MAX_SN }, (_, i) => i + 1).map(s => (
+                {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                   <div key={s} className="absolute top-0 h-full flex items-center justify-center font-mono text-sm" style={{
                     left: (s - 1) * SEASON_W, width: SEASON_W,
                     color: s === sn ? '#22d3ee' : '#57534e', fontWeight: s === sn ? 900 : 400,
@@ -776,7 +782,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               onContextMenu={(e) => e.preventDefault()}>
               <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none' }}>
                 {/* Grid */}
-                {Array.from({ length: MAX_SN }, (_, i) => i + 1).map(s => (
+                {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                   <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
                 ))}
                 {/* Past overlay */}
