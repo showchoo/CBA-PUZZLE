@@ -180,7 +180,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const sn = Math.floor(currentSeason);
   const ratingLine = 380 + (sn - 1) * 8;
   const gmScore = calcGMScore(sn, totalRating, totalCapHit, roster);
-  const canvasH = Math.max(300, viewportH - 140);
+  const canvasH = Math.max(200, viewportH - 200);
   const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * PX_PER_M);
   const capLineY = (DYN_CAP / 1e6) * PX_PER_M;
 
