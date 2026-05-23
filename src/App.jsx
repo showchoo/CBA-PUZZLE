@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SalaryMeter from './components/SalaryMeter';
 import LeaderboardPage from './components/LeaderboardPage';
 import DynastyView from './components/DynastyView';
+import WaterTowerView from './components/water-tower/WaterTowerView'; /* ★追加 */
 import { CBACoreEngine } from './data/cbaEngine';
 import stagesData from './data/stages.json';
 
@@ -117,7 +118,7 @@ export default function App() {
   const [toasts, setToasts] = useState([]);
   const [showConfetti, setShowConfetti] = useState(false);
   const [screenShake, setScreenShake] = useState(false);
-  const [showClearScreen, setShowClearScreen] = useState(false); // ★追加
+  const [showClearScreen, setShowClearScreen] = useState(false);
 
   const fmt = (v) => v >= 1000000 ? `$${(v / 1000000).toFixed(1).replace(/\.0/, '')}M` : `$${v.toLocaleString()}`;
 
@@ -166,7 +167,6 @@ export default function App() {
     return ctxRef.current;
   };
 
-  // ★ 汎用サウンドエフェクト
   const playTone = (freq, duration = 0.15, type = 'sine', vol = 0.08, delay = 0) => {
     try {
       const ctx = getCtx(); const now = ctx.currentTime + delay;
@@ -197,26 +197,22 @@ export default function App() {
     } catch (e) {}
   };
 
-  // ★ 成功音（契約、補強）
   const playSuccessSound = () => {
     playTone(523.25, 0.15, 'sine', 0.07);
     playTone(659.25, 0.15, 'sine', 0.07, 0.1);
     playTone(783.99, 0.25, 'sine', 0.09, 0.2);
   };
 
-  // ★ エピック音（クリア、大成功）
   const playEpicSound = () => {
     [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
       playTone(f, 0.4, 'sine', 0.06, i * 0.12);
       playTone(f * 1.5, 0.3, 'triangle', 0.03, i * 0.12 + 0.05);
     });
-    // キラキラ追加
     [1318.51, 1567.98, 2093.00].forEach((f, i) => {
       playTone(f, 0.8, 'sine', 0.02, 0.5 + i * 0.15);
     });
   };
 
-  // ★ トレード音（金属的インパクト）
   const playTradeSound = () => {
     playTone(200, 0.3, 'sawtooth', 0.06);
     playTone(150, 0.4, 'sine', 0.08, 0.05);
@@ -225,48 +221,40 @@ export default function App() {
     playTone(900, 0.2, 'sine', 0.08, 0.25);
   };
 
-  // ★ バイアウト/ストレッチ音（和音 + 余韻）
   const playBuyoutSound = () => {
     playTone(329.63, 0.6, 'sine', 0.05);
     playTone(415.30, 0.6, 'sine', 0.05, 0.02);
     playTone(493.88, 0.8, 'sine', 0.07, 0.04);
-    // 余韻
     playTone(987.77, 1.2, 'sine', 0.02, 0.4);
   };
 
-  // ★ 警告音（低音ブザー）
   const playWarningSound = () => {
     playTone(110, 0.5, 'sawtooth', 0.06);
     playTone(116.54, 0.5, 'sawtooth', 0.05, 0.01);
   };
 
-  // ★ エラー音（不協和音）
   const playErrorSound = () => {
     playTone(200, 0.2, 'square', 0.06);
     playTone(190, 0.2, 'square', 0.06, 0.15);
   };
 
-  // ★ オプション決定音（シャキッ）
   const playOptionSound = () => {
     playTone(1000, 0.06, 'square', 0.05);
     playTone(1400, 0.1, 'sine', 0.07, 0.06);
   };
 
-  // ★ 解雇/放出音（下降）
   const playReleaseSound = () => {
     playTone(600, 0.15, 'sine', 0.05);
     playTone(400, 0.15, 'sine', 0.04, 0.1);
     playTone(250, 0.3, 'sine', 0.03, 0.2);
   };
 
-  // ★ MLE使用音
   const playMLESound = () => {
     playTone(698.46, 0.15, 'sine', 0.06);
     playTone(880.00, 0.15, 'sine', 0.06, 0.1);
     playTone(1046.50, 0.3, 'triangle', 0.08, 0.2);
   };
 
-  // ★ S&T音（3和音 + 高音）
   const playSTSound = () => {
     playTone(440, 0.2, 'sine', 0.06);
     playTone(554.37, 0.2, 'sine', 0.06, 0.1);
@@ -274,7 +262,6 @@ export default function App() {
     playTone(1318.51, 0.6, 'sine', 0.04, 0.4);
   };
 
-  // ★ ドラフトピック獲得音（未来感）
   const playDraftPickSound = () => {
     [880, 1108.73, 1318.51, 1760].forEach((f, i) => {
       playTone(f, 0.2, 'sine', 0.04, i * 0.08);
@@ -349,7 +336,7 @@ export default function App() {
       setTaxHistory(currentStage.taxHistoryInitial || []);
       setTradeModalTarget(null);
       setShowConfetti(false);
-      setShowClearScreen(false); // ★追加
+      setShowClearScreen(false);
     }
   }, [currentStageIdx]);
 
@@ -387,7 +374,7 @@ export default function App() {
     if (ok && !wasClearedRef.current) {
       wasClearedRef.current = true;
       setIsCleared(true);
-      setShowClearScreen(true); // ★追加
+      setShowClearScreen(true);
       playEpicSound();
       triggerConfetti();
       addToast('epic', '🏆', 'MISSION ACCOMPLISHED!', '全CBA規約をクリア！見事なマネージメントです', 5000);
@@ -398,7 +385,7 @@ export default function App() {
   }, [roster, currentStage, currentView, deadCap, draftPicks, mleUsedThisSeason, infoTab, activeWarnings.length]);
 
   // ═══════════════════════════════════════
-  // ハンドラー群（★ エフェクト追加）
+  // ハンドラー群
   // ═══════════════════════════════════════
 
   const handleWaiver = (player) => {
@@ -543,7 +530,6 @@ export default function App() {
     }
   };
 
-  // ★追加: リスタート関数
   const handleRestartStage = () => {
     playClickSound();
     wasClearedRef.current = false;
@@ -615,7 +601,7 @@ export default function App() {
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <ConfettiOverlay active={showConfetti} />
 
-      {/* ★追加: クリアスタンプオーバーレイ */}
+      {/* クリアスタンプオーバーレイ */}
       {showClearScreen && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[80]">
           <div className="flex flex-col items-center gap-8">
@@ -664,6 +650,7 @@ export default function App() {
           <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center items-center">
             <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('game'); }} className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-cyan-950/50 hover:scale-[1.02] active:scale-[0.98]">STAGES 💼</button>
             <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('dynasty'); }} className="w-full sm:w-auto bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-amber-950/50 hover:scale-[1.02] active:scale-[0.98]">DYNASTY 👑</button>
+            <button onClick={() => { playStartSound(); startBGM(); setIsBgmOn(true); setCurrentView('watertower'); }} className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 text-base font-black px-8 py-3.5 rounded-xl transition-all tracking-widest shadow-lg shadow-cyan-950/50 hover:scale-[1.02] active:scale-[0.98]">WATER TOWER 💧</button>
             <button onClick={() => { playClickSound(); setCurrentView('leaderboard'); }} className="w-full sm:w-auto bg-stone-900 border border-stone-800 hover:bg-stone-850 text-stone-300 text-sm font-black px-6 py-3.5 rounded-xl transition-all tracking-wider">RANK 🏆</button>
           </div>
           <div className="text-[10px] text-stone-600 pt-4 font-mono uppercase tracking-widest">Developed by Stark Games</div>
@@ -673,6 +660,11 @@ export default function App() {
       {/* ═══ 王朝モード ═══ */}
       {currentView === 'dynasty' && (
         <DynastyView onBack={() => { playClickSound(); setCurrentView('title'); }} gmName={gmName} playClickSound={playClickSound} isBgmOn={isBgmOn} toggleBGM={toggleBGM} />
+      )}
+
+      {/* ═══ ウォータータワーモード ═══ */}
+      {currentView === 'watertower' && (
+        <WaterTowerView onBack={() => { playClickSound(); setCurrentView('title'); }} gmName={gmName} playClickSound={playClickSound} isBgmOn={isBgmOn} toggleBGM={toggleBGM} />
       )}
 
       {/* ═══ ランキング画面 ═══ */}
