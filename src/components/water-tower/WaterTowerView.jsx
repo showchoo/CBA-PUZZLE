@@ -10,6 +10,7 @@ import {
 
 /* ═══ Constants ═══ */
 const SEASON_W = 420;
+const GUTTER_W = 56;
 const PX_PER_M = 2.5;
 const MIN_H = 28;
 const SEC_PER_SEASON = 30;
@@ -162,6 +163,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const timerRef = useRef(null);
   const lastBRef = useRef(1);
   const contRef = useRef(null);
+  const labelsRef = useRef(null);
   const csRef = useRef(1.0);
   const spRef = useRef(0);
   const rRef = useRef([]);
@@ -282,6 +284,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     if (contRef.current && phase === 'manage') {
       const t = (currentSeason - 1) * SEASON_W - contRef.current.clientWidth / 2 + SEASON_W / 2;
       contRef.current.scrollLeft = Math.max(0, t);
+      if (labelsRef.current) labelsRef.current.scrollLeft = contRef.current.scrollLeft;
     }
   }, [currentSeason, phase]);
 
@@ -334,7 +337,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setSummaries(result.summaries);
     setRoster(result.surviving);
 
-    /* デッドキャップのID・signedSeason・contractEndSeasonを保持 */
     const preservedDC = deadResult.details.map(d => {
       const orig = curDC.find(o => o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', ''));
       return {
@@ -490,6 +492,13 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setSpeed(1);
   }
 
+  /* ── Canvas scroll sync ── */
+  const handleCanvasScroll = useCallback(() => {
+    if (contRef.current && labelsRef.current) {
+      labelsRef.current.scrollLeft = contRef.current.scrollLeft;
+    }
+  }, []);
+
   /* ═══════════════════════════════════════ */
   /* ═══ RENDER ═══                          */
   /* ═══════════════════════════════════════ */
@@ -598,83 +607,91 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
         </header>
 
         <main className="flex-1 flex overflow-hidden min-h-0">
-          {/* Timeline */}
-          <div className="flex flex-col shrink-0" style={{ width: SEASON_W * 2 }}>
+          {/* Timeline — fixed width: 2 seasons + gutter */}
+          <div className="flex flex-col shrink-0" style={{ width: SEASON_W * 2 + GUTTER_W }}>
             {/* Season labels */}
-            <div className="h-8 flex shrink-0 border-b border-stone-900 overflow-hidden" ref={el => {
-              if (el && contRef.current) el.scrollLeft = contRef.current.scrollLeft;
-            }}>
-              <div style={{ width: tlWidth, position: 'relative' }}>
-                {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
-                  <div key={s} className="absolute top-0 h-full flex items-center justify-center font-mono text-sm" style={{
-                    left: (s - 1) * SEASON_W, width: SEASON_W,
-                    color: s === sn ? '#22d3ee' : '#57534e', fontWeight: s === sn ? 900 : 400,
-                    borderRight: '1px solid #1c1917',
-                  }}>S{s}</div>
-                ))}
+            <div className="h-8 flex shrink-0 border-b border-stone-900">
+              <div style={{ width: GUTTER_W }} className="shrink-0" />
+              <div className="flex-1 overflow-hidden" ref={labelsRef}>
+                <div style={{ width: tlWidth, position: 'relative' }}>
+                  {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
+                    <div key={s} className="absolute top-0 h-full flex items-center justify-center font-mono text-sm" style={{
+                      left: (s - 1) * SEASON_W, width: SEASON_W,
+                      color: s === sn ? '#22d3ee' : '#57534e', fontWeight: s === sn ? 900 : 400,
+                      borderRight: '1px solid #1c1917',
+                    }}>S{s}</div>
+                  ))}
+                </div>
               </div>
             </div>
-            {/* Canvas */}
-            <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none' }}>
-              <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16' }}>
-                {/* Grid */}
-                {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
-                  <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
-                ))}
-                {/* Past overlay */}
-                <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 0, width: Math.max(0, (currentSeason - 1) * SEASON_W), background: 'rgba(0,0,0,0.25)', zIndex: 4 }} />
-                {/* Water */}
-                <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))', zIndex: 1 }} />
-                <WaterWave bottom={waterH} />
-                {/* Cap line */}
-                <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }}>
-                  <span className="absolute left-3 -top-6 text-sm font-mono text-red-400 bg-[#0c0f16]/80 px-1.5 rounded">CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
-                </div>
-                {/* Rating line label */}
-                <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: canvasH * 0.65, zIndex: 3 }}>
-                  <span className="absolute left-3 -top-6 text-sm font-mono text-amber-400 bg-[#0c0f16]/80 px-1.5 rounded">★ Rating {ratingLine}</span>
-                </div>
-                {/* Strips */}
-                {stacked.map(item => {
-                  const startSn = (item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || 1)) - (item.isDC ? (item.yearsLeft || 1) : (item.contractYears || 1));
-                  const left = (startSn - 1) * SEASON_W + 4;
-                  const w = Math.max(0, ((item.isDC ? item.yearsLeft : item.contractYears) || 0) * SEASON_W - 8);
-                  const tier = item.tier || getEffTier(item.rating, item.salary);
-                  const isSelected = actionPlayer && actionPlayer.id === item.id;
-                  if (w <= 0) return null;
-                  return (
-                    <div key={item.id} onClick={() => !item.isDC && handleStripClick(item)}
-                      className={'absolute rounded-lg cursor-pointer transition-all duration-500 ' + (isSelected ? 'tw-glow' : '')}
-                      style={{
-                        left, width: w, bottom: item.sBot, height: item.sH,
-                        borderLeft: `5px solid ${item.isDC ? '#ef4444' : tier.color}`,
-                        backgroundColor: isSelected ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.15)' : `${tier.color}12`,
-                        opacity: item.isDC ? 0.7 : 1,
-                        backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239,68,68,0.1) 8px, rgba(239,68,68,0.1) 16px)' : 'none',
-                        zIndex: isSelected ? 10 : item.isDC ? 1 : 2,
-                        transform: isSelected ? 'translateX(6px)' : 'translateX(0)',
-                      }}>
-                      <div className="flex items-center justify-between px-4 h-full overflow-hidden">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-white font-bold text-base truncate">{item.name}</span>
-                          {!item.isDC && <span className="text-xs bg-stone-800/80 text-stone-400 px-1 rounded font-mono shrink-0">{item.position}</span>}
-                          {item.isDC && <span className="text-xs bg-red-950/80 text-red-400 px-1 rounded font-mono shrink-0">DC</span>}
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          {!item.isDC && <span className="font-mono font-black text-lg" style={{ color: tier.color }}>{item.rating}</span>}
-                          <div className="text-right">
-                            <div className="text-stone-300 font-mono text-sm">${(item.effSal / 1e6).toFixed(1)}M</div>
-                            <div className="text-stone-600 font-mono text-xs">{item.isDC ? item.yearsLeft : item.contractYears}yr · {tier.label}</div>
+
+            {/* Canvas area */}
+            <div className="flex-1 flex min-h-0">
+              {/* Fixed label gutter */}
+              <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900" style={{ width: GUTTER_W }}>
+                <span className="absolute left-1 text-[10px] font-mono text-red-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap" style={{ bottom: capLineY - 5 }}>CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
+                <span className="absolute left-1 text-[10px] font-mono text-amber-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap tw-pulse" style={{ bottom: canvasH * 0.65 - 5 }}>★ R{ratingLine}</span>
+              </div>
+
+              {/* Scrollable canvas */}
+              <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none' }} onScroll={handleCanvasScroll}>
+                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16' }}>
+                  {/* Grid */}
+                  {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
+                    <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
+                  ))}
+                  {/* Past overlay */}
+                  <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 0, width: Math.max(0, (currentSeason - 1) * SEASON_W), background: 'rgba(0,0,0,0.25)', zIndex: 4 }} />
+                  {/* Water */}
+                  <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))', zIndex: 1 }} />
+                  <WaterWave bottom={waterH} />
+                  {/* Cap line — no label */}
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }} />
+                  {/* Rating line — no label */}
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: canvasH * 0.65, zIndex: 3 }} />
+                  {/* Strips */}
+                  {stacked.map(item => {
+                    const startSn = (item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1)) - (item.isDC ? (item.yearsLeft || 1) : (item.contractYears || 1));
+                    const left = (startSn - 1) * SEASON_W + 4;
+                    const w = Math.max(0, ((item.isDC ? item.yearsLeft : item.contractYears) || 0) * SEASON_W - 8);
+                    const tier = item.tier || getEffTier(item.rating, item.salary);
+                    const isSelected = actionPlayer && actionPlayer.id === item.id;
+                    if (w <= 0) return null;
+                    return (
+                      <div key={item.id} onClick={() => !item.isDC && handleStripClick(item)}
+                        className={'absolute rounded-lg cursor-pointer transition-all duration-500 ' + (isSelected ? 'tw-glow' : '')}
+                        style={{
+                          left, width: w, bottom: item.sBot, height: item.sH,
+                          borderLeft: `5px solid ${item.isDC ? '#ef4444' : tier.color}`,
+                          backgroundColor: isSelected ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.15)' : `${tier.color}12`,
+                          opacity: item.isDC ? 0.7 : 1,
+                          backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239,68,68,0.1) 8px, rgba(239,68,68,0.1) 16px)' : 'none',
+                          zIndex: isSelected ? 10 : item.isDC ? 1 : 2,
+                          transform: isSelected ? 'translateX(6px)' : 'translateX(0)',
+                        }}>
+                        <div className="flex items-center justify-between px-4 h-full overflow-hidden">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-white font-bold text-base truncate">{item.name}</span>
+                            {!item.isDC && <span className="text-xs bg-stone-800/80 text-stone-400 px-1 rounded font-mono shrink-0">{item.position}</span>}
+                            {item.isDC && <span className="text-xs bg-red-950/80 text-red-400 px-1 rounded font-mono shrink-0">DC</span>}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            {!item.isDC && <span className="font-mono font-black text-lg" style={{ color: tier.color }}>{item.rating}</span>}
+                            <div className="text-right">
+                              <div className="text-stone-300 font-mono text-sm">${(item.effSal / 1e6).toFixed(1)}M</div>
+                              <div className="text-stone-600 font-mono text-xs">{item.isDC ? item.yearsLeft : item.contractYears}yr · {tier.label}</div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-                {/* Current season marker */}
-                <div className="absolute top-0 bottom-0 tw-glow" style={{ left: (currentSeason - 1) * SEASON_W - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
+                    );
+                  })}
+                  {/* Current season marker */}
+                  <div className="absolute top-0 bottom-0 tw-glow" style={{ left: (currentSeason - 1) * SEASON_W - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
+                </div>
               </div>
             </div>
+
             {/* Bottom status */}
             <div className="flex items-center gap-8 px-5 py-2.5 bg-[#0e1218] border-t border-stone-800/50 text-lg font-mono shrink-0">
               <span>Rating: <span className={totalRating >= ratingLine ? 'text-emerald-400 font-black text-2xl' : 'text-red-400 font-black text-2xl'}>{totalRating}</span><span className="text-stone-700">/{ratingLine}</span></span>
