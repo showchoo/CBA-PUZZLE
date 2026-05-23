@@ -10,8 +10,8 @@ import {
 
 /* ═══ Constants ═══ */
 const SEASON_W = 600;
-const PX_PER_M = 2.5;
-const MIN_H = 28;
+const MAX_PX_PER_M = 2.5;
+const MIN_H_BASE = 28;
 const SEC_PER_SEASON = 30;
 const TICK = 50;
 
@@ -159,6 +159,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const [hardCapped, setHardCapped] = useState(false);
   const [userScrolling, setUserScrolling] = useState(false);
   const [animatingStrips, setAnimatingStrips] = useState({});
+  /* ▼ 画面サイズ追跡 */
+  const [viewportH, setViewportH] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
   const toastId = useRef(0);
   const timerRef = useRef(null);
   const lastBRef = useRef(1);
@@ -172,6 +174,13 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const isProgrammaticScroll = useRef(false);
   const dragRef = useRef({ active: false, startX: 0, scrollStart: 0 });
 
+  /* ▼ 画面サイズ監視 */
+  useEffect(() => {
+    const onResize = () => setViewportH(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   /* ── Derived ── */
   const dc = deadCapDetails.reduce((s, d) => s + d.amount, 0);
   const totalCapHit = calcCapHit(roster, dc);
@@ -181,6 +190,12 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const sn = Math.floor(currentSeason);
   const ratingLine = 380 + (sn - 1) * 8;
   const gmScore = calcGMScore(sn, totalRating, totalCapHit, roster);
+
+  /* ▼ ビューポート基準のサイズ計算（スタッキング前に定義） */
+  const availableH = viewportH - 130;
+  const canvasH = Math.max(300, availableH);
+  const dynamicPxPerM = Math.max(0.8, Math.min(MAX_PX_PER_M, (canvasH - 80) / Math.max(1, DYN_APRON2 / 1e6)));
+  const dynamicMinH = Math.max(16, Math.min(MIN_H_BASE, canvasH / 25));
 
   /* ── Stacking ── */
   const allItems = [
@@ -203,7 +218,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   let cumH = 0;
   const stacked = allItems.map(item => {
-    const h = Math.max(MIN_H, (item.effSal / 1e6) * PX_PER_M);
+    const h = Math.max(dynamicMinH, (item.effSal / 1e6) * dynamicPxPerM);
     const b = cumH;
     cumH += h + 2;
     return { ...item, sBot: b, sH: h };
@@ -217,10 +232,9 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   );
   const tlWidth = maxSn * SEASON_W;
 
-  /* ── Canvas dimensions (after stacking) ── */
-  const canvasH = Math.max(500, (DYN_APRON2 / 1e6) * PX_PER_M + 80 + cumH + 40);
-  const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * PX_PER_M);
-  const capLineY = (DYN_CAP / 1e6) * PX_PER_M;
+  /* ── Canvas visual properties ── */
+  const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * dynamicPxPerM);
+  const capLineY = (DYN_CAP / 1e6) * dynamicPxPerM;
 
   /* ── Ref sync ── */
   useEffect(() => { rRef.current = roster; }, [roster]);
@@ -536,6 +550,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   if (phase === 'reroll') {
     const rerollRating = roster.reduce((s, p) => s + (Number(p.rating) || 0), 0);
     const rerollCapHit = calcCapHit(roster, 0);
+    const miniPreviewScale = Math.min(0.5, 300 / canvasH);
     return (
       <div className="min-h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col">
         {CSS}
@@ -581,14 +596,14 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             <div className="w-64 shrink-0 space-y-4">
               <div className="bg-[#0c0f16] border border-stone-800/50 rounded-xl p-4 h-[320px]">
                 <div className="relative w-full h-full overflow-hidden rounded-lg">
-                  <div className="absolute bottom-0 left-0 right-0 bg-cyan-950/20 transition-all" style={{ height: waterH * 0.5 }} />
-                  <WaterWave bottom={waterH * 0.5} />
-                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: canvasH * 0.25 }}>
+                  <div className="absolute bottom-0 left-0 right-0 bg-cyan-950/20 transition-all" style={{ height: waterH * miniPreviewScale }} />
+                  <WaterWave bottom={waterH * miniPreviewScale} />
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: 380 * dynamicPxPerM * miniPreviewScale }}>
                     <span className="absolute right-2 -top-6 text-xs font-mono text-amber-400">Rating 380</span>
                   </div>
                   {stacked.filter(s => !s.isDC).map((item, i) => {
                     const tier = item.tier || getEffTier(item.rating, item.salary);
-                    return (<div key={item.id} className="absolute rounded-sm" style={{ left: 12 + i * 48, width: 40, bottom: item.sBot * 0.35, height: Math.max(6, item.sH * 0.35), borderLeft: `3px solid ${tier.color}`, backgroundColor: `${tier.color}18`, animation: `twIn 0.3s ease ${i * 40}ms both` }} />);
+                    return (<div key={item.id} className="absolute rounded-sm" style={{ left: 12 + i * 48, width: 40, bottom: item.sBot * miniPreviewScale, height: Math.max(6, item.sH * miniPreviewScale), borderLeft: `3px solid ${tier.color}`, backgroundColor: `${tier.color}18`, animation: `twIn 0.3s ease ${i * 40}ms both` }} />);
                   })}
                 </div>
               </div>
@@ -675,7 +690,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             </div>
             <div className="flex-1 flex min-h-0">
               <div className="w-28 shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden">
-                <div className="absolute left-0 right-0" style={{ bottom: canvasH * 0.65 }}>
+                <div className="absolute left-0 right-0" style={{ bottom: ratingLine * dynamicPxPerM }}>
                   <div className="border-t-2 border-dashed border-amber-500/40 tw-pulse" />
                   <span className="absolute left-2 -top-5 text-xs font-mono text-amber-400 bg-amber-950/80 px-1 rounded whitespace-nowrap">★ Rating {ratingLine}</span>
                 </div>
@@ -697,7 +712,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                   <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))', zIndex: 1 }} />
                   <WaterWave bottom={waterH} />
                   <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40 pointer-events-none" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }} />
-                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse pointer-events-none" style={{ bottom: canvasH * 0.65, zIndex: 3 }} />
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse pointer-events-none" style={{ bottom: ratingLine * dynamicPxPerM, zIndex: 3 }} />
                   {stacked.map(item => {
                     const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
                     const startSn = Math.max(currentSeason, item.signedSeason || 1);
