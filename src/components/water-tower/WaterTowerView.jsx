@@ -994,7 +994,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             <div className="text-sm text-stone-500 font-mono">存続期間</div>
             <div className="text-5xl font-black text-cyan-400 font-mono">{Math.max(0, season - 1)}</div>
             <div className="text-sm text-stone-500">シーズン</div>
-            <div className="text-red-400 text-xs font-mono mt-2">Rating {tower.totalRating} < Rating Line {tower.ratingLine}</div>
+            <div className="text-red-400 text-xs font-mono mt-2">Rating {tower.totalRating} {'<'} Rating Line {tower.ratingLine}</div>
           </div>
           <div className="bg-stone-950 rounded-xl p-4">
             <div className="text-[10px] text-stone-600 font-mono">GM SCORE</div>
