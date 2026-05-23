@@ -159,6 +159,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const [tradesUsed, setTradesUsed] = useState(0);
   const [taxHistory, setTaxHistory] = useState([]);
   const [hardCapped, setHardCapped] = useState(false);
+  const [viewportH, setViewportH] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
   const toastId = useRef(0);
   const timerRef = useRef(null);
   const lastBRef = useRef(1);
@@ -179,7 +180,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const sn = Math.floor(currentSeason);
   const ratingLine = 380 + (sn - 1) * 8;
   const gmScore = calcGMScore(sn, totalRating, totalCapHit, roster);
-  const canvasH = Math.max(450, (DYN_APRON2 / 1e6) * PX_PER_M + 80);
+  const canvasH = Math.max(300, viewportH - 140);
   const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * PX_PER_M);
   const capLineY = (DYN_CAP / 1e6) * PX_PER_M;
 
@@ -278,6 +279,13 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
       handleSeasonBoundary(fl);
     }
   }, [currentSeason, phase, speed, showDraft, showSummary]);
+
+  /* ═══ Viewport ═══ */
+  useEffect(() => {
+    const onResize = () => setViewportH(window.innerHeight);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   /* ═══ Camera ═══ */
   useEffect(() => {
@@ -626,13 +634,12 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             </div>
 
             {/* Canvas area */}
-            <div className="flex-1 flex min-h-0">
+            <div className="flex-1 flex min-h-0 overflow-hidden">
               {/* Fixed label gutter */}
               <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W, height: canvasH }}>
                 <span className="absolute left-1 text-[10px] font-mono text-red-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap" style={{ bottom: capLineY, transform: 'translateY(50%)' }}>CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
                 <span className="absolute left-1 text-[10px] font-mono text-amber-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap tw-pulse" style={{ bottom: canvasH * 0.65, transform: 'translateY(50%)' }}>★ R{ratingLine}</span>
               </div>
-
 
               {/* Scrollable canvas */}
               <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none' }} onScroll={handleCanvasScroll}>
