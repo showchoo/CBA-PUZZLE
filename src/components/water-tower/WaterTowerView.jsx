@@ -7,7 +7,6 @@ import {
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2,
 } from '../../waterTowerEngine';
 
-
 /* ═══ Constants ═══ */
 const SEASON_W = 280;
 const PX_PER_M = 2.5;
@@ -158,6 +157,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const [tradesUsed, setTradesUsed] = useState(0);
   const [taxHistory, setTaxHistory] = useState([]);
   const [hardCapped, setHardCapped] = useState(false);
+  const [userScrolling, setUserScrolling] = useState(false);
   const toastId = useRef(0);
   const timerRef = useRef(null);
   const lastBRef = useRef(1);
@@ -167,6 +167,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const rRef = useRef([]);
   const dcRef = useRef([]);
   const dpRef = useRef([]);
+  const scrollTimeoutRef = useRef(null);
 
   /* ── Derived ── */
   const dc = deadCapDetails.reduce((s, d) => s + d.amount, 0);
@@ -279,11 +280,20 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   /* ═══ Camera ═══ */
   useEffect(() => {
-    if (contRef.current && phase === 'manage') {
+    if (contRef.current && phase === 'manage' && !userScrolling) {
       const t = (currentSeason - 1) * SEASON_W - contRef.current.clientWidth / 2 + SEASON_W / 2;
       contRef.current.scrollLeft = Math.max(0, t);
     }
-  }, [currentSeason, phase]);
+  }, [currentSeason, phase, userScrolling]);
+
+  /* ═══ Scroll handler ═══ */
+  const handleUserScroll = useCallback(() => {
+    setUserScrolling(true);
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+    scrollTimeoutRef.current = setTimeout(() => {
+      setUserScrolling(false);
+    }, 3000);
+  }, []);
 
   /* ═══ Keyboard ═══ */
   useEffect(() => {
@@ -334,7 +344,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setSummaries(result.summaries);
     setRoster(result.surviving);
 
-    /* デッドキャップのID・signedSeason・contractEndSeasonを保持 */
     const preservedDC = deadResult.details.map(d => {
       const orig = curDC.find(o => o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', ''));
       return {
@@ -597,12 +606,15 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
           </div>
         </header>
 
-        <main className="flex-1 flex overflow-hidden min-h-0">
+        <main className="flex-1 flex overflow-hidden min-h-0 max-w-full">
           {/* Timeline */}
-          <div className="flex-1 flex flex-col min-w-0">
+          <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
             {/* Season labels */}
             <div className="h-8 flex shrink-0 border-b border-stone-900 overflow-hidden" ref={el => {
-              if (el && contRef.current) el.scrollLeft = contRef.current.scrollLeft;
+              if (el && contRef.current) {
+                const syncScroll = () => { el.scrollLeft = contRef.current?.scrollLeft || 0; };
+                contRef.current.addEventListener('scroll', syncScroll);
+              }
             }}>
               <div style={{ width: tlWidth, position: 'relative' }}>
                 {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
@@ -615,7 +627,12 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               </div>
             </div>
             {/* Canvas */}
-            <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none' }}>
+            <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none', cursor: 'grab' }}
+              onScroll={handleUserScroll}
+              onMouseDown={(e) => { e.currentTarget.style.cursor = 'grabbing'; }}
+              onMouseUp={(e) => { e.currentTarget.style.cursor = 'grab'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.cursor = 'grab'; }}
+              onTouchStart={handleUserScroll}>
               <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16' }}>
                 {/* Grid */}
                 {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
@@ -636,9 +653,10 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 </div>
                 {/* Strips */}
                 {stacked.map(item => {
-                  const startSn = (item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || 1)) - (item.isDC ? (item.yearsLeft || 1) : (item.contractYears || 1));
+                  const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
+                  const startSn = Math.max(currentSeason, item.signedSeason || 1);
                   const left = (startSn - 1) * SEASON_W + 4;
-                  const w = Math.max(0, ((item.isDC ? item.yearsLeft : item.contractYears) || 0) * SEASON_W - 8);
+                  const w = Math.max(0, (endSn - startSn) * SEASON_W - 8);
                   const tier = item.tier || getEffTier(item.rating, item.salary);
                   const isSelected = actionPlayer && actionPlayer.id === item.id;
                   if (w <= 0) return null;
@@ -664,7 +682,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                           {!item.isDC && <span className="font-mono font-black text-lg" style={{ color: tier.color }}>{item.rating}</span>}
                           <div className="text-right">
                             <div className="text-stone-300 font-mono text-sm">${(item.effSal / 1e6).toFixed(1)}M</div>
-                            <div className="text-stone-600 font-mono text-xs">{item.isDC ? item.yearsLeft : item.contractYears}yr · {tier.label}</div>
+                            <div className="text-stone-600 font-mono text-xs">{tier.label}</div>
                           </div>
                         </div>
                       </div>
@@ -688,7 +706,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
           </div>
 
           {/* Side Panel */}
-          <div className="w-80 flex flex-col gap-2 shrink-0 border-l border-stone-800/50 bg-[#0a0d12] overflow-hidden">
+          <div className="w-72 flex flex-col gap-2 shrink-0 border-l border-stone-800/50 bg-[#0a0d12] overflow-hidden overflow-y-auto">
             {/* Warning */}
             {totalRating < ratingLine && (
               <div className="bg-red-950/40 border-b border-red-900/50 p-3 animate-pulse shrink-0">
