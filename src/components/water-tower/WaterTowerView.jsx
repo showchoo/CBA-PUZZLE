@@ -744,7 +744,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
           </div>
 
           {/* ══ Side Panel ══ */}
-          <div className="w-96 flex flex-col gap-3 shrink-0 overflow-hidden">
+          <div className="w-96 flex flex-col gap-3 shrink-0 min-h-0">
             {!tower.isAboveLine && (
               <div className="bg-red-950/40 border border-red-700 rounded-xl p-4 animate-pulse shrink-0">
                 <div className="text-red-400 font-mono font-black text-lg">🚨 Rating ライン下回り！</div>
