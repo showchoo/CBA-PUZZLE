@@ -159,7 +159,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const [tradesUsed, setTradesUsed] = useState(0);
   const [taxHistory, setTaxHistory] = useState([]);
   const [hardCapped, setHardCapped] = useState(false);
-  const [viewportH, setViewportH] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
+  const canvasRef = useRef(null);
+  const [canvasH, setCanvasH] = useState(400);
   const toastId = useRef(0);
   const timerRef = useRef(null);
   const lastBRef = useRef(1);
@@ -180,7 +181,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const sn = Math.floor(currentSeason);
   const ratingLine = 380 + (sn - 1) * 8;
   const gmScore = calcGMScore(sn, totalRating, totalCapHit, roster);
-  const canvasH = Math.max(200, viewportH - 200);
   const waterH = Math.min(canvasH - 10, (totalCapHit / 1e6) * PX_PER_M);
   const capLineY = (DYN_CAP / 1e6) * PX_PER_M;
 
@@ -280,12 +280,18 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     }
   }, [currentSeason, phase, speed, showDraft, showSummary]);
 
-  /* ═══ Viewport ═══ */
+  /* ═══ Canvas Measurement ═══ */
   useEffect(() => {
-    const onResize = () => setViewportH(window.innerHeight);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
+    const measure = () => {
+      if (canvasRef.current) {
+        const h = canvasRef.current.clientHeight;
+        if (h > 0) setCanvasH(h);
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [phase]);
 
   /* ═══ Camera ═══ */
   useEffect(() => {
@@ -542,7 +548,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
         <div className="bg-[#0c0f16] border border-stone-800/50 rounded-xl p-4 w-full max-w-2xl" style={{ height: 300 }}>
           <div className="relative w-full h-full overflow-hidden rounded-lg">
             <div className="absolute bottom-0 left-0 right-0 bg-cyan-950/20" style={{ height: waterH * 0.5 }} />
-            <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: canvasH * 0.25 }}>
+            <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse" style={{ bottom: 300 * 0.25 }}>
               <span className="absolute right-2 -top-6 text-sm font-mono text-amber-400">Rating Line {ratingLine}</span>
             </div>
             {stacked.filter(s => !s.isDC).map((item, i) => {
@@ -634,9 +640,9 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             </div>
 
             {/* Canvas area */}
-            <div className="flex-1 flex min-h-0 overflow-hidden">
+            <div className="flex-1 flex min-h-0 overflow-hidden" ref={canvasRef}>
               {/* Fixed label gutter */}
-              <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W, height: canvasH }}>
+              <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W }}>
                 <span className="absolute left-1 text-[10px] font-mono text-red-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap" style={{ bottom: capLineY, transform: 'translateY(50%)' }}>CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
                 <span className="absolute left-1 text-[10px] font-mono text-amber-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap tw-pulse" style={{ bottom: canvasH * 0.65, transform: 'translateY(50%)' }}>★ R{ratingLine}</span>
               </div>
