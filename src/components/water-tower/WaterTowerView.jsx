@@ -4,8 +4,10 @@ import {
   genRoster, genFA, genDraft, genDraftPicks,
   advanceSeason, advanceDeadCap, checkSurvival,
   calcCapHit, canSignFA, adjustSalaryForYears,
-  getMLEAmount, calcStretch,
+  getMLEAmount, calcStretch, validateTrade,
   getFALimit, calcGMScore,
+  genTradeMarketPlayers, genTradeMarketPicks,
+  validateStepienRule, validateHardCap, validatePickBalance, getPickValue,
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2,
 } from '../../waterTowerEngine';
 
@@ -174,6 +176,14 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const [gmAnimTrigger, setGmAnimTrigger] = useState(0);
   const toastId = useRef(0);
 
+  /* ── Trade state ── */
+  const [tradeMode, setTradeMode] = useState(false);
+  const [tradeOffer, setTradeOffer] = useState({ players: [], picks: [] });
+  const [tradeTarget, setTradeTarget] = useState({ players: [], picks: [] });
+  const [tradeMarket, setTradeMarket] = useState({ players: [], picks: [] });
+  const [tradesUsedThisSeason, setTradesUsedThisSeason] = useState(0);
+  const TRADE_LIMIT = 3;
+
   /* ── Derived ── */
   const dc = deadCapDetails.reduce((s, d) => s + d.amount, 0);
   const totalCapHit = calcCapHit(roster, dc);
@@ -181,7 +191,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const faLimit = getFALimit(totalCapHit);
   const mleAmount = getMLEAmount(totalCapHit);
   const gmScore = calcGMScore(season, totalRating, totalCapHit, roster);
-
   const tower = calcTower(roster, deadCapDetails, season);
 
   /* ── Toast helper ── */
@@ -223,6 +232,11 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setDraftPicks(genDraftPicks());
     setTaxHistory([]); setMleUsed(false); setFaSignedThisSeason(0);
     setHardCapped(false); setSelectedBlockId(null);
+    setTradesUsedThisSeason(0);
+    setTradeOffer({ players: [], picks: [] });
+    setTradeTarget({ players: [], picks: [] });
+    setTradeMarket({ players: [], picks: [] });
+    setTradeMode(false);
     setSeason(1); setPhase('reroll');
   }
 
@@ -302,6 +316,97 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     refreshFA();
   }
 
+  /* ═══ TRADE HANDLERS ═══ */
+
+  function handleOpenTrade() {
+    playClickSound();
+    if (tradesUsedThisSeason >= TRADE_LIMIT) {
+      playTone(200, 0.2, 'square', 0.06);
+      addToast('warning', '❌', 'トレード上限', `今シーズン${TRADE_LIMIT}回まで`, 3000);
+      return;
+    }
+    if (tradeMarket.players.length === 0) {
+      setTradeMarket({ players: genTradeMarketPlayers(4), picks: genTradeMarketPicks() });
+    }
+    setTradeOffer({ players: [], picks: [] });
+    setTradeTarget({ players: [], picks: [] });
+    setTradeMode(true);
+  }
+
+  function toggleTradeOut(player) {
+    playClickSound();
+    setTradeOffer(prev => ({
+      ...prev,
+      players: prev.players.find(p => p.id === player.id) ? prev.players.filter(p => p.id !== player.id) : [...prev.players, player],
+    }));
+  }
+
+  function toggleTradeOutPick(pick) {
+    playClickSound();
+    setTradeOffer(prev => ({
+      ...prev,
+      picks: prev.picks.find(p => p.id === pick.id) ? prev.picks.filter(p => p.id !== pick.id) : [...prev.picks, pick],
+    }));
+  }
+
+  function toggleTradeIn(player) {
+    playClickSound();
+    setTradeTarget(prev => ({
+      ...prev,
+      players: prev.players.find(p => p.id === player.id) ? prev.players.filter(p => p.id !== player.id) : [...prev.players, player],
+    }));
+  }
+
+  function toggleTradeInPick(pick) {
+    playClickSound();
+    setTradeTarget(prev => ({
+      ...prev,
+      picks: prev.picks.find(p => p.id === pick.id) ? prev.picks.filter(p => p.id !== pick.id) : [...prev.picks, pick],
+    }));
+  }
+
+  function handleExecuteTrade() {
+    playClickSound();
+    const outP = tradeOffer.players;
+    const outK = tradeOffer.picks;
+    const inP = tradeTarget.players;
+    const inK = tradeTarget.picks;
+
+    if (inK.length > 0) {
+      const pv = validatePickBalance(outK, inK);
+      if (!pv.valid) { playError(); addToast('warning', '❌', 'ピック価値不均衡', pv.reason, 4000); return; }
+    }
+    if (outP.length > 0 && inP.length > 0) {
+      const v = validateTrade(outP.map(p => p.salary), inP.map(p => p.salary));
+      if (!v.allowed) { playError(); addToast('warning', '❌', '給与マッチング失敗', v.reason, 4000); return; }
+    }
+    if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
+      const sv = validateStepienRule(draftPicks, outK, inK);
+      if (!sv.valid) { playError(); addToast('warning', '❌', 'ステピアンルール', sv.reason, 4000); return; }
+    }
+    if (hardCapped) {
+      const outSal = outP.reduce((s, p) => s + p.salary, 0);
+      const inSal = inP.reduce((s, p) => s + p.salary, 0);
+      if (totalCapHit - outSal + inSal > DYN_APRON1) { playError(); addToast('warning', '🔒', 'ハードキャップ超過'); return; }
+    }
+
+    const tradedIn = inP.map(p => ({ ...p, source: 'trade' }));
+    setRoster(r => [...r.filter(p => !outP.find(o => o.id === p.id)), ...tradedIn]);
+    if (outK.length > 0) setDraftPicks(dp => dp.filter(p => !outK.find(o => o.id === p.id)));
+    if (inK.length > 0) setDraftPicks(dp => [...dp, ...inK.map(p => ({ id: p.id, year: p.year, round: p.round, own: true, from: p.from }))]);
+
+    setTradeOffer({ players: [], picks: [] });
+    setTradeTarget({ players: [], picks: [] });
+    setTradeMode(false);
+    setTradesUsedThisSeason(prev => prev + 1);
+
+    playSuccess();
+    addToast('success', '🤝', 'トレード成立!',
+      `${outP.map(p => p.name).join(',')} → ${inP.map(p => p.name).join(',')}`, 4000);
+  }
+
+  /* ═══ SEASON / DRAFT ═══ */
+
   function handleNextSeason() {
     playClickSound();
     const record = calcSeasonRecord(totalRating, 380 + (season - 1) * 8);
@@ -315,6 +420,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     setTaxHistory([...taxHistory, totalCapHit > DYN_TAX]);
     setMleUsed(false); setFaSignedThisSeason(0); setHardCapped(false);
     setSelectedBlockId(null);
+    setTradesUsedThisSeason(0);
+    setTradeMarket({ players: [], picks: [] });
 
     if (record.gmBonus > 0) addToast('success', '🏀', `${record.wins}勝${record.losses}敗`, `${record.result} +${record.gmBonus}`, 4000);
     else addToast('info', '🏀', `${record.wins}勝${record.losses}敗`, record.result, 3000);
@@ -360,6 +467,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     });
     const space = Math.max(0, DYN_CAP - totalCapHit);
     setFreeAgents(genFA(space > 20e6 ? 12 : space > 10e6 ? 10 : 8));
+    setTradesUsedThisSeason(0);
+    setTradeMarket({ players: [], picks: [] });
     setSeason(newSeason);
     setPhase('manage');
   }
@@ -430,7 +539,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     );
   }
 
-  /* ── Action Bar (shown when block selected) ── */
+  /* ── Action Bar ── */
   function ActionBar({ player }) {
     if (!player) return null;
     return (
@@ -465,7 +574,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             <h2 className="text-3xl font-black text-white">水位を管理せよ</h2>
             <p className="text-sm text-stone-400">Cap（水面）を超えず、Rating ラインを維持しろ</p>
           </div>
-          {/* Mini tower preview */}
           <div className="bg-[#0c0f16] border border-stone-800/50 rounded-xl p-4" style={{ width: 360, height: 320 }}>
             <div className="relative w-full h-full overflow-hidden">
               <div className="absolute bottom-0 left-0 right-0 bg-cyan-950/20 transition-all" style={{ height: tower.waterPx * 0.5 }} />
@@ -500,6 +608,196 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   if (phase === 'manage') {
     const selectedPlayer = selectedBlockId ? roster.find(p => p.id === selectedBlockId) : null;
 
+    /* ═══ TRADE MODE ═══ */
+    if (tradeMode) {
+      const outP = tradeOffer.players;
+      const outK = tradeOffer.picks;
+      const inP = tradeTarget.players;
+      const inK = tradeTarget.picks;
+      const hasOut = outP.length > 0 || outK.length > 0;
+      const hasIn = inP.length > 0 || inK.length > 0;
+
+      let salaryValid = null;
+      if (outP.length > 0 || inP.length > 0) {
+        salaryValid = validateTrade(outP.map(p => p.salary), inP.map(p => p.salary));
+      }
+      let stepienValid = { valid: true };
+      if (outK.filter(p => p.round === 1).length > 0 || inK.filter(p => p.round === 1).length > 0) {
+        stepienValid = validateStepienRule(draftPicks, outK, inK);
+      }
+      let pickBalanceValid = { valid: true };
+      if (inK.length > 0) {
+        pickBalanceValid = validatePickBalance(outK, inK);
+      }
+      const tradeAllowed = hasOut && hasIn && (!salaryValid || salaryValid.allowed) && stepienValid.valid && pickBalanceValid.valid;
+
+      return (
+        <div className="h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black overflow-hidden">
+          {CSS}
+          <ToastContainer toasts={toasts} />
+          {Header()}
+          <main className="flex-1 flex flex-col overflow-auto px-4 py-3 gap-3">
+            <div className="flex justify-between items-center shrink-0">
+              <h2 className="text-lg font-black font-mono text-purple-400">⚖️ TRADE MACHINE</h2>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-mono text-stone-500">残り: {TRADE_LIMIT - tradesUsedThisSeason}/{TRADE_LIMIT}</span>
+                <button onClick={() => { playClickSound(); setTradeMode(false); }} className="text-stone-400 hover:text-white font-mono text-xs">← 戻る</button>
+              </div>
+            </div>
+
+            <div className="bg-[#0e1218] border border-stone-800/50 rounded-xl p-3 text-[10px] font-mono text-stone-500 space-y-0.5 shrink-0">
+              <p>• 給与マッチング: 送出額の75%〜125%+$100K（両側に選手がいる場合のみ）</p>
+              <p>• ステピアンルール: 連続2年の1巡目ピックが両方空いてはならない</p>
+              <p>• ピック価値バランス: 合計値が送出×1.5+15ptを超えると拒否</p>
+              <p>• ピックのみのトレードは給与マッチング不要</p>
+            </div>
+
+            <div className="flex-1 flex gap-3 min-h-0 overflow-hidden">
+              {/* LEFT: Your assets */}
+              <div className="flex-1 flex flex-col gap-2 min-h-0">
+                <h3 className="text-xs font-mono font-black text-red-400 shrink-0">📤 送出資産を選択</h3>
+                <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+                  <div className="text-[10px] font-mono text-stone-600 uppercase tracking-wider mb-1">選手</div>
+                  {roster.map(p => {
+                    const selected = outP.find(x => x.id === p.id);
+                    const tier = getEffTier(p.rating, p.salary);
+                    return (
+                      <button key={p.id} onClick={() => toggleTradeOut(p)}
+                        className={'w-full text-left text-xs py-1.5 px-2 rounded flex justify-between items-center transition-all ' +
+                          (selected ? 'bg-red-950/50 border border-red-700' : 'bg-stone-950/30 border border-transparent hover:bg-stone-900/50')}>
+                        <span className="text-white truncate">{p.name} <span className="text-stone-500">{p.position}</span></span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-mono" style={{ color: tier.color }}>{p.rating}</span>
+                          <span className="text-stone-400 font-mono">${(p.salary / 1e6).toFixed(1)}M</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  <div className="text-[10px] font-mono text-stone-600 uppercase tracking-wider mt-2 mb-1">ピック</div>
+                  {draftPicks.length === 0 ? <p className="text-stone-700 text-xs">ピックなし</p> : draftPicks.map(pk => {
+                    const selected = outK.find(x => x.id === pk.id);
+                    return (
+                      <button key={pk.id} onClick={() => toggleTradeOutPick(pk)}
+                        className={'w-full text-left text-xs py-1.5 px-2 rounded flex justify-between items-center transition-all ' +
+                          (selected ? 'bg-red-950/50 border border-red-700' : 'bg-stone-950/30 border border-transparent hover:bg-stone-900/50')}>
+                        <span className="text-cyan-400 font-mono">Y{pk.year} R{pk.round}</span>
+                        <span className="text-stone-600 font-mono">[{getPickValue(pk)}pt]</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* CENTER: Validation */}
+              <div className="w-56 flex flex-col gap-2 shrink-0">
+                <h3 className="text-xs font-mono font-black text-amber-400 shrink-0">📋 判定</h3>
+                <div className="flex-1 bg-[#0e1218] border border-stone-800/50 rounded-xl p-3 space-y-2 text-xs overflow-y-auto">
+                  {hasOut && hasIn ? (
+                    <>
+                      <div>
+                        <div className="text-stone-600 font-mono text-[10px] uppercase">送出</div>
+                        {outP.map(p => <div key={p.id} className="text-red-400 font-mono truncate">- {p.name} (${(p.salary / 1e6).toFixed(1)}M)</div>)}
+                        {outK.map(p => <div key={p.id} className="text-red-400 font-mono">- Y{p.year}R{p.round} [{getPickValue(p)}]</div>)}
+                      </div>
+                      <div>
+                        <div className="text-stone-600 font-mono text-[10px] uppercase">獲得</div>
+                        {inP.map(p => <div key={p.id} className="text-cyan-400 font-mono truncate">+ {p.name} (${(p.salary / 1e6).toFixed(1)}M)</div>)}
+                        {inK.map(p => <div key={p.id} className="text-cyan-400 font-mono">+ Y{p.year}R{p.round} [{getPickValue(p)}]</div>)}
+                      </div>
+                      <div className="border-t border-stone-800 pt-2 space-y-1">
+                        {salaryValid && (
+                          <div>
+                            <div className="text-stone-500 font-mono text-[10px]">給与マッチング</div>
+                            <div className={salaryValid.allowed ? 'text-emerald-400 font-mono font-black' : 'text-red-400 font-mono font-black'}>
+                              {salaryValid.allowed ? '✓ OK' : '✗ ' + salaryValid.reason}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-stone-500 font-mono text-[10px]">ステピアンルール</div>
+                          <div className={stepienValid.valid ? 'text-emerald-400 font-mono font-black' : 'text-red-400 font-mono font-black'}>
+                            {stepienValid.valid ? '✓ OK' : '✗ ' + stepienValid.reason}
+                          </div>
+                        </div>
+                        {inK.length > 0 && (
+                          <div>
+                            <div className="text-stone-500 font-mono text-[10px]">ピックバランス</div>
+                            <div className={pickBalanceValid.valid ? 'text-emerald-400 font-mono font-black' : 'text-red-400 font-mono font-black'}>
+                              {pickBalanceValid.valid ? '✓ OK' : '✗ ' + pickBalanceValid.reason}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {tradeAllowed && inP.length > 0 && (() => {
+                        const outSal = outP.reduce((s, p) => s + p.salary, 0);
+                        const inSal = inP.reduce((s, p) => s + p.salary, 0);
+                        const outRtg = outP.reduce((s, p) => s + p.rating, 0);
+                        const inRtg = inP.reduce((s, p) => s + p.rating, 0);
+                        const capAfter = totalCapHit - outSal + inSal;
+                        const rtgAfter = totalRating - outRtg + inRtg;
+                        return (
+                          <div className="bg-stone-950 rounded-lg p-2 space-y-1 border border-stone-800">
+                            <div className="text-[10px] text-stone-600 font-mono uppercase">プレビュー</div>
+                            <div className="flex justify-between"><span className="text-stone-500">Cap</span><span className={capAfter <= DYN_CAP ? 'text-emerald-400 font-mono' : 'text-red-400 font-mono'}>${(capAfter / 1e6).toFixed(1)}M</span></div>
+                            <div className="flex justify-between"><span className="text-stone-500">Rating</span><span className={rtgAfter >= tower.ratingLine ? 'text-emerald-400 font-mono' : 'text-red-400 font-mono'}>{rtgAfter}</span></div>
+                          </div>
+                        );
+                      })()}
+                      <div className={'text-base font-black font-mono pt-1 text-center ' + (tradeAllowed ? 'text-emerald-400' : 'text-red-400')}>
+                        {tradeAllowed ? '✓ 成立' : '✗ 不可'}
+                      </div>
+                      <button onClick={handleExecuteTrade} disabled={!tradeAllowed}
+                        className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 disabled:from-stone-800 disabled:to-stone-800 disabled:text-stone-600 text-stone-950 font-mono font-black py-2 rounded-lg text-xs">
+                        トレード実行
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-stone-600 text-xs text-center py-4">左右から送出・獲得を選択</p>
+                  )}
+                </div>
+              </div>
+
+              {/* RIGHT: Market assets */}
+              <div className="flex-1 flex flex-col gap-2 min-h-0">
+                <h3 className="text-xs font-mono font-black text-emerald-400 shrink-0">📥 獲得資産を選択</h3>
+                <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+                  <div className="text-[10px] font-mono text-stone-600 uppercase tracking-wider mb-1">市場選手</div>
+                  {tradeMarket.players.map(p => {
+                    const selected = inP.find(x => x.id === p.id);
+                    const tier = getEffTier(p.rating, p.salary);
+                    return (
+                      <button key={p.id} onClick={() => toggleTradeIn(p)}
+                        className={'w-full text-left text-xs py-1.5 px-2 rounded flex justify-between items-center transition-all ' +
+                          (selected ? 'bg-cyan-950/50 border border-cyan-700' : 'bg-stone-950/30 border border-transparent hover:bg-stone-900/50')}>
+                        <span className="text-white truncate">{p.name} <span className="text-stone-500">{p.position}</span></span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-mono" style={{ color: tier.color }}>{p.rating}</span>
+                          <span className="text-stone-400 font-mono">${(p.salary / 1e6).toFixed(1)}M</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                  <div className="text-[10px] font-mono text-stone-600 uppercase tracking-wider mt-2 mb-1">市場ピック</div>
+                  {tradeMarket.picks.length === 0 ? <p className="text-stone-700 text-xs">ピックなし</p> : tradeMarket.picks.map(pk => {
+                    const selected = inK.find(x => x.id === pk.id);
+                    return (
+                      <button key={pk.id} onClick={() => toggleTradeInPick(pk)}
+                        className={'w-full text-left text-xs py-1.5 px-2 rounded flex justify-between items-center transition-all ' +
+                          (selected ? 'bg-cyan-950/50 border border-cyan-700' : 'bg-stone-950/30 border border-transparent hover:bg-stone-900/50')}>
+                        <span className="text-cyan-400 font-mono">Y{pk.year} R{pk.round} <span className="text-stone-600">({pk.from})</span></span>
+                        <span className="text-stone-600 font-mono">[{getPickValue(pk)}pt]</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    }
+
+    /* ═══ NORMAL MANAGE MODE ═══ */
     return (
       <div className="h-screen bg-[#080b10] text-white font-sans antialiased flex flex-col selection:bg-cyan-500 selection:text-black overflow-hidden">
         {CSS}
@@ -514,26 +812,21 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
           {/* ══ Tower Area ══ */}
           <div className="flex-1 flex flex-col min-w-0 gap-2">
             <div className="flex-1 relative rounded-xl border border-stone-800/50 bg-[#0c0f16] overflow-hidden">
-              {/* Grid bg */}
               <div className="absolute inset-0 opacity-[0.03]" style={{
                 backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 49px,rgba(6,182,212,0.4) 49px,rgba(6,182,212,0.4) 50px),repeating-linear-gradient(90deg,transparent,transparent 49px,rgba(6,182,212,0.4) 49px,rgba(6,182,212,0.4) 50px)',
               }} />
-              {/* Water fill */}
               <div className="absolute bottom-0 left-0 right-0 transition-all duration-700 ease-out"
                 style={{ height: tower.waterPx, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))' }} />
               <WaterWave bottom={tower.waterPx} />
-              {/* Cap markers */}
               <CapMarker label="CAP" value={DYN_CAP} dashColor="#6b7280" />
               <CapMarker label="TAX" value={DYN_TAX} dashColor="#b45309" />
               <CapMarker label="APRON1" value={DYN_APRON1} dashColor="#c2410c" />
               <CapMarker label="APRON2" value={DYN_APRON2} dashColor="#dc2626" />
-              {/* Rating line */}
               <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/50 tw-pulse" style={{ bottom: tower.ratingLinePx }}>
                 <span className="absolute right-2 -top-5 text-[10px] font-mono text-amber-400 bg-amber-950/60 px-1.5 py-0.5 rounded">
                   ★ Rating {tower.ratingLine}
                 </span>
               </div>
-              {/* Blocks */}
               {tower.blocks.map(b => (
                 <Block key={b.id} block={b} isSelected={selectedBlockId === b.id}
                   isSubmerged={tower.waterPx > b.yTop}
@@ -542,14 +835,12 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               {tower.blocks.length === 0 && (
                 <div className="absolute inset-0 flex items-center justify-center text-stone-600 font-mono text-sm">選手がいません</div>
               )}
-              {/* Bottom labels */}
               <div className="absolute bottom-2 left-3 flex items-center gap-4 text-[10px] font-mono text-stone-500 z-20">
                 <span>Rating: <span className={tower.isAboveLine ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>{tower.totalRating}</span><span className="text-stone-700">/{tower.ratingLine}</span></span>
                 <span>Cap: <span className={tower.isUnderCap ? 'text-cyan-400 font-bold' : 'text-amber-400 font-bold'}>${(tower.totalCapHit / 1e6).toFixed(1)}M</span></span>
                 <span>{tower.blocks.length}人</span>
               </div>
             </div>
-            {/* Action bar */}
             <div className="h-10 flex items-center shrink-0">
               {selectedPlayer ? (
                 <ActionBar player={selectedPlayer} />
@@ -561,22 +852,20 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
           {/* ══ Side Panel ══ */}
           <div className="w-80 flex flex-col gap-2 shrink-0 min-h-0">
-            {/* Warning */}
             {!tower.isAboveLine && (
               <div className="bg-red-950/40 border border-red-700 rounded-xl p-3 animate-pulse shrink-0">
                 <div className="text-red-400 font-mono font-black text-sm">🚨 Rating ライン下回り！</div>
                 <div className="text-[10px] text-red-300 mt-0.5">不足: {tower.ratingLine - tower.totalRating}pt</div>
               </div>
             )}
-            {/* Status */}
             <div className="bg-[#0e1218] border border-stone-800/50 rounded-xl p-3 space-y-1.5 text-xs font-mono shrink-0">
               <div className="flex justify-between"><span className="text-stone-500">Rating</span><span className={tower.isAboveLine ? 'text-emerald-400 font-black text-base' : 'text-red-400 font-black text-base'}>{tower.totalRating} <span className="text-stone-700">/ {tower.ratingLine}</span></span></div>
               <div className="flex justify-between"><span className="text-stone-500">Cap Hit</span><span className={tower.isUnderCap ? 'text-cyan-400 font-black text-base' : 'text-amber-400 font-black text-base'}>${(tower.totalCapHit / 1e6).toFixed(1)}M <span className="text-stone-700">/ ${(DYN_CAP / 1e6).toFixed(0)}M</span></span></div>
               {dc > 0 && <div className="flex justify-between"><span className="text-red-500">Dead Cap</span><span className="text-red-400 font-black">${(dc / 1e6).toFixed(1)}M</span></div>}
               <div className="flex justify-between"><span className="text-stone-500">FA残り</span><span className="text-white font-black">{faLimit - faSignedThisSeason}/{faLimit}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">トレード</span><span className={tradesUsedThisSeason >= TRADE_LIMIT ? 'text-red-400 font-black' : 'text-white font-black'}>{TRADE_LIMIT - tradesUsedThisSeason}/{TRADE_LIMIT}</span></div>
               {mleAmount > 0 && <div className="flex justify-between"><span className="text-cyan-600">MLE</span><span className={mleUsed ? 'text-stone-600' : 'text-cyan-400 font-black'}>{mleUsed ? '使用済' : `$${(mleAmount / 1e6).toFixed(1)}M`}</span></div>}
             </div>
-            {/* FA Market */}
             <div className="bg-[#0e1218] border border-stone-800/50 rounded-xl flex-1 flex flex-col min-h-0 overflow-hidden">
               <div className="flex justify-between items-center px-3 pt-3 pb-2 shrink-0">
                 <h3 className="text-[10px] font-mono font-black text-cyan-400 uppercase tracking-wider">🏪 FA市場</h3>
@@ -604,7 +893,14 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 {freeAgents.length === 0 && <p className="text-stone-700 text-xs text-center py-6 font-mono">FA選手なし</p>}
               </div>
             </div>
-            {/* Next Season */}
+            <button onClick={handleOpenTrade}
+              disabled={tradesUsedThisSeason >= TRADE_LIMIT}
+              className={'w-full font-mono font-black py-2.5 rounded-xl text-xs tracking-widest transition-all shrink-0 ' +
+                (tradesUsedThisSeason >= TRADE_LIMIT
+                  ? 'bg-stone-800 text-stone-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white')}>
+              ⚖️ TRADE {tradesUsedThisSeason >= TRADE_LIMIT ? '(上限)' : `(${TRADE_LIMIT - tradesUsedThisSeason}回)`}
+            </button>
             <button onClick={handleNextSeason}
               className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-stone-950 font-mono font-black py-3 rounded-xl text-sm tracking-widest transition-all shrink-0">
               NEXT SEASON ➡️
