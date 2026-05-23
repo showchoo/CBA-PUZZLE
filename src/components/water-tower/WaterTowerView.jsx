@@ -8,7 +8,7 @@ import {
 } from '../../waterTowerEngine';
 
 /* ═══ Constants ═══ */
-const SEASON_W = 280;
+const SEASON_W = 600;
 const PX_PER_M = 2.5;
 const MIN_H = 28;
 const SEC_PER_SEASON = 30;
@@ -323,7 +323,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     handleUserRelease();
   }, [handleUserRelease]);
 
-  /* ═══ Window mouse events for drag ═══ */
   useEffect(() => {
     const move = (e) => handleDragMove(e);
     const up = () => handleDragEnd();
@@ -469,7 +468,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   function handleWaive(player) {
     playClickSound();
-    const dcEntry = {
+    setDeadCapDetails(prev => [...prev, {
       id: 'dc_' + player.id + '_' + Date.now(),
       name: player.name,
       amount: player.salary,
@@ -478,8 +477,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
       signedSeason: player.signedSeason,
       contractEndSeason: player.contractEndSeason,
       type: 'Waive'
-    };
-    setDeadCapDetails(prev => [...prev, dcEntry]);
+    }]);
     setRoster(r => r.filter(p => p.id !== player.id));
     setContextMenu(null);
     playRelease();
@@ -755,13 +753,14 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
         <main className="flex-1 flex overflow-hidden min-h-0 max-w-full">
           {/* Timeline */}
           <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-            {/* Season labels */}
+            {/* Season labels row */}
             <div className="h-8 flex shrink-0 border-b border-stone-900 overflow-hidden" ref={el => {
               if (el && contRef.current) {
                 const syncScroll = () => { el.scrollLeft = contRef.current?.scrollLeft || 0; };
                 contRef.current.addEventListener('scroll', syncScroll);
               }
             }}>
+              <div className="w-28 shrink-0" />
               <div style={{ width: tlWidth, position: 'relative' }}>
                 {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                   <div key={s} className="absolute top-0 h-full flex items-center justify-center font-mono text-sm" style={{
@@ -772,75 +771,85 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 ))}
               </div>
             </div>
-            {/* Canvas */}
-            <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden"
-              style={{ scrollbarWidth: 'none', cursor: dragRef.current.active ? 'grabbing' : 'grab' }}
-              onWheel={handleUserInteract}
-              onMouseDown={handleDragStart}
-              onTouchStart={handleUserInteract}
-              onTouchEnd={handleUserRelease}
-              onContextMenu={(e) => e.preventDefault()}>
-              <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none' }}>
-                {/* Grid */}
-                {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
-                  <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
-                ))}
-                {/* Past overlay */}
-                <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 0, width: Math.max(0, (currentSeason - 1) * SEASON_W), background: 'rgba(0,0,0,0.25)', zIndex: 4 }} />
-                {/* Water */}
-                <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))', zIndex: 1 }} />
-                <WaterWave bottom={waterH} />
-                {/* Cap line */}
-                <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40 pointer-events-none" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }}>
-                  <span className="absolute left-3 -top-6 text-sm font-mono text-red-400 bg-[#0c0f16]/80 px-1.5 rounded">CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
+            {/* Canvas area: left labels + scrollable canvas */}
+            <div className="flex-1 flex min-h-0">
+              {/* Left label column */}
+              <div className="w-28 shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden">
+                <div className="absolute left-0 right-0" style={{ bottom: canvasH * 0.65 }}>
+                  <div className="border-t-2 border-dashed border-amber-500/40 tw-pulse" />
+                  <span className="absolute left-2 -top-5 text-xs font-mono text-amber-400 bg-amber-950/80 px-1 rounded whitespace-nowrap">★ Rating {ratingLine}</span>
                 </div>
-                {/* Rating line label */}
-                <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse pointer-events-none" style={{ bottom: canvasH * 0.65, zIndex: 3 }}>
-                  <span className="absolute left-3 -top-6 text-sm font-mono text-amber-400 bg-[#0c0f16]/80 px-1.5 rounded">★ Rating {ratingLine}</span>
+                <div className="absolute left-0 right-0" style={{ bottom: capLineY }}>
+                  <div className="border-t-2 border-dashed opacity-40" style={{ borderColor: '#dc2626' }} />
+                  <span className="absolute left-2 -top-5 text-xs font-mono text-red-400 bg-[#0c0f16]/80 px-1 rounded whitespace-nowrap">CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
                 </div>
-                {/* Strips */}
-                {stacked.map(item => {
-                  const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
-                  const startSn = Math.max(currentSeason, item.signedSeason || 1);
-                  const left = (startSn - 1) * SEASON_W + 4;
-                  const w = Math.max(0, (endSn - startSn) * SEASON_W - 8);
-                  const tier = item.tier || getEffTier(item.rating, item.salary);
-                  const isCtxTarget = contextMenu && contextMenu.player.id === item.id;
-                  if (w <= 0) return null;
-                  return (
-                    <div key={item.id}
-                      onContextMenu={(e) => { if (!item.isDC) handleStripContextMenu(e, item); }}
-                      className={'absolute rounded-lg transition-all duration-500 ' +
-                        (item.isDC ? '' : 'cursor-pointer') +
-                        (isCtxTarget ? ' tw-glow' : '')}
-                      style={{
-                        left, width: w, bottom: item.sBot, height: item.sH,
-                        borderLeft: `5px solid ${item.isDC ? '#ef4444' : tier.color}`,
-                        backgroundColor: isCtxTarget ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.15)' : `${tier.color}12`,
-                        opacity: item.isDC ? 0.7 : 1,
-                        backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239,68,68,0.1) 8px, rgba(239,68,68,0.1) 16px)' : 'none',
-                        zIndex: isCtxTarget ? 10 : item.isDC ? 1 : 2,
-                        userSelect: 'none',
-                      }}>
-                      <div className="flex items-center justify-between px-4 h-full overflow-hidden">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-white font-bold text-base truncate">{item.name}</span>
-                          {!item.isDC && <span className="text-xs bg-stone-800/80 text-stone-400 px-1 rounded font-mono shrink-0">{item.position}</span>}
-                          {item.isDC && <span className="text-xs bg-red-950/80 text-red-400 px-1 rounded font-mono shrink-0">DC</span>}
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0">
-                          {!item.isDC && <span className="font-mono font-black text-lg" style={{ color: tier.color }}>{item.rating}</span>}
-                          <div className="text-right">
-                            <div className="text-stone-300 font-mono text-sm">${(item.effSal / 1e6).toFixed(1)}M</div>
-                            <div className="text-stone-600 font-mono text-xs">{tier.label}</div>
+              </div>
+              {/* Scrollable canvas */}
+              <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden"
+                style={{ scrollbarWidth: 'none', cursor: dragRef.current.active ? 'grabbing' : 'grab' }}
+                onWheel={handleUserInteract}
+                onMouseDown={handleDragStart}
+                onTouchStart={handleUserInteract}
+                onTouchEnd={handleUserRelease}
+                onContextMenu={(e) => e.preventDefault()}>
+                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16', userSelect: 'none' }}>
+                  {/* Grid */}
+                  {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
+                    <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
+                  ))}
+                  {/* Past overlay */}
+                  <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: 0, width: Math.max(0, (currentSeason - 1) * SEASON_W), background: 'rgba(0,0,0,0.25)', zIndex: 4 }} />
+                  {/* Water */}
+                  <div className="absolute bottom-0 left-0 right-0 transition-all" style={{ height: waterH, background: 'linear-gradient(to top, rgba(6,80,130,0.35), rgba(6,120,180,0.06))', zIndex: 1 }} />
+                  <WaterWave bottom={waterH} />
+                  {/* Cap line (line only) */}
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed opacity-40 pointer-events-none" style={{ bottom: capLineY, borderColor: '#dc2626', zIndex: 3 }} />
+                  {/* Rating line (line only) */}
+                  <div className="absolute left-0 right-0 border-t-2 border-dashed border-amber-500/40 tw-pulse pointer-events-none" style={{ bottom: canvasH * 0.65, zIndex: 3 }} />
+                  {/* Strips */}
+                  {stacked.map(item => {
+                    const endSn = item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1);
+                    const startSn = Math.max(currentSeason, item.signedSeason || 1);
+                    const left = (startSn - 1) * SEASON_W + 4;
+                    const w = Math.max(0, (endSn - startSn) * SEASON_W - 8);
+                    const tier = item.tier || getEffTier(item.rating, item.salary);
+                    const isCtxTarget = contextMenu && contextMenu.player.id === item.id;
+                    if (w <= 0) return null;
+                    return (
+                      <div key={item.id}
+                        onContextMenu={(e) => { if (!item.isDC) handleStripContextMenu(e, item); }}
+                        className={'absolute rounded-lg transition-all duration-500 ' +
+                          (item.isDC ? '' : 'cursor-pointer') +
+                          (isCtxTarget ? ' tw-glow' : '')}
+                        style={{
+                          left, width: w, bottom: item.sBot, height: item.sH,
+                          borderLeft: `5px solid ${item.isDC ? '#ef4444' : tier.color}`,
+                          backgroundColor: isCtxTarget ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.15)' : `${tier.color}12`,
+                          opacity: item.isDC ? 0.7 : 1,
+                          backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239,68,68,0.1) 8px, rgba(239,68,68,0.1) 16px)' : 'none',
+                          zIndex: isCtxTarget ? 10 : item.isDC ? 1 : 2,
+                          userSelect: 'none',
+                        }}>
+                        <div className="flex items-center justify-between px-4 h-full overflow-hidden">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-white font-bold text-base truncate">{item.name}</span>
+                            {!item.isDC && <span className="text-xs bg-stone-800/80 text-stone-400 px-1 rounded font-mono shrink-0">{item.position}</span>}
+                            {item.isDC && <span className="text-xs bg-red-950/80 text-red-400 px-1 rounded font-mono shrink-0">DC</span>}
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0">
+                            {!item.isDC && <span className="font-mono font-black text-lg" style={{ color: tier.color }}>{item.rating}</span>}
+                            <div className="text-right">
+                              <div className="text-stone-300 font-mono text-sm">${(item.effSal / 1e6).toFixed(1)}M</div>
+                              <div className="text-stone-600 font-mono text-xs">{tier.label}</div>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-                {/* Current season marker */}
-                <div className="absolute top-0 bottom-0 tw-glow pointer-events-none" style={{ left: (currentSeason - 1) * SEASON_W - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
+                    );
+                  })}
+                  {/* Current season marker */}
+                  <div className="absolute top-0 bottom-0 tw-glow pointer-events-none" style={{ left: (currentSeason - 1) * SEASON_W - 1, width: 3, background: 'linear-gradient(to bottom, #22d3ee, #0891b2)', zIndex: 8 }} />
+                </div>
               </div>
             </div>
             {/* Bottom status */}
@@ -857,20 +866,16 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
           {/* Side Panel */}
           <div className="w-72 flex flex-col gap-2 shrink-0 border-l border-stone-800/50 bg-[#0a0d12] overflow-hidden overflow-y-auto">
-            {/* Warning */}
             {totalRating < ratingLine && (
               <div className="bg-red-950/40 border-b border-red-900/50 p-3 animate-pulse shrink-0">
                 <div className="text-red-400 font-mono font-black text-base">🚨 Rating不足: {ratingLine - totalRating}pt</div>
               </div>
             )}
-            {/* Status */}
             <div className="p-3 space-y-1.5 text-base font-mono shrink-0">
               <div className="flex justify-between"><span className="text-stone-500">Rating</span><span className={totalRating >= ratingLine ? 'text-emerald-400 font-black text-xl' : 'text-red-400 font-black text-xl'}>{totalRating} <span className="text-stone-700">/{ratingLine}</span></span></div>
               <div className="flex justify-between"><span className="text-stone-500">Cap</span><span className={totalCapHit <= DYN_CAP ? 'text-cyan-400 font-black text-xl' : 'text-red-400 font-black text-xl'}>${(totalCapHit / 1e6).toFixed(1)}M</span></div>
               {dc > 0 && <div className="flex justify-between"><span className="text-red-500">Dead Cap</span><span className="text-red-400 font-black">${(dc / 1e6).toFixed(1)}M</span></div>}
             </div>
-
-            {/* FA Market */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <div className="flex justify-between items-center px-3 pt-2 pb-1 shrink-0">
                 <h3 className="text-sm font-mono font-black text-cyan-400 uppercase">🏪 FA市場</h3>
