@@ -440,6 +440,15 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
 
   useEffect(() => { doReroll(); }, []);
 
+  /* ★追加: manageフェーズに戻るたびにGM SCOREアニメーション発火 */
+  const prevPhaseRef = useRef('reroll');
+  useEffect(() => {
+    if (phase === 'manage' && prevPhaseRef.current !== 'reroll') {
+      flashGmScore();
+    }
+    prevPhaseRef.current = phase;
+  }, [phase]);
+
   /* ═══════════════════════════════════════ */
   /* ═══ HANDLERS ═══                        */
   /* ═══════════════════════════════════════ */
