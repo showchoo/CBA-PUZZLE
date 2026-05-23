@@ -628,7 +628,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             {/* Canvas area */}
             <div className="flex-1 flex min-h-0">
               {/* Fixed label gutter */}
-              <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900" style={{ width: GUTTER_W }}>
+              <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W, height: canvasH }}>
                 <span className="absolute left-1 text-[10px] font-mono text-red-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap" style={{ bottom: capLineY, transform: 'translateY(50%)' }}>CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
                 <span className="absolute left-1 text-[10px] font-mono text-amber-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap tw-pulse" style={{ bottom: canvasH * 0.65, transform: 'translateY(50%)' }}>★ R{ratingLine}</span>
               </div>
