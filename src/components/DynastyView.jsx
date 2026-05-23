@@ -1491,7 +1491,7 @@ export default function DynastyView({ onBack, gmName, playClickSound, isBgmOn, t
           <StreamSettingsPanel settings={streamSettings} onChange={setStreamSettings} onClose={() => setShowStreamSettings(false)} />
         )}
         <div className={'w-full flex flex-col flex-1 justify-start ' + (screenShake ? 'animate-shake' : '')}>
-          <Header />
+          {Header()}
           <main className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-4 flex-1 items-stretch">
             <div className="w-full lg:w-[42%] space-y-4 flex flex-col justify-between">
               <section className="bg-[#141210] border border-stone-800 rounded-xl shadow-xl p-5 space-y-3">
