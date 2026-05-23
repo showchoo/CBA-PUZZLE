@@ -342,24 +342,43 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   }
   function startGame() { playClickSound(); setSpeed(1); setPhase('manage'); }
 
-  function handleSeasonBoundary(newSn) {
+    function handleSeasonBoundary(newSn) {
     setSpeed(0);
-    const curRoster = rRef.current; const curDC = dcRef.current;
+    const curRoster = rRef.current;
+    const curDC = dcRef.current;
     const curRating = curRoster.reduce((s, p) => s + (Number(p.rating) || 0), 0);
     const curCapHit = calcCapHit(curRoster, curDC.reduce((s, d) => s + d.amount, 0));
     const prevRL = 380 + (newSn - 2) * 8;
-    const record = calcSeasonRecord(curRating, prevRL); setSeasonRecord(record);
-    const result = advanceSeason(curRoster, []); const deadResult = advanceDeadCap(curDC);
-    setSummaries(result.summaries); setRoster(result.surviving);
-    const preservedDC = deadResult.details.map(d => { const orig = curDC.find(o => o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', ''); return { ...d, id: d.id || orig?.id || ('dc_' + Date.now() + '_' + Math.random()), signedSeason: d.signedSeason || orig?.signedSeason || 1, contractEndSeason: d.contractEndSeason || orig?.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || 1) }; });
-    setDeadCapDetails(preservedDC); setTaxHistory(prev => [...prev, curCapHit > DYN_TAX]);
-    setMleUsed(false); setFaSignedThisSeason(0); setHardCapped(false); setContextMenu(null);
+    const record = calcSeasonRecord(curRating, prevRL);
+    setSeasonRecord(record);
+    const result = advanceSeason(curRoster, []);
+    const deadResult = advanceDeadCap(curDC);
+    setSummaries(result.summaries);
+    setRoster(result.surviving);
+    const preservedDC = deadResult.details.map(d => {
+      const orig = curDC.find(o =>
+        o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', '')
+      );
+      return {
+        ...d,
+        id: d.id || orig?.id || ('dc_' + Date.now() + '_' + Math.random()),
+        signedSeason: d.signedSeason || orig?.signedSeason || 1,
+        contractEndSeason: d.contractEndSeason || orig?.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || 1),
+      };
+    });
+    setDeadCapDetails(preservedDC);
+    setTaxHistory(prev => [...prev, curCapHit > DYN_TAX]);
+    setMleUsed(false);
+    setFaSignedThisSeason(0);
+    setHardCapped(false);
+    setContextMenu(null);
     const survival = checkSurvival(result.surviving, newSn + 1, []);
     if (!survival.alive) { playError(); setPhase('gameOver'); return; }
     if (record.gmBonus > 0) addToast('success', '🏀', `S${newSn - 1}: ${record.wins}W-${record.losses}L`, `${record.result} +${record.gmBonus}`, 4000);
     else addToast('info', '🏀', `S${newSn - 1}: ${record.wins}W-${record.losses}L`, record.result, 3000);
     setShowSummary(true);
   }
+
 
   function handleSummaryContinue() {
     setShowSummary(false);
