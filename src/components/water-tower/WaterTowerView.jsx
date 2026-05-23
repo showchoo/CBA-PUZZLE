@@ -7,17 +7,18 @@ import {
   DYN_CAP, DYN_TAX, DYN_APRON1, DYN_APRON2,
 } from '../../waterTowerEngine';
 
+
 /* ═══ Constants ═══ */
 const SEASON_W = 280;
 const PX_PER_M = 2.5;
 const MIN_H = 28;
-const SEC_PER_SEASON = 10;
+const SEC_PER_SEASON = 30;
 const TICK = 50;
 
 /* ═══ Toast ═══ */
 function Toast({ toasts }) {
   return (
-    <div className="fixed top-4 right-4 z-[100] space-y-3 pointer-events-none" style={{ maxWidth: 480 }}>
+    <div className="fixed top-4 left-4 z-[100] space-y-3 pointer-events-none" style={{ maxWidth: 480 }}>
       {toasts.map(t => (
         <div key={t.id} className="pointer-events-auto" style={{ animation: 'twIn 0.4s ease forwards' }}>
           <div className={'border rounded-xl px-5 py-4 shadow-2xl backdrop-blur-sm ' +
@@ -183,7 +184,20 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   /* ── Stacking ── */
   const allItems = [
     ...roster.map(p => ({ ...p, isDC: false, effSal: p.salary })),
-    ...deadCapDetails.map(d => ({ id: d.id, name: d.name, salary: d.amount, effSal: d.amount, isDC: true, rating: 0, position: '', contractYears: d.yearsLeft, signedSeason: d.signedSeason, contractEndSeason: d.contractEndSeason, tier: { color: '#ef4444', label: 'DC' } })),
+    ...deadCapDetails.map(d => ({
+      id: d.id || ('dc_' + Date.now() + '_' + Math.random()),
+      name: d.name,
+      salary: d.amount,
+      effSal: d.amount,
+      isDC: true,
+      rating: 0,
+      position: '',
+      contractYears: d.contractYears || d.yearsLeft || 1,
+      yearsLeft: d.yearsLeft || d.contractYears || 1,
+      signedSeason: d.signedSeason || 1,
+      contractEndSeason: d.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || d.contractYears || 1),
+      tier: { color: '#ef4444', label: 'DC' },
+    })),
   ].sort((a, b) => b.effSal - a.effSal);
 
   let cumH = 0;
@@ -196,7 +210,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   const maxSn = Math.max(
     ...roster.map(p => p.contractEndSeason || (p.signedSeason || 1) + p.contractYears),
-    ...deadCapDetails.map(d => (d.signedSeason || 1) + (d.contractYears || d.yearsLeft)),
+    ...deadCapDetails.map(d => (d.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || d.contractYears || 1))),
     sn + 7
   );
   const tlWidth = maxSn * SEASON_W;
@@ -233,9 +247,9 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const playSuccess = () => { playTone(523); setTimeout(() => playTone(659), 100); setTimeout(() => playTone(784), 200); };
   const playEpic = () => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playTone(f, 0.3, 'sine', 0.05), i * 100)); };
   const playError = () => { playTone(200, 0.15, 'square', 0.05); setTimeout(() => playTone(180, 0.2, 'square', 0.05), 100); };
-  const playRelease = () => { playTone(600, 0.15, 'sine', 0.05); playTone(400, 0.15, 'sine', 0.04, 0.1); playTone(250, 0.3, 'sine', 0.03, 0.2); };
-  const playBuyout = () => { playTone(330, 0.6, 'sine', 0.05); playTone(494, 0.8, 'sine', 0.07, 0.04); };
-  const playInflate = () => { playTone(400, 0.15, 'triangle', 0.05); playTone(600, 0.2, 'triangle', 0.06, 0.1); playTone(800, 0.25, 'triangle', 0.07, 0.2); };
+  const playRelease = () => { playTone(600, 0.15, 'sine', 0.05); setTimeout(() => playTone(400, 0.15, 'sine', 0.04), 100); setTimeout(() => playTone(250, 0.3, 'sine', 0.03), 200); };
+  const playBuyout = () => { playTone(330, 0.6, 'sine', 0.05); setTimeout(() => playTone(494, 0.8, 'sine', 0.07), 40); };
+  const playInflate = () => { playTone(400, 0.15, 'triangle', 0.05); setTimeout(() => playTone(600, 0.2, 'triangle', 0.06), 100); setTimeout(() => playTone(800, 0.25, 'triangle', 0.07), 200); };
 
   /* ═══ Timer ═══ */
   useEffect(() => {
@@ -319,7 +333,19 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     const deadResult = advanceDeadCap(curDC);
     setSummaries(result.summaries);
     setRoster(result.surviving);
-    setDeadCapDetails(deadResult.details);
+
+    /* デッドキャップのID・signedSeason・contractEndSeasonを保持 */
+    const preservedDC = deadResult.details.map(d => {
+      const orig = curDC.find(o => o.name === d.name || o.name?.replace(' (B/O)', '') === d.name?.replace(' (B/O)', ''));
+      return {
+        ...d,
+        id: d.id || orig?.id || ('dc_lost_' + Date.now() + '_' + Math.random()),
+        signedSeason: d.signedSeason || orig?.signedSeason || 1,
+        contractEndSeason: d.contractEndSeason || orig?.contractEndSeason || (d.signedSeason || 1) + (d.yearsLeft || 1),
+      };
+    });
+    setDeadCapDetails(preservedDC);
+
     setTaxHistory(prev => [...prev, curCapHit > DYN_TAX]);
     setMleUsed(false); setFaSignedThisSeason(0); setTradesUsed(0); setHardCapped(false); setActionPlayer(null);
 
@@ -386,7 +412,16 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   function handleWaive(player) {
     playClickSound();
-    const dcEntry = { id: 'dc_' + player.id + '_' + Date.now(), name: player.name, amount: player.salary, yearsLeft: player.contractYears, contractYears: player.contractYears, signedSeason: player.signedSeason, contractEndSeason: player.contractEndSeason, type: 'Waive' };
+    const dcEntry = {
+      id: 'dc_' + player.id + '_' + Date.now(),
+      name: player.name,
+      amount: player.salary,
+      yearsLeft: player.contractYears,
+      contractYears: player.contractYears,
+      signedSeason: player.signedSeason,
+      contractEndSeason: player.contractEndSeason,
+      type: 'Waive'
+    };
     setDeadCapDetails(prev => [...prev, dcEntry]);
     setRoster(r => r.filter(p => p.id !== player.id));
     setActionPlayer(null);
@@ -401,7 +436,16 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
     if (Math.random() * 100 < chance) {
       const pct = 50 + Math.floor(Math.random() * 21);
       const dead = Math.floor(player.salary * pct / 100);
-      setDeadCapDetails(prev => [...prev, { id: 'dc_' + player.id + '_' + Date.now(), name: player.name + ' (B/O)', amount: dead, yearsLeft: player.contractYears, contractYears: player.contractYears, signedSeason: player.signedSeason, contractEndSeason: player.contractEndSeason, type: 'Buyout' }]);
+      setDeadCapDetails(prev => [...prev, {
+        id: 'dc_' + player.id + '_' + Date.now(),
+        name: player.name + ' (B/O)',
+        amount: dead,
+        yearsLeft: player.contractYears,
+        contractYears: player.contractYears,
+        signedSeason: player.signedSeason,
+        contractEndSeason: player.contractEndSeason,
+        type: 'Buyout'
+      }]);
       setRoster(r => r.filter(p => p.id !== player.id));
       setActionPlayer(null);
       playBuyout();
@@ -451,7 +495,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   /* ═══════════════════════════════════════ */
   const CSS = (
     <style>{`
-      @keyframes twIn { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      @keyframes twIn { from { transform: translateX(-120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
       @keyframes twWave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
       @keyframes twPulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
       @keyframes twGlow { 0%, 100% { box-shadow: 0 0 8px rgba(34,211,238,0.3); } 50% { box-shadow: 0 0 20px rgba(34,211,238,0.6); } }
@@ -546,7 +590,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             <SpeedBtn v={0} label="⏸" />
             <SpeedBtn v={1} label="1x" />
             <SpeedBtn v={2} label="2x" />
-            <SpeedBtn v={5} label="5x" />
+            <SpeedBtn v={3} label="3x" />
             <span className="text-sm font-mono text-stone-600 ml-3">GM</span>
             <span className="text-xl font-mono font-black text-amber-400">{gmScore}</span>
             <button onClick={() => { playClickSound(); toggleBGM(); }} className={'px-2 py-1 rounded text-lg ' + (isBgmOn ? 'text-emerald-400' : 'text-stone-500')}>{isBgmOn ? '🔊' : '🔇'}</button>
@@ -592,7 +636,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 </div>
                 {/* Strips */}
                 {stacked.map(item => {
-                  const startSn = (item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || item.yearsLeft || 1)) - (item.isDC ? (item.yearsLeft || 1) : (item.contractYears || 1));
+                  const startSn = (item.contractEndSeason || (item.signedSeason || 1) + (item.contractYears || 1)) - (item.isDC ? (item.yearsLeft || 1) : (item.contractYears || 1));
                   const left = (startSn - 1) * SEASON_W + 4;
                   const w = Math.max(0, ((item.isDC ? item.yearsLeft : item.contractYears) || 0) * SEASON_W - 8);
                   const tier = item.tier || getEffTier(item.rating, item.salary);
@@ -604,16 +648,17 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                       style={{
                         left, width: w, bottom: item.sBot, height: item.sH,
                         borderLeft: `5px solid ${item.isDC ? '#ef4444' : tier.color}`,
-                        backgroundColor: isSelected ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.1)' : `${tier.color}12`,
-                        opacity: item.isDC ? 0.6 : 1,
-                        backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239,68,68,0.08) 8px, rgba(239,68,68,0.08) 16px)' : 'none',
-                        zIndex: isSelected ? 10 : 2,
+                        backgroundColor: isSelected ? `${tier.color}30` : item.isDC ? 'rgba(239,68,68,0.15)' : `${tier.color}12`,
+                        opacity: item.isDC ? 0.7 : 1,
+                        backgroundImage: item.isDC ? 'repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(239,68,68,0.1) 8px, rgba(239,68,68,0.1) 16px)' : 'none',
+                        zIndex: isSelected ? 10 : item.isDC ? 1 : 2,
                         transform: isSelected ? 'translateX(6px)' : 'translateX(0)',
                       }}>
                       <div className="flex items-center justify-between px-4 h-full overflow-hidden">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className="text-white font-bold text-base truncate">{item.name}</span>
                           {!item.isDC && <span className="text-xs bg-stone-800/80 text-stone-400 px-1 rounded font-mono shrink-0">{item.position}</span>}
+                          {item.isDC && <span className="text-xs bg-red-950/80 text-red-400 px-1 rounded font-mono shrink-0">DC</span>}
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           {!item.isDC && <span className="font-mono font-black text-lg" style={{ color: tier.color }}>{item.rating}</span>}
