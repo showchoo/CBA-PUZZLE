@@ -159,7 +159,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const [tradesUsed, setTradesUsed] = useState(0);
   const [taxHistory, setTaxHistory] = useState([]);
   const [hardCapped, setHardCapped] = useState(false);
-  const canvasRef = useRef(null);
+  const scrollRef = useRef(null);
   const [canvasH, setCanvasH] = useState(400);
   const toastId = useRef(0);
   const timerRef = useRef(null);
@@ -282,23 +282,22 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   /* ═══ Canvas Measurement ═══ */
   useEffect(() => {
-    const measure = () => {
-      if (canvasRef.current) {
-        const h = canvasRef.current.clientHeight;
-        if (h > 0) setCanvasH(h);
-      }
-    };
+    const el = scrollRef.current;
+    if (!el) return;
+    const measure = () => { const h = el.clientHeight; if (h > 0) setCanvasH(h); };
     measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => { ro.disconnect(); window.removeEventListener('resize', measure); };
   }, [phase]);
 
   /* ═══ Camera ═══ */
   useEffect(() => {
-    if (contRef.current && phase === 'manage') {
-      const t = (currentSeason - 1) * SEASON_W - contRef.current.clientWidth / 2 + SEASON_W / 2;
-      contRef.current.scrollLeft = Math.max(0, t);
-      if (labelsRef.current) labelsRef.current.scrollLeft = contRef.current.scrollLeft;
+    if (scrollRef.current && phase === 'manage') {
+      const t = (currentSeason - 1) * SEASON_W - scrollRef.current.clientWidth / 2 + SEASON_W / 2;
+      scrollRef.current.scrollLeft = Math.max(0, t);
+      if (labelsRef.current) labelsRef.current.scrollLeft = scrollRef.current.scrollLeft;
     }
   }, [currentSeason, phase]);
 
@@ -508,8 +507,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
 
   /* ── Canvas scroll sync ── */
   const handleCanvasScroll = useCallback(() => {
-    if (contRef.current && labelsRef.current) {
-      labelsRef.current.scrollLeft = contRef.current.scrollLeft;
+    if (scrollRef.current && labelsRef.current) {
+      labelsRef.current.scrollLeft = scrollRef.current.scrollLeft;
     }
   }, []);
 
@@ -624,10 +623,10 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
           {/* Timeline — fixed width: 2 seasons + gutter */}
           <div className="flex flex-col shrink-0" style={{ width: SEASON_W * 2 + GUTTER_W }}>
             {/* Season labels */}
-            <div className="h-8 flex shrink-0 border-b border-stone-900">
+            <div className="h-10 flex items-center shrink-0 border-b border-stone-900">
               <div style={{ width: GUTTER_W }} className="shrink-0" />
-              <div className="flex-1 overflow-hidden" ref={labelsRef}>
-                <div style={{ width: tlWidth, position: 'relative' }}>
+              <div className="flex-1 overflow-hidden h-full" ref={labelsRef}>
+                <div style={{ width: tlWidth, height: '100%', position: 'relative' }}>
                   {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                     <div key={s} className="absolute top-0 h-full flex items-center justify-center font-mono text-sm" style={{
                       left: (s - 1) * SEASON_W, width: SEASON_W,
@@ -640,7 +639,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             </div>
 
             {/* Canvas area */}
-            <div className="flex-1 flex min-h-0 overflow-hidden" ref={canvasRef}>
+            <div className="flex-1 flex min-h-0 overflow-hidden">
               {/* Fixed label gutter */}
               <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W }}>
                 <span className="absolute left-1 text-[10px] font-mono text-red-400 bg-[#0c0f16]/90 px-0.5 rounded whitespace-nowrap" style={{ bottom: capLineY, transform: 'translateY(50%)' }}>CAP ${(DYN_CAP / 1e6).toFixed(0)}M</span>
@@ -648,8 +647,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               </div>
 
               {/* Scrollable canvas */}
-              <div ref={contRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none' }} onScroll={handleCanvasScroll}>
-                <div style={{ width: tlWidth, height: canvasH, position: 'relative', background: '#0c0f16' }}>
+              <div ref={scrollRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none' }} onScroll={handleCanvasScroll}>
+                <div ref={contRef} style={{ width: tlWidth, height: '100%', position: 'relative', background: '#0c0f16' }}>
                   {/* Grid */}
                   {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                     <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
