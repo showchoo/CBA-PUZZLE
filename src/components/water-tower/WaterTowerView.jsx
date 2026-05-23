@@ -9,7 +9,7 @@ import {
 
 
 /* ═══ Constants ═══ */
-const SEASON_W = 280;
+const SEASON_W = 140;
 const PX_PER_M = 2.5;
 const MIN_H = 28;
 const SEC_PER_SEASON = 30;
