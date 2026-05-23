@@ -29,7 +29,7 @@ const TRADE_LIMIT = 3;
 /* ═══ Toast ═══ */
 function ToastContainer({ toasts }) {
   return (
-    <div className="fixed top-4 right-4 z-[100] space-y-3 pointer-events-none" style={{ maxWidth: '400px' }}>
+    <div className="fixed top-4 left-4 z-[100] space-y-3 pointer-events-none" style={{ maxWidth: '400px' }}>
       {toasts.map((toast) => (
         <div key={toast.id} className="pointer-events-auto"
           style={{ animation: toast.exiting ? 'dyToastOut 0.4s ease forwards' : 'dyToastIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}>
