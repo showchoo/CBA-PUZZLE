@@ -206,14 +206,6 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   /* ── Salary markers for gutter ── */
   const salaryMarkers = [20, 40, 60, 80, 100, 120, 140, 160, 180];
 
-  /* ── DC items ── */
-  const dcItems = deadCapDetails.map(d => ({
-    id: d.id || ('dc_' + Date.now() + '_' + Math.random()),
-    name: d.name,
-    amount: d.amount,
-    yearsLeft: d.yearsLeft || d.contractYears || 1,
-  }));
-
   /* ── Timeline ── */
   const maxSn = Math.max(
     ...roster.map(p => p.contractEndSeason || (p.signedSeason || 1) + p.contractYears),
@@ -622,7 +614,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
             {/* Canvas area */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden" ref={canvasAreaRef}>
               {/* Rating area */}
-              <div className="flex-1 flex min-h-0">
+              <div className="flex-1 flex min-h-0 overflow-hidden">
                 {/* Gutter */}
                 <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W }}>
                   {salaryMarkers.map(m => (
@@ -644,8 +636,8 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 </div>
 
                 {/* Scrollable canvas */}
-                <div ref={scrollRef} className="flex-1 overflow-x-auto overflow-y-hidden" style={{ scrollbarWidth: 'none' }} onScroll={handleCanvasScroll}>
-                  <div ref={contRef} style={{ width: tlWidth, height: '100%', position: 'relative', background: '#0c0f16' }}>
+                <div ref={scrollRef} className="flex-1 overflow-auto" style={{ scrollbarWidth: 'none' }} onScroll={handleCanvasScroll}>
+                  <div ref={contRef} style={{ width: tlWidth, height: ratingAreaH, position: 'relative', background: '#0c0f16' }}>
                     {/* Grid */}
                     {Array.from({ length: maxSn }, (_, i) => i + 1).map(s => (
                       <div key={s} className="absolute top-0 bottom-0" style={{ left: (s - 1) * SEASON_W, width: 1, background: 'rgba(255,255,255,0.03)' }} />
@@ -769,15 +761,15 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               </div>
             </div>
 
-            {/* Bottom status */}
-            <div className="flex items-center gap-8 px-5 py-4 bg-[#0e1218] border-t border-stone-800/50 font-mono shrink-0">
-              <span className="text-2xl">Rating: <span className={totalRating >= ratingLine ? 'text-emerald-400 font-black text-5xl' : 'text-red-400 font-black text-5xl'}>{totalRating}</span><span className="text-stone-700 text-3xl">/{ratingLine}</span></span>
-              <span className="text-2xl">Cap: <span className={totalCapHit <= DYN_CAP ? 'text-cyan-400 font-black text-5xl' : 'text-amber-400 font-black text-5xl'}>${(totalCapHit / 1e6).toFixed(1)}M</span><span className="text-stone-700 text-3xl">/${(DYN_CAP / 1e6).toFixed(0)}M</span></span>
-              <span className="text-2xl">{roster.length}人</span>
-              <span className="text-stone-600 text-2xl">|</span>
-              <span className="text-2xl">FA残り: <span className="text-white font-black text-3xl">{faLimit - faSignedThisSeason}/{faLimit}</span></span>
-              {dc > 0 && <span className="text-2xl">DC: <span className="text-red-400 font-black text-3xl">${(dc / 1e6).toFixed(1)}M</span></span>}
-              <span className="text-stone-600 text-lg ml-auto">Space: 一時停止</span>
+            {/* Bottom status (compact) */}
+            <div className="flex items-center gap-6 px-5 py-2 bg-[#0e1218] border-t border-stone-800/50 text-sm font-mono shrink-0">
+              <span>Rating: <span className={totalRating >= ratingLine ? 'text-emerald-400 font-black' : 'text-red-400 font-black'}>{totalRating}</span><span className="text-stone-700">/{ratingLine}</span></span>
+              <span>Cap: <span className={totalCapHit <= DYN_CAP ? 'text-cyan-400 font-black' : 'text-amber-400 font-black'}>${(totalCapHit / 1e6).toFixed(1)}M</span><span className="text-stone-700">/${(DYN_CAP / 1e6).toFixed(0)}M</span></span>
+              <span>{roster.length}人</span>
+              <span className="text-stone-600">|</span>
+              <span>FA残り: <span className="text-white font-black">{faLimit - faSignedThisSeason}/{faLimit}</span></span>
+              {dc > 0 && <span>DC: <span className="text-red-400 font-black">${(dc / 1e6).toFixed(1)}M</span></span>}
+              <span className="text-stone-600 text-xs ml-auto">Space: 一時停止</span>
             </div>
           </div>
 
