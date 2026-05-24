@@ -173,7 +173,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
   const ratingLine = 380 + (sn - 1) * 8;
   const gmScore = calcGMScore(sn, totalRating, totalCapHit, roster);
   const isDrowning = totalRating < ratingLine;
-  const ratingAreaH = Math.max(200, Math.min(canvasH - SALARY_BAR_H, 500));
+  const ratingAreaH = Math.max(200, canvasH - SALARY_BAR_H);
   const maxSalaryM = DYN_APRON2 / 1e6;
   const pxPerM = ratingAreaH / maxSalaryM;
 
