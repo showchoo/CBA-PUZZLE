@@ -10,7 +10,7 @@ import {
 
 /* ═══ Constants ═══ */
 const SEASON_W = 420;
-const GUTTER_W = 90;
+const GUTTER_W = 120;
 const MIN_H = 28;
 const SEC_PER_SEASON = 30;
 const TICK = 50;
