@@ -10,7 +10,7 @@ import {
 
 /* ═══ Constants ═══ */
 const SEASON_W = 420;
-const GUTTER_W = 140;
+const GUTTER_W = 90;
 const MIN_H = 28;
 const SEC_PER_SEASON = 30;
 const TICK = 50;
@@ -618,20 +618,20 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
                 {/* Gutter */}
                 <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W }}>
                   {salaryMarkers.map(m => (
-                    <span key={m} className="absolute left-1 text-[32px] font-mono text-stone-800"
+                    <span key={m} className="absolute left-1 text-[20px] font-mono text-stone-800"
                       style={{ bottom: m * pxPerM, transform: 'translateY(50%)' }}>
                       ${m}M
                     </span>
                   ))}
-                  <span className="absolute left-1 text-[36px] font-mono text-red-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
+                  <span className="absolute left-1 text-[24px] font-mono text-red-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
                     style={{ bottom: (DYN_CAP / 1e6) * pxPerM, transform: 'translateY(50%)' }}>CAP</span>
-                  <span className="absolute left-1 text-[36px] font-mono text-amber-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
+                  <span className="absolute left-1 text-[24px] font-mono text-amber-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
                     style={{ bottom: (DYN_TAX / 1e6) * pxPerM, transform: 'translateY(50%)' }}>TAX</span>
-                  <span className="absolute left-1 text-[36px] font-mono text-purple-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
+                  <span className="absolute left-1 text-[24px] font-mono text-purple-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
                     style={{ bottom: (DYN_APRON1 / 1e6) * pxPerM, transform: 'translateY(50%)' }}>APR1</span>
-                  <span className="absolute left-1 text-[36px] font-mono text-pink-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
+                  <span className="absolute left-1 text-[24px] font-mono text-pink-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
                     style={{ bottom: (DYN_APRON2 / 1e6) * pxPerM, transform: 'translateY(-100%)' }}>APR2</span>
-                  <span className="absolute left-1 text-[36px] font-mono text-cyan-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
+                  <span className="absolute left-1 text-[24px] font-mono text-cyan-400 bg-[#0c0f16]/90 px-1 rounded whitespace-nowrap"
                     style={{ bottom: waterPixelY, transform: 'translateY(50%)' }}>★ R{ratingLine}</span>
                 </div>
 
