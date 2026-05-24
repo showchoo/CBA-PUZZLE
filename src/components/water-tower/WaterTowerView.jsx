@@ -616,7 +616,7 @@ export default function WaterTowerView({ onBack, gmName, playClickSound, isBgmOn
               {/* Rating area */}
               <div className="flex-1 flex min-h-0 overflow-hidden">
                 {/* Gutter */}
-                <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900 overflow-hidden" style={{ width: GUTTER_W, height: ratingAreaH }}>
+                <div className="shrink-0 relative bg-[#0c0f16] border-r border-stone-900" style={{ width: GUTTER_W, height: ratingAreaH }}>
                   {salaryMarkers.map(m => (
                     <span key={m} className="absolute left-1 text-[20px] font-mono text-stone-800"
                       style={{ bottom: m * pxPerM, transform: 'translateY(50%)' }}>
